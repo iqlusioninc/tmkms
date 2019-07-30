@@ -1,6 +1,7 @@
-## [0.6.0-rc1] (2019-07-25)
+## [0.6.0] (2019-07-30)
 
-This release is compatible with [tendermint v0.31].
+This release is tested against [tendermint v0.31] and known to be compatible
+with [tendermint v0.32].
 
 ### Upgrade Notes
 
@@ -53,7 +54,9 @@ section in the Tendermint KMS YubiHSM docs:
 
 ### Detailed Changes
 
-- [`tendermint` crate v0.10.0-rc0] ([#307])
+- [`tendermint` crate v0.10.0] ([#328])
+- Double signing logging improvements ([#322], [#319], [#317])
+- Log `tendermint::consensus::State` height/round/step ([#316])
 - `yubihsm keys import`: base64 support ([#306])
 - `yubihsm`: Support for reading password from a file ([#305])
 - `softsign`: Fix private key decoding + `import` command ([#304])
@@ -133,17 +136,23 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
-[0.6.0-rc1]: https://github.com/tendermint/kms/pull/308
-[#307]: https://github.com/iqlusioninc/abscissa/pull/307
-[#306]: https://github.com/iqlusioninc/abscissa/pull/306
-[#305]: https://github.com/iqlusioninc/abscissa/pull/305
-[#304]: https://github.com/iqlusioninc/abscissa/pull/304
-[#303]: https://github.com/iqlusioninc/abscissa/pull/303
-[#302]: https://github.com/iqlusioninc/abscissa/pull/302
-[#300]: https://github.com/iqlusioninc/abscissa/pull/300
-[`abscissa` crate v0.2]: https://github.com/iqlusioninc/abscissa/pull/98
+[0.6.0]: https://github.com/tendermint/kms/pull/329
 [tendermint v0.31]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0316
-[`tendermint` crate v0.10.0-rc0]: https://github.com/tendermint/kms/pull/307
+[tendermint v0.32]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0320
+[`abscissa` crate v0.2]: https://github.com/iqlusioninc/abscissa/pull/98
+[`tendermint` crate v0.10.0]: https://github.com/tendermint/kms/pull/328
+[#328]: https://github.com/tendermint/kms/pull/328
+[#322]: https://github.com/tendermint/kms/pull/322
+[#319]: https://github.com/tendermint/kms/pull/319
+[#317]: https://github.com/tendermint/kms/pull/317
+[#316]: https://github.com/tendermint/kms/pull/316
+[#307]: https://github.com/tendermint/kms/pull/307
+[#306]: https://github.com/tendermint/kms/pull/306
+[#305]: https://github.com/tendermint/kms/pull/305
+[#304]: https://github.com/tendermint/kms/pull/304
+[#303]: https://github.com/tendermint/kms/pull/303
+[#302]: https://github.com/tendermint/kms/pull/302
+[#300]: https://github.com/tendermint/kms/pull/300
 [#294]: https://github.com/tendermint/kms/pull/288
 [#283]: https://github.com/tendermint/kms/pull/283
 [#282]: https://github.com/tendermint/kms/pull/282
