@@ -99,10 +99,7 @@ impl State {
                     )
                 }
 
-                if new_state.block_id.is_some()
-                    && self.consensus_state.block_id.is_some()
-                    && self.consensus_state.block_id != new_state.block_id
-                {
+                if self.consensus_state.block_id != new_state.block_id {
                     fail!(
                         StateErrorKind::DoubleSign,
                         "Attempting to sign a second proposal at height:{} round:{} step:{} old block id:{} new block {}",
