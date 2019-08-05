@@ -1,4 +1,4 @@
-//! Unix domain socket connection
+//! Unix domain socket connection to a validator
 
 use std::io;
 use std::marker::{Send, Sync};

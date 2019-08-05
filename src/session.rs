@@ -2,123 +2,81 @@
 
 use crate::{
     chain::{self, state::StateErrorKind},
+    config::ValidatorConfig,
+    connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
     prost::Message,
     rpc::{Request, Response, TendermintRequest},
-    unix_connection::UnixConnection,
 };
-use signatory::{ed25519, PublicKeyed};
-use signatory_dalek::Ed25519Signer;
-use std::{
-    fmt::Debug,
-    io::{Read, Write},
-    marker::{Send, Sync},
-    net::TcpStream,
-    os::unix::net::UnixStream,
-    path::Path,
-    time::Instant,
-};
-use subtle::ConstantTimeEq;
+use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use tendermint::{
     amino_types::{PingRequest, PingResponse, PubKeyRequest, PubKeyResponse, RemoteError},
     consensus::state::NIL_PLACEHOLDER,
-    node,
-    secret_connection::{self, SecretConnection},
+    net,
 };
 
 /// Encrypted session with a validator node
-pub struct Session<Connection> {
-    /// Remote peer location
-    peer_addr: String,
-
-    /// Chain ID for this session
-    chain_id: chain::Id,
-
-    /// Do not sign blocks greater than this height
-    max_height: Option<tendermint::block::Height>,
+pub struct Session {
+    /// Validator configuration options
+    config: ValidatorConfig,
 
     /// TCP connection to a validator node
-    connection: Connection,
+    connection: Box<dyn Connection>,
 }
 
-impl Session<SecretConnection<TcpStream>> {
-    /// Create a new validator connection at the given TCP/IP address/port
-    pub fn connect_tcp(
-        chain_id: chain::Id,
-        max_height: Option<tendermint::block::Height>,
-        validator_peer_id: Option<node::Id>,
-        host: &str,
-        port: u16,
-        secret_connection_key: &ed25519::Seed,
-    ) -> Result<Self, Error> {
-        let peer_addr = format!("tcp://{}:{}", host, port);
-        debug!("{}: Connecting to {}...", chain_id, &peer_addr);
+impl Session {
+    /// Open a session using the given validator configuration
+    pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
+        let connection: Box<dyn Connection> = match &config.addr {
+            net::Address::Tcp {
+                peer_id,
+                host,
+                port,
+            } => {
+                debug!("{}: Connecting to {}...", &config.chain_id, &config.addr);
 
-        let socket = TcpStream::connect(format!("{}:{}", host, port))?;
-        let signer = Ed25519Signer::from(secret_connection_key);
-        let public_key = secret_connection::PublicKey::from(
-            signer.public_key().map_err(|_| Error::from(InvalidKey))?,
-        );
-        let connection = SecretConnection::new(socket, &public_key, &signer)?;
-        let actual_peer_id = connection.remote_pubkey().peer_id();
+                let seed = config.load_secret_key()?;
+                let conn = tcp::open_secret_connection(host, *port, peer_id, &seed)?;
 
-        // TODO(tarcieri): move this logic into `SecretConnection::new`?
-        if let Some(expected_peer_id) = validator_peer_id {
-            if expected_peer_id.ct_eq(&actual_peer_id).unwrap_u8() == 0 {
-                fail!(
-                    VerificationError,
-                    "{}:{}: validator peer ID mismatch! (expected {}, got {})",
-                    host,
-                    port,
-                    expected_peer_id,
-                    actual_peer_id
+                info!(
+                    "[{}@{}] connected to validator successfully",
+                    &config.chain_id, &config.addr
                 );
+
+                if peer_id.is_none() {
+                    // TODO(tarcieri): make peer verification mandatory
+                    warn!(
+                        "[{}] {}: unverified validator peer ID! ({})",
+                        &config.chain_id,
+                        &config.addr,
+                        conn.remote_pubkey().peer_id()
+                    );
+                }
+
+                Box::new(conn)
             }
-        } else {
-            // TODO(tarcieri): make peer verification mandatory
-            warn!(
-                "[{}] {}:{}: unverified validator peer ID! ({})",
-                chain_id, host, port, actual_peer_id
-            );
-        }
+            net::Address::Unix { path } => {
+                debug!(
+                    "{}: Connecting to socket at {}...",
+                    &config.chain_id, &config.addr
+                );
 
-        Ok(Self {
-            peer_addr,
-            chain_id,
-            max_height,
-            connection,
-        })
+                let socket = UnixStream::connect(path)?;
+                let conn = UnixConnection::new(socket);
+
+                info!(
+                    "[{}@{}] connected to validator successfully",
+                    &config.chain_id, &config.addr
+                );
+
+                Box::new(conn)
+            }
+        };
+
+        Ok(Self { config, connection })
     }
-}
 
-impl Session<UnixConnection<UnixStream>> {
-    /// Create a new Unix domain socket connection to a validator
-    pub fn connect_unix(
-        chain_id: chain::Id,
-        max_height: Option<tendermint::block::Height>,
-        socket_path: &Path,
-    ) -> Result<Self, Error> {
-        let peer_addr = socket_path.to_str().unwrap().to_owned();
-
-        debug!("{}: Connecting to socket at {}...", chain_id, &peer_addr);
-
-        let socket = UnixStream::connect(socket_path)?;
-        let connection = UnixConnection::new(socket);
-
-        Ok(Self {
-            peer_addr,
-            chain_id,
-            max_height,
-            connection,
-        })
-    }
-}
-
-impl<Connection> Session<Connection>
-where
-    Connection: Read + Write + Sync + Send,
-{
     /// Main request loop
     pub fn request_loop(&mut self) -> Result<(), Error> {
         while self.handle_request()? {}
@@ -130,7 +88,7 @@ where
         let request = Request::read(&mut self.connection)?;
         debug!(
             "[{}:{}] received request: {:?}",
-            &self.chain_id, &self.peer_addr, &request
+            &self.config.chain_id, &self.config.addr, &request
         );
 
         let response = match request {
@@ -143,7 +101,7 @@ where
 
         debug!(
             "[{}:{}] sending response: {:?}",
-            &self.chain_id, &self.peer_addr, &response
+            &self.config.chain_id, &self.config.addr, &response
         );
 
         let mut buf = vec![];
@@ -165,7 +123,7 @@ where
         request.validate()?;
 
         let registry = chain::REGISTRY.get();
-        let chain = registry.get_chain(&self.chain_id).unwrap();
+        let chain = registry.get_chain(&self.config.chain_id).unwrap();
 
         if let Some(request_state) = &request.consensus_state() {
             let mut chain_state = chain.state.lock().unwrap();
@@ -177,8 +135,8 @@ where
 
                     error!(
                         "[{}:{}] attempted double sign at h/r/s: {} ({} != {})",
-                        &self.chain_id,
-                        &self.peer_addr,
+                        &self.config.chain_id,
+                        &self.config.addr,
                         request_state,
                         chain_state.consensus_state().block_id_prefix(),
                         request_state.block_id_prefix()
@@ -192,7 +150,7 @@ where
             }
         }
 
-        if let Some(max_height) = self.max_height {
+        if let Some(max_height) = self.config.max_height {
             if let Some(height) = request.height() {
                 if height > max_height.value() as i64 {
                     fail!(
@@ -206,7 +164,7 @@ where
         }
 
         let mut to_sign = vec![];
-        request.sign_bytes(self.chain_id, &mut to_sign)?;
+        request.sign_bytes(self.config.chain_id, &mut to_sign)?;
 
         // TODO(ismail): figure out which key to use here instead of taking the only key
         let started_at = Instant::now();
@@ -227,7 +185,7 @@ where
     /// Get the public key for (the only) public key in the keyring
     fn get_public_key(&mut self, _request: &PubKeyRequest) -> Result<Response, Error> {
         let registry = chain::REGISTRY.get();
-        let chain = registry.get_chain(&self.chain_id).unwrap();
+        let chain = registry.get_chain(&self.config.chain_id).unwrap();
 
         Ok(Response::PublicKey(PubKeyResponse::from(
             *chain.keyring.default_pubkey()?,
@@ -248,8 +206,8 @@ where
 
         info!(
             "[{}@{}] signed {}:{} at h/r/s {} ({} ms)",
-            &self.chain_id,
-            &self.peer_addr,
+            &self.config.chain_id,
+            &self.config.addr,
             msg_type,
             block_id,
             consensus_state,
