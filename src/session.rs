@@ -17,10 +17,6 @@ use std::{
     net::TcpStream,
     os::unix::net::UnixStream,
     path::Path,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
     time::Instant,
 };
 use subtle::ConstantTimeEq;
@@ -124,19 +120,13 @@ where
     Connection: Read + Write + Sync + Send,
 {
     /// Main request loop
-    pub fn request_loop(&mut self, should_term: &Arc<AtomicBool>) -> Result<(), Error> {
-        debug!("starting handle request loop ... ");
-        while self.handle_request(should_term)? {}
+    pub fn request_loop(&mut self) -> Result<(), Error> {
+        while self.handle_request()? {}
         Ok(())
     }
 
     /// Handle an incoming request from the validator
-    fn handle_request(&mut self, should_term: &Arc<AtomicBool>) -> Result<bool, Error> {
-        if should_term.load(Ordering::Relaxed) {
-            info!("terminate signal received");
-            return Ok(false);
-        }
-
+    fn handle_request(&mut self) -> Result<bool, Error> {
         let request = Request::read(&mut self.connection)?;
         debug!(
             "[{}:{}] received request: {:?}",
