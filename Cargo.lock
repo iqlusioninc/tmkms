@@ -1353,7 +1353,6 @@ dependencies = [
  "serde 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "signal-hook 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "signatory 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "signatory-dalek 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "signatory-ledger-tm 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
