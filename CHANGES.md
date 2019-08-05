@@ -1,3 +1,11 @@
+## [0.6.1] (2019-08-05)
+
+- [`abscissa` crate v0.3] ([#338])
+- Refactor `Session` to remove code duplication ([#337])
+- Remove signal handlers ([#336])
+- Double signing - allow some block ID switches ([#335])
+- Consider signed `<nil>` votes to be double signs ([#334])
+
 ## [0.6.0] (2019-07-30)
 
 This release is tested against [tendermint v0.31] and known to be compatible
@@ -136,6 +144,13 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
+[0.6.1]: https://github.com/tendermint/kms/pull/339
+[`abscissa` crate v0.3]: https://github.com/iqlusioninc/abscissa/pull/127
+[#338]: https://github.com/tendermint/kms/pull/338
+[#337]: https://github.com/tendermint/kms/pull/337
+[#336]: https://github.com/tendermint/kms/pull/336
+[#335]: https://github.com/tendermint/kms/pull/335
+[#334]: https://github.com/tendermint/kms/pull/334
 [0.6.0]: https://github.com/tendermint/kms/pull/329
 [tendermint v0.31]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0316
 [tendermint v0.32]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0320
