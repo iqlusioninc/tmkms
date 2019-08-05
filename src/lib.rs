@@ -19,13 +19,13 @@ pub mod chain;
 pub mod client;
 pub mod commands;
 pub mod config;
+pub mod connection;
 pub mod error;
 pub mod keyring;
 pub mod prelude;
 pub mod rpc;
 pub mod session;
-pub mod unix_connection;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
-pub use crate::{application::KmsApplication, unix_connection::UnixConnection};
+pub use crate::application::KmsApplication;

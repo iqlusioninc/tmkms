@@ -19,7 +19,7 @@ use tendermint::{
     amino_types::{self, *},
     secret_connection::{self, SecretConnection},
 };
-use tmkms::{keyring::SecretKeyEncoding, UnixConnection};
+use tmkms::{connection::unix::UnixConnection, keyring::SecretKeyEncoding};
 
 /// Integration tests for the KMS command-line interface
 mod cli;
@@ -40,24 +40,24 @@ enum KmsSocket {
 
 enum KmsConnection {
     /// Secret connection type
-    SecretConnection(SecretConnection<TcpStream>),
+    Tcp(SecretConnection<TcpStream>),
 
     /// UNIX connection type
-    UNIXConnection(UnixConnection<UnixStream>),
+    Unix(UnixConnection<UnixStream>),
 }
 
 impl io::Write for KmsConnection {
     fn write(&mut self, data: &[u8]) -> Result<usize, io::Error> {
         match *self {
-            KmsConnection::SecretConnection(ref mut conn) => conn.write(data),
-            KmsConnection::UNIXConnection(ref mut conn) => conn.write(data),
+            KmsConnection::Tcp(ref mut conn) => conn.write(data),
+            KmsConnection::Unix(ref mut conn) => conn.write(data),
         }
     }
 
     fn flush(&mut self) -> Result<(), io::Error> {
         match *self {
-            KmsConnection::SecretConnection(ref mut conn) => conn.flush(),
-            KmsConnection::UNIXConnection(ref mut conn) => conn.flush(),
+            KmsConnection::Tcp(ref mut conn) => conn.flush(),
+            KmsConnection::Unix(ref mut conn) => conn.flush(),
         }
     }
 }
@@ -65,8 +65,8 @@ impl io::Write for KmsConnection {
 impl io::Read for KmsConnection {
     fn read(&mut self, data: &mut [u8]) -> Result<usize, io::Error> {
         match *self {
-            KmsConnection::SecretConnection(ref mut conn) => conn.read(data),
-            KmsConnection::UNIXConnection(ref mut conn) => conn.read(data),
+            KmsConnection::Tcp(ref mut conn) => conn.read(data),
+            KmsConnection::Unix(ref mut conn) => conn.read(data),
         }
     }
 }
@@ -194,15 +194,13 @@ impl KmsProcess {
                 let socket_cp = sock.try_clone().unwrap();
                 let public_key = secret_connection::PublicKey::from(signer.public_key().unwrap());
 
-                KmsConnection::SecretConnection(
-                    SecretConnection::new(socket_cp, &public_key, &signer).unwrap(),
-                )
+                KmsConnection::Tcp(SecretConnection::new(socket_cp, &public_key, &signer).unwrap())
             }
 
             KmsSocket::UNIX(ref sock) => {
                 let socket_cp = sock.try_clone().unwrap();
 
-                KmsConnection::UNIXConnection(UnixConnection::new(socket_cp))
+                KmsConnection::Unix(UnixConnection::new(socket_cp))
             }
         }
     }
