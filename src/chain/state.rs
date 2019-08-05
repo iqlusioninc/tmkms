@@ -99,7 +99,12 @@ impl State {
                     )
                 }
 
-                if self.consensus_state.block_id != new_state.block_id {
+                if self.consensus_state.block_id != new_state.block_id &&
+                // If we incremented rounds allow locking on a new block
+                    new_state.round == self.consensus_state.round &&
+                // if we precommitting after prevoting nil allow locking on new block
+                     !(new_state.step == 3 && self.consensus_state.step == 2 && self.consensus_state.block_id.is_none())
+                {
                     fail!(
                         StateErrorKind::DoubleSign,
                         "Attempting to sign a second proposal at height:{} round:{} step:{} old block id:{} new block {}",
