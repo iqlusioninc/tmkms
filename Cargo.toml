@@ -14,7 +14,7 @@ edition     = "2018"
 circle-ci = { repository = "tendermint/kms" }
 
 [dependencies]
-abscissa_core = "0.2"
+abscissa_core = "0.3"
 atomicwrites = "0.2"
 byteorder = "1.2"
 bytes = "0.4"
@@ -53,7 +53,7 @@ tempfile = "3"
 rand = "0.7"
 
 [dev-dependencies.abscissa_core]
-version = "0.2"
+version = "0.3"
 features = ["testing"]
 
 [features]
