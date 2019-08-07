@@ -177,7 +177,6 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
     use tendermint::block;
 
     const EXAMPLE_BLOCK_ID: &str =
@@ -188,55 +187,90 @@ mod tests {
 
     const EXAMPLE_PATH: &str = "/tmp/tmp_state.json";
 
-    #[test]
-    fn hrs_test() {
-        let mut last_sign_state = State {
-            consensus_state: consensus::State {
-                height: 1i64.into(),
-                round: 1,
-                step: 0,
-                block_id: None,
-            },
-            state_file_path: EXAMPLE_PATH.into(),
+    /// Macro for compactly expressing a consensus state
+    macro_rules! state {
+        ($height:expr, $round:expr, $step:expr, $block_id:expr) => {
+            consensus::State {
+                height: block::Height::from($height as u64),
+                round: $round,
+                step: $step,
+                block_id: $block_id,
+            }
         };
-
-        assert_eq!(
-            last_sign_state
-                .update_consensus_state(consensus::State {
-                    height: 2i64.into(),
-                    round: 0,
-                    step: 0,
-                    block_id: None
-                })
-                .unwrap(),
-            ()
-        )
     }
 
-    #[test]
-    fn hrs_test_double_sign() {
-        let mut last_sign_state = State {
-            consensus_state: consensus::State {
-                height: 1i64.into(),
-                round: 1,
-                step: 0,
-                block_id: Some(block::Id::from_str(EXAMPLE_BLOCK_ID).unwrap()),
-            },
-            state_file_path: EXAMPLE_PATH.into(),
+    /// Macro for compactly representing `Some(block_id)`
+    macro_rules! block_id {
+        ($id:expr) => {
+            Some($id.parse::<block::Id>().unwrap())
         };
-        let double_sign_block = block::Id::from_str(EXAMPLE_DOUBLE_SIGN_BLOCK_ID).unwrap();
-        let err = last_sign_state.update_consensus_state(consensus::State {
-            height: 1i64.into(),
-            round: 1,
-            step: 1,
-            block_id: Some(double_sign_block),
-        });
-
-        let double_sign_error = StateErrorKind::DoubleSign;
-
-        assert_eq!(
-            err.expect_err("Expect Double Sign error").0.kind(),
-            &double_sign_error
-        )
     }
+
+    /// Macro for creating a test for a successful state update
+    macro_rules! successful_update_test {
+        ($name:ident, $old_state:expr, $new_state:expr) => {
+            #[test]
+            fn $name() {
+                State {
+                    consensus_state: $old_state,
+                    state_file_path: EXAMPLE_PATH.into(),
+                }
+                .update_consensus_state($new_state)
+                .unwrap();
+            }
+        };
+    }
+
+    /// Macro for creating a test that expects double sign
+    macro_rules! double_sign_test {
+        ($name:ident, $old_state:expr, $new_state:expr) => {
+            #[test]
+            fn $name() {
+                let err = State {
+                    consensus_state: $old_state,
+                    state_file_path: EXAMPLE_PATH.into(),
+                }
+                .update_consensus_state($new_state)
+                .expect_err("expected StateErrorKind::DoubleSign but succeeded");
+
+                assert_eq!(err.kind(), StateErrorKind::DoubleSign)
+            }
+        };
+    }
+
+    successful_update_test!(
+        height_update_with_nil_block_id_success,
+        state!(1, 1, 0, None),
+        state!(2, 0, 0, None)
+    );
+
+    successful_update_test!(
+        step_update_with_nil_to_some_block_id_success,
+        state!(1, 1, 2, None),
+        state!(1, 1, 3, block_id!(EXAMPLE_BLOCK_ID))
+    );
+
+    successful_update_test!(
+        round_update_with_different_block_id_success,
+        state!(1, 1, 0, block_id!(EXAMPLE_BLOCK_ID)),
+        state!(2, 0, 0, block_id!(EXAMPLE_DOUBLE_SIGN_BLOCK_ID))
+    );
+
+    successful_update_test!(
+        round_update_with_block_id_and_nil_success,
+        state!(1, 1, 0, block_id!(EXAMPLE_BLOCK_ID)),
+        state!(2, 0, 0, None)
+    );
+
+    double_sign_test!(
+        step_update_with_different_block_id_double_sign,
+        state!(1, 1, 0, block_id!(EXAMPLE_BLOCK_ID)),
+        state!(1, 1, 1, block_id!(EXAMPLE_DOUBLE_SIGN_BLOCK_ID))
+    );
+
+    double_sign_test!(
+        same_hrs_with_different_block_id_double_sign,
+        state!(1, 1, 2, None),
+        state!(1, 1, 2, block_id!(EXAMPLE_BLOCK_ID))
+    );
 }
