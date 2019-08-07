@@ -34,6 +34,34 @@ impl Runnable for StartCommand {
             env!("CARGO_PKG_VERSION")
         );
 
+        let validator_clients = self.spawn_clients();
+
+        // Wait for all of the validator client threads to exit
+        debug!("Main thread waiting on clients...");
+
+        let mut success = true;
+
+        for client in validator_clients {
+            let name = client.name().to_owned();
+
+            if let Err(e) = client.join() {
+                status_err!("client '{}' exited with error: {}", name, e);
+                success = false;
+            }
+        }
+
+        if success {
+            info!("Shutdown completed successfully");
+        } else {
+            warn!("Shutdown completed with errors");
+            process::exit(1);
+        }
+    }
+}
+
+impl StartCommand {
+    /// Spawn clients from the app's configuration
+    pub fn spawn_clients(&self) -> Vec<Client> {
         let config = app_config();
 
         chain::load_config(&config).unwrap_or_else(|e| {
@@ -42,17 +70,11 @@ impl Runnable for StartCommand {
         });
 
         // Spawn the validator client threads
-        let validator_clients = config
+        config
             .validator
             .iter()
             .cloned()
             .map(Client::spawn)
-            .collect::<Vec<_>>();
-
-        // Wait for all of the validator client threads to exit
-        info!("Waiting for client threads to stop...");
-        for client in validator_clients {
-            client.join();
-        }
+            .collect()
     }
 }

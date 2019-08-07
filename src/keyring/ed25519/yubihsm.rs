@@ -29,13 +29,24 @@ pub fn init(
 
     for config in &yubihsm_configs[0].keys {
         let signer = yubihsm::ed25519::Signer::create(crate::yubihsm::client().clone(), config.key)
-            .map_err(|_| Error::from(InvalidKey))?;
+            .map_err(|_| {
+                err!(
+                    InvalidKey,
+                    "YubiHSM key ID 0x{:04x} is not a valid Ed25519 signing key",
+                    config.key
+                )
+            })?;
 
         // TODO(tarcieri): support for adding account keys into keyrings
         let public_key = TendermintKey::ConsensusKey(
             signer
                 .public_key()
-                .map_err(|_| Error::from(InvalidKey))?
+                .map_err(|_| {
+                    err!(
+                        InvalidKey,
+                        "couldn't get public key for YubiHSM key ID 0x{:04x}"
+                    )
+                })?
                 .into(),
         );
 
