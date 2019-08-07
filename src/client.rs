@@ -5,12 +5,16 @@
 //! To dance around the fact the KMS isn't actually a service, we refer to it
 //! as a "Key Management System".
 
-use crate::{config::ValidatorConfig, error::Error, prelude::*, session::Session};
-use std::{
-    panic,
-    thread::{self, JoinHandle},
-    time::Duration,
+use crate::{
+    config::ValidatorConfig,
+    error::{Error, ErrorKind},
+    prelude::*,
+    session::Session,
 };
+use std::{panic, process, thread, time::Duration};
+
+/// Join handle type used by our clients
+type JoinHandle = thread::JoinHandle<Result<(), Error>>;
 
 /// How long to wait after a crash before respawning (in seconds)
 pub const RESPAWN_DELAY: u64 = 1;
@@ -22,40 +26,64 @@ pub const RESPAWN_DELAY: u64 = 1;
 /// the `Session`. Instead, the `Client` type manages threading and respawning
 /// sessions in the event of errors.
 pub struct Client {
+    /// Name of the client thread
+    name: String,
+
     /// Handle to the client thread
-    handle: JoinHandle<()>,
+    handle: JoinHandle,
 }
 
 impl Client {
     /// Spawn a new client, returning a handle so it can be joined
     pub fn spawn(config: ValidatorConfig) -> Self {
-        Self {
-            handle: thread::spawn(move || main_loop(config)),
-        }
+        let name = format!("{}@{}", &config.chain_id, &config.addr);
+
+        let handle = thread::Builder::new()
+            .name(name.clone())
+            .spawn(move || main_loop(config))
+            .unwrap_or_else(|e| {
+                status_err!("error spawning thread: {}", e);
+                process::exit(1);
+            });
+
+        Self { name, handle }
+    }
+
+    /// Get the name of this client
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Wait for a running client to finish
-    pub fn join(self) {
-        self.handle.join().unwrap();
+    pub fn join(self) -> Result<(), Error> {
+        self.handle.join().unwrap()
     }
 }
 
 /// Main loop for all clients. Handles reconnecting in the event of an error
-fn main_loop(config: ValidatorConfig) {
-    while let Err(e) = connect(config.clone()) {
-        error!("[{}@{}] {}", &config.chain_id, &config.addr, e);
+fn main_loop(config: ValidatorConfig) -> Result<(), Error> {
+    while let Err(e) = run_client(config.clone()) {
+        // `PoisonError` is unrecoverable
+        if *e.kind() == ErrorKind::PoisonError {
+            error!("[{}@{}] FATAL -- {}", &config.chain_id, &config.addr, e);
+            return Err(e);
+        } else {
+            error!("[{}@{}] {}", &config.chain_id, &config.addr, e);
+        }
 
         if config.reconnect {
             // TODO: configurable respawn delay
             thread::sleep(Duration::from_secs(RESPAWN_DELAY));
         } else {
-            break;
+            return Err(e);
         }
     }
+
+    Ok(())
 }
 
 /// Open a new session and run the session loop
-pub fn connect(config: ValidatorConfig) -> Result<(), Error> {
+pub fn run_client(config: ValidatorConfig) -> Result<(), Error> {
     panic::catch_unwind(move || Session::open(config)?.request_loop())
-        .unwrap_or_else(|ref e| Err(Error::from_panic(e)))
+        .unwrap_or_else(|e| Err(Error::from_panic(e)))
 }

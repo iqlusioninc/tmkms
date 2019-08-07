@@ -5,6 +5,7 @@ use std::{
     any::Any,
     fmt::{self, Display},
     io,
+    ops::Deref,
 };
 use tendermint::amino_types::validate::ValidationError;
 
@@ -14,15 +15,22 @@ pub struct Error(abscissa_core::Error<ErrorKind>);
 
 impl Error {
     /// Create an error from a panic
-    pub fn from_panic(msg: &dyn Any) -> Self {
-        if let Some(e) = msg.downcast_ref::<String>() {
-            err!(ErrorKind::PanicError, e)
-        } else if let Some(e) = msg.downcast_ref::<&str>() {
-            err!(ErrorKind::PanicError, e)
+    pub fn from_panic(panic_msg: Box<dyn Any>) -> Self {
+        let err_msg = if let Some(msg) = panic_msg.downcast_ref::<String>() {
+            msg.as_ref()
+        } else if let Some(msg) = panic_msg.downcast_ref::<&str>() {
+            msg
         } else {
-            err!(ErrorKind::PanicError, "unknown cause")
-        }
-        .into()
+            "unknown cause"
+        };
+
+        let kind = if err_msg.contains("PoisonError") {
+            ErrorKind::PoisonError
+        } else {
+            ErrorKind::PanicError
+        };
+
+        err!(kind, err_msg).into()
     }
 }
 
@@ -41,6 +49,10 @@ pub enum ErrorKind {
     /// KMS internal panic
     #[fail(display = "internal crash")]
     PanicError,
+
+    /// KMS state has been poisoned
+    #[fail(display = "internal state poisoned")]
+    PoisonError,
 
     /// Cryptographic operation failed
     #[fail(display = "cryptographic error")]
@@ -89,6 +101,14 @@ pub enum ErrorKind {
     ///Request a Signature above max height
     #[fail(display = "requested signature above stop height")]
     ExceedMaxHeight,
+}
+
+impl Deref for Error {
+    type Target = abscissa_core::Error<ErrorKind>;
+
+    fn deref(&self) -> &abscissa_core::Error<ErrorKind> {
+        &self.0
+    }
 }
 
 impl Display for Error {
