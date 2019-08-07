@@ -1,4 +1,8 @@
-## [0.6.1] (2019-08-05)
+## [0.6.2] (2019-08-07)
+
+- chain/state: Avoid panicking in update_consensus_state ([#342])
+
+## [0.6.1] (2019-08-06)
 
 - [`abscissa` crate v0.3] ([#338])
 - Refactor `Session` to remove code duplication ([#337])
@@ -144,6 +148,8 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
+[0.6.2]: https://github.com/tendermint/kms/pull/343
+[#342]: https://github.com/tendermint/kms/pull/342
 [0.6.1]: https://github.com/tendermint/kms/pull/339
 [`abscissa` crate v0.3]: https://github.com/iqlusioninc/abscissa/pull/127
 [#338]: https://github.com/tendermint/kms/pull/338
