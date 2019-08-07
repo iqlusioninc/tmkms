@@ -2,7 +2,7 @@
 
 #![forbid(unsafe_code)]
 #![deny(warnings, missing_docs, unused_qualifications)]
-#![doc(html_root_url = "https://docs.rs/tmkms/0.6.2")]
+#![doc(html_root_url = "https://docs.rs/tmkms/0.6.3")]
 
 #[cfg(not(any(feature = "softsign", feature = "yubihsm", feature = "ledgertm")))]
 compile_error!(

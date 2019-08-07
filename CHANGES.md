@@ -1,3 +1,7 @@
+## [0.6.3] (2019-08-07)
+
+- Detect and don't attempt to recover from PoisonError ([#345])
+
 ## [0.6.2] (2019-08-07)
 
 - chain/state: Avoid panicking in update_consensus_state ([#342])
@@ -148,6 +152,8 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
+[0.6.3]: https://github.com/tendermint/kms/pull/346
+[#345]: https://github.com/tendermint/kms/pull/345
 [0.6.2]: https://github.com/tendermint/kms/pull/343
 [#342]: https://github.com/tendermint/kms/pull/342
 [0.6.1]: https://github.com/tendermint/kms/pull/339
