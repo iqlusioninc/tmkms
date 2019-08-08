@@ -131,19 +131,10 @@ impl Session {
             if let Err(e) = chain_state.update_consensus_state(request_state.clone()) {
                 // Report double signing error back to the validator
                 if e.kind() == StateErrorKind::DoubleSign {
-                    let height = request.height().unwrap();
-
-                    error!(
-                        "[{}:{}] attempted double sign at h/r/s: {} ({} != {})",
-                        &self.config.chain_id,
-                        &self.config.addr,
-                        request_state,
-                        chain_state.consensus_state().block_id_prefix(),
-                        request_state.block_id_prefix()
+                    return self.handle_double_signing(
+                        request,
+                        &chain_state.consensus_state().block_id_prefix(),
                     );
-
-                    let remote_err = RemoteError::double_sign(height);
-                    return Ok(request.build_response(Some(remote_err)));
                 } else {
                     return Err(e.into());
                 }
@@ -213,5 +204,32 @@ impl Session {
             consensus_state,
             started_at.elapsed().as_millis(),
         );
+    }
+
+    /// Handle attempted double signing
+    fn handle_double_signing<T: TendermintRequest + Debug>(
+        &self,
+        request: T,
+        original_block_id: &str,
+    ) -> Result<Response, Error> {
+        let msg_type = request
+            .msg_type()
+            .map(|t| format!("{:?}", t))
+            .unwrap_or_else(|| "Unknown".to_owned());
+
+        let request_state = request.consensus_state().unwrap();
+
+        error!(
+            "[{}:{}] attempted double sign for {} at h/r/s: {} ({} != {})",
+            &self.config.chain_id,
+            &self.config.addr,
+            msg_type,
+            request_state,
+            original_block_id,
+            request_state.block_id_prefix()
+        );
+
+        let remote_err = RemoteError::double_sign(request.height().unwrap());
+        Ok(request.build_response(Some(remote_err)))
     }
 }
