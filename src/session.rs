@@ -11,9 +11,10 @@ use crate::{
 };
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use tendermint::{
-    amino_types::{PingRequest, PingResponse, PubKeyRequest, PubKeyResponse, RemoteError},
-    consensus::state::NIL_PLACEHOLDER,
-    net,
+    amino_types::{
+        PingRequest, PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType,
+    },
+    consensus, net,
 };
 
 /// Encrypted session with a validator node
@@ -119,25 +120,26 @@ impl Session {
     }
 
     /// Perform a digital signature operation
-    fn sign<T: TendermintRequest + Debug>(&mut self, mut request: T) -> Result<Response, Error> {
+    fn sign<R>(&mut self, mut request: R) -> Result<Response, Error>
+    where
+        R: TendermintRequest + Debug,
+    {
         request.validate()?;
 
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&self.config.chain_id).unwrap();
+        let (_, request_state) = parse_request(&request)?;
+        let mut chain_state = chain.state.lock().unwrap();
 
-        if let Some(request_state) = &request.consensus_state() {
-            let mut chain_state = chain.state.lock().unwrap();
-
-            if let Err(e) = chain_state.update_consensus_state(request_state.clone()) {
-                // Report double signing error back to the validator
-                if e.kind() == StateErrorKind::DoubleSign {
-                    return self.handle_double_signing(
-                        request,
-                        &chain_state.consensus_state().block_id_prefix(),
-                    );
-                } else {
-                    return Err(e.into());
-                }
+        if let Err(e) = chain_state.update_consensus_state(request_state) {
+            // Report double signing error back to the validator
+            if e.kind() == StateErrorKind::DoubleSign {
+                return self.handle_double_signing(
+                    request,
+                    &chain_state.consensus_state().block_id_prefix(),
+                );
+            } else {
+                return Err(e.into());
             }
         }
 
@@ -161,7 +163,7 @@ impl Session {
         let started_at = Instant::now();
         let signature = chain.keyring.sign_ed25519(None, &to_sign)?;
 
-        self.log_signing_request(&request, started_at);
+        self.log_signing_request(&request, started_at).unwrap();
         request.set_signature(&signature);
 
         Ok(request.build_response(None))
@@ -184,43 +186,38 @@ impl Session {
     }
 
     /// Write an INFO logline about a signing request
-    fn log_signing_request<T: TendermintRequest + Debug>(&self, request: &T, started_at: Instant) {
-        let (consensus_state, block_id) = request
-            .consensus_state()
-            .map(|state| (state.to_string(), state.block_id_prefix()))
-            .unwrap_or_else(|| (NIL_PLACEHOLDER.to_owned(), NIL_PLACEHOLDER.to_owned()));
-
-        let msg_type = request
-            .msg_type()
-            .map(|t| format!("{:?}", t))
-            .unwrap_or_else(|| "Unknown".to_owned());
+    fn log_signing_request<R>(&self, request: &R, started_at: Instant) -> Result<(), Error>
+    where
+        R: TendermintRequest + Debug,
+    {
+        let (msg_type, request_state) = parse_request(request)?;
 
         info!(
-            "[{}@{}] signed {}:{} at h/r/s {} ({} ms)",
+            "[{}@{}] signed {:?}:{} at h/r/s {} ({} ms)",
             &self.config.chain_id,
             &self.config.addr,
             msg_type,
-            block_id,
-            consensus_state,
+            request_state.block_id_prefix(),
+            request_state,
             started_at.elapsed().as_millis(),
         );
+
+        Ok(())
     }
 
     /// Handle attempted double signing
-    fn handle_double_signing<T: TendermintRequest + Debug>(
+    fn handle_double_signing<R>(
         &self,
-        request: T,
+        request: R,
         original_block_id: &str,
-    ) -> Result<Response, Error> {
-        let msg_type = request
-            .msg_type()
-            .map(|t| format!("{:?}", t))
-            .unwrap_or_else(|| "Unknown".to_owned());
-
-        let request_state = request.consensus_state().unwrap();
+    ) -> Result<Response, Error>
+    where
+        R: TendermintRequest + Debug,
+    {
+        let (msg_type, request_state) = parse_request(&request)?;
 
         error!(
-            "[{}:{}] attempted double sign for {} at h/r/s: {} ({} != {})",
+            "[{}:{}] attempted double sign {:?} at h/r/s: {} ({} != {})",
             &self.config.chain_id,
             &self.config.addr,
             msg_type,
@@ -232,4 +229,29 @@ impl Session {
         let remote_err = RemoteError::double_sign(request.height().unwrap());
         Ok(request.build_response(Some(remote_err)))
     }
+}
+
+/// Parse the consensus state from an incoming request
+// TODO(tarcieri): fix the upstream Amino parser to do this correctly for us
+fn parse_request<R>(request: &R) -> Result<(SignedMsgType, consensus::State), Error>
+where
+    R: TendermintRequest + Debug,
+{
+    let msg_type = match request.msg_type() {
+        Some(ty) => ty,
+        None => Err(err!(ProtocolError, "no message type for this request"))?,
+    };
+
+    let mut consensus_state = match request.consensus_state() {
+        Some(state) => state,
+        None => Err(err!(ProtocolError, "no consensus state in request"))?,
+    };
+
+    consensus_state.step = match msg_type {
+        SignedMsgType::Proposal => 0,
+        SignedMsgType::PreVote => 1,
+        SignedMsgType::PreCommit => 2,
+    };
+
+    Ok((msg_type, consensus_state))
 }

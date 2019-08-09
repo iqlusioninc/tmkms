@@ -70,7 +70,7 @@ impl State {
         &mut self,
         new_state: consensus::State,
     ) -> Result<(), StateError> {
-        // TODO(tarcieri): rewrite this using `Ord` impl on `consensus::State`
+        // TODO(tarcieri): rewrite this using `PartialOrd` impl on `consensus::State`
         if new_state.height < self.consensus_state.height {
             fail!(
                 StateErrorKind::HeightRegression,
@@ -99,21 +99,21 @@ impl State {
                     )
                 }
 
-                if self.consensus_state.block_id != new_state.block_id &&
-                // If we incremented rounds allow locking on a new block
-                    new_state.round == self.consensus_state.round &&
-                // if we precommitting after prevoting nil allow locking on new block
-                     !(new_state.step == 3 && self.consensus_state.step == 2 && self.consensus_state.block_id.is_none())
+                if new_state.block_id != self.consensus_state.block_id &&
+                    // disallow voting for two different block IDs during different steps
+                    ((new_state.block_id.is_some() && self.consensus_state.block_id.is_some()) ||
+                    // disallow voting `<nil>` and for a block ID on the same step
+                    (new_state.step == self.consensus_state.step))
                 {
                     fail!(
-                        StateErrorKind::DoubleSign,
-                        "Attempting to sign a second proposal at height:{} round:{} step:{} old block id:{} new block {}",
-                        new_state.height,
-                        new_state.round,
-                        new_state.step,
-                        self.consensus_state.block_id_prefix(),
-                        new_state.block_id_prefix()
-                    )
+                            StateErrorKind::DoubleSign,
+                            "Attempting to sign a second proposal at height:{} round:{} step:{} old block id:{} new block {}",
+                            new_state.height,
+                            new_state.round,
+                            new_state.step,
+                            self.consensus_state.block_id_prefix(),
+                            new_state.block_id_prefix()
+                        );
                 }
             }
         }
@@ -246,8 +246,8 @@ mod tests {
 
     successful_update_test!(
         step_update_with_nil_to_some_block_id_success,
-        state!(1, 1, 2, None),
-        state!(1, 1, 3, block_id!(EXAMPLE_BLOCK_ID))
+        state!(1, 1, 1, None),
+        state!(1, 1, 2, block_id!(EXAMPLE_BLOCK_ID))
     );
 
     successful_update_test!(
@@ -260,6 +260,12 @@ mod tests {
         round_update_with_block_id_and_nil_success,
         state!(1, 1, 0, block_id!(EXAMPLE_BLOCK_ID)),
         state!(2, 0, 0, None)
+    );
+
+    successful_update_test!(
+        step_update_with_block_id_and_nil_success,
+        state!(1, 0, 0, block_id!(EXAMPLE_BLOCK_ID)),
+        state!(1, 0, 1, None)
     );
 
     double_sign_test!(
