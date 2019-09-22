@@ -6,10 +6,14 @@ use crate::{
 };
 use signatory::{ed25519, PublicKeyed};
 use signatory_dalek::Ed25519Signer;
-use std::net::TcpStream;
+use std::{
+    net::TcpStream,
+    time::Duration,
+};
 use subtle::ConstantTimeEq;
 use tendermint::node;
 pub use tendermint::secret_connection::{PublicKey, SecretConnection};
+
 
 /// Open a TCP socket connection encrypted with SecretConnection
 pub fn open_secret_connection(
@@ -24,6 +28,8 @@ pub fn open_secret_connection(
     info!("KMS node ID: {}", &public_key);
 
     let socket = TcpStream::connect(format!("{}:{}", host, port))?;
+    socket.set_read_timeout(Some(Duration::from_secs(5)))?;
+    socket.set_write_timeout(Some(Duration::from_secs(5)))?;
     let connection = SecretConnection::new(socket, &public_key, &signer)?;
     let actual_peer_id = connection.remote_pubkey().peer_id();
 
