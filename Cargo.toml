@@ -10,9 +10,6 @@ categories  = ["cryptography"]
 keywords    = ["cosmos", "ed25519", "kms", "key-management", "yubihsm"]
 edition     = "2018"
 
-[workspace]
-members = [".", "tendermint-rs"]
-
 [badges]
 circle-ci = { repository = "tendermint/kms" }
 
@@ -49,7 +46,6 @@ zeroize = "1"
 
 [dependencies.tendermint]
 version = "0.10"
-path = "tendermint-rs"
 features = ["amino-types", "config", "secret-connection"]
 
 [dev-dependencies]
