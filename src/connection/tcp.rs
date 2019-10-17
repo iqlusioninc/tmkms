@@ -1,5 +1,6 @@
 //! TCP socket connection to a validator
 
+use super::secret_connection::{PublicKey, SecretConnection};
 use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
@@ -9,7 +10,6 @@ use signatory_dalek::Ed25519Signer;
 use std::{net::TcpStream, time::Duration};
 use subtle::ConstantTimeEq;
 use tendermint::node;
-pub use tendermint::secret_connection::{PublicKey, SecretConnection};
 
 /// Open a TCP socket connection encrypted with SecretConnection
 pub fn open_secret_connection(

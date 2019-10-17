@@ -1,11 +1,11 @@
 //! Secret Connection peer public keys
 
-use crate::{
+use signatory::ed25519;
+use std::fmt::{self, Display};
+use tendermint::{
     error::{Error, ErrorKind},
     node,
 };
-use signatory::ed25519;
-use std::fmt::{self, Display};
 
 /// Secret Connection peer public keys (signing, presently Ed25519-only)
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]

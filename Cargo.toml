@@ -29,6 +29,7 @@ log = "0.4"
 prost-amino = "0.4.0"
 prost-amino-derive = "0.4.0"
 rand_os = "0.1"
+ring = "0.14"
 rpassword = { version = "3", optional = true }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
@@ -41,12 +42,13 @@ subtle = "2"
 subtle-encoding = { version = "0.3", features = ["bech32-preview"] }
 tiny-bip39 = "0.6"
 wait-timeout = "0.2"
+x25519-dalek = "0.5"
 yubihsm = { version = "0.26", features = ["setup", "usb"], optional = true }
 zeroize = "1"
 
 [dependencies.tendermint]
 version = "0.10"
-features = ["amino-types", "config", "secret-connection"]
+features = ["amino-types", "config"]
 
 [dev-dependencies]
 tempfile = "3"

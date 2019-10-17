@@ -237,15 +237,13 @@ fn parse_request<R>(request: &R) -> Result<(SignedMsgType, consensus::State), Er
 where
     R: TendermintRequest + Debug,
 {
-    let msg_type = match request.msg_type() {
-        Some(ty) => ty,
-        None => Err(err!(ProtocolError, "no message type for this request"))?,
-    };
+    let msg_type = request
+        .msg_type()
+        .ok_or_else(|| err!(ProtocolError, "no message type for this request"))?;
 
-    let mut consensus_state = match request.consensus_state() {
-        Some(state) => state,
-        None => Err(err!(ProtocolError, "no consensus state in request"))?,
-    };
+    let mut consensus_state = request
+        .consensus_state()
+        .ok_or_else(|| err!(ProtocolError, "no consensus state in request"))?;
 
     consensus_state.step = match msg_type {
         SignedMsgType::Proposal => 0,

@@ -15,11 +15,14 @@ use std::{
     process::{Child, Command},
 };
 use tempfile::NamedTempFile;
-use tendermint::{
-    amino_types::{self, *},
-    secret_connection::{self, SecretConnection},
+use tendermint::amino_types::{self, *};
+use tmkms::{
+    connection::{
+        secret_connection::{self, SecretConnection},
+        unix::UnixConnection,
+    },
+    keyring::SecretKeyEncoding,
 };
-use tmkms::{connection::unix::UnixConnection, keyring::SecretKeyEncoding};
 
 /// Integration tests for the KMS command-line interface
 mod cli;

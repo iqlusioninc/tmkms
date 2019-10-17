@@ -5,10 +5,6 @@ mod nonce;
 mod public_key;
 
 pub use self::{kdf::Kdf, nonce::Nonce, public_key::PublicKey};
-use crate::{
-    amino_types::AuthSigMessage,
-    error::{Error, ErrorKind},
-};
 use byteorder::{ByteOrder, LE};
 use bytes::BufMut;
 use prost::{encoding::encode_varint, Message};
@@ -22,6 +18,10 @@ use std::{
     marker::{Send, Sync},
 };
 use subtle::ConstantTimeEq;
+use tendermint::{
+    amino_types::AuthSigMessage,
+    error::{Error, ErrorKind},
+};
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
 
 /// Size of the MAC tag
@@ -74,7 +74,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // - https://github.com/tendermint/kms/issues/142
         // - https://eprint.iacr.org/2019/526.pdf
         if shared_secret.as_bytes().ct_eq(&[0x00; 32]).unwrap_u8() == 1 {
-            Err(ErrorKind::InvalidKey)?;
+            return Err(ErrorKind::InvalidKey.into());
         }
 
         // Sort by lexical order.
@@ -315,7 +315,7 @@ fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
     // https://github.com/tendermint/tendermint/blob/013b9cef642f875634c614019ab13b17570778ad/p2p/conn/secret_connection.go#L208-L238
     let mut remote_eph_pubkey_fixed: [u8; 32] = Default::default();
     if buf[0] != 33 || buf[1] != 32 {
-        Err(ErrorKind::Protocol)?;
+        return Err(ErrorKind::Protocol.into());
     }
     // after total length (33) and byte length (32), we expect the raw bytes
     // of the pub key:
@@ -409,14 +409,16 @@ fn share_auth_signature<IoHandler: Read + Write + Send + Sync>(
         sig: signature.into_bytes().to_vec(),
     };
     let mut buf: Vec<u8> = vec![];
-    amsg.encode_length_delimited(&mut buf)?;
+    amsg.encode_length_delimited(&mut buf)
+        .map_err(|e| Error::new(ErrorKind::Parse, Some(e.to_string())))?;
     sc.write_all(&buf)?;
 
     let mut rbuf = vec![0; 106]; // 100 = 32 + 64 + (amino overhead = 2 fields + 2 lengths + 4 prefix bytes + total length)
     sc.read_exact(&mut rbuf)?;
 
     // TODO: proper error handling:
-    Ok(AuthSigMessage::decode_length_delimited(&rbuf)?)
+    Ok(AuthSigMessage::decode_length_delimited(&rbuf)
+        .map_err(|e| Error::new(ErrorKind::Parse, Some(e.to_string())))?)
 }
 
 #[cfg(tests)]
