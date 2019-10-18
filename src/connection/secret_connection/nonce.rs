@@ -1,5 +1,4 @@
 use byteorder::{ByteOrder, LE};
-use ring::aead;
 
 /// Size of a ChaCha20 nonce
 pub const SIZE: usize = 12;
@@ -27,12 +26,6 @@ impl Nonce {
     }
 }
 
-impl From<&Nonce> for aead::Nonce {
-    fn from(nonce: &Nonce) -> aead::Nonce {
-        aead::Nonce::assume_unique_for_key(nonce.0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,12 +47,9 @@ mod tests {
 
         for i in 0..1024 {
             nonce.increment();
-            match check_points.get(&i) {
-                Some(want) => {
-                    let got = &nonce.to_bytes();
-                    assert_eq!(got, want);
-                }
-                None => (),
+            if let Some(want) = check_points.get(&i) {
+                let got = &nonce.to_bytes();
+                assert_eq!(got, want);
             }
         }
     }

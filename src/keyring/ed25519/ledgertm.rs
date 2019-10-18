@@ -6,7 +6,7 @@ use crate::{
     error::{Error, ErrorKind::*},
     keyring::{ed25519::Signer, SigningProvider},
 };
-use signatory::PublicKeyed;
+use signatory::public_key::PublicKeyed;
 use signatory_ledger_tm::Ed25519LedgerTmAppSigner;
 use tendermint::TendermintKey;
 
@@ -28,16 +28,20 @@ pub fn init(
     }
 
     let provider = Ed25519LedgerTmAppSigner::connect().map_err(|_| Error::from(SigningError))?;
+    let public_key = provider.public_key().map_err(|_| Error::from(InvalidKey))?;
 
-    // TODO(tarcieri): support for adding account keys into keyrings
-    let public_key = TendermintKey::ConsensusKey(
-        provider
-            .public_key()
-            .map_err(|_| Error::from(InvalidKey))?
+    // TODO(tarcieri): support for adding account keys into keyrings; signatory upgrade
+    let consensus_pubkey = TendermintKey::ConsensusKey(
+        tendermint::signatory::ed25519::PublicKey::from_bytes(public_key.as_bytes())
+            .unwrap()
             .into(),
     );
 
-    let signer = Signer::new(SigningProvider::LedgerTm, public_key, Box::new(provider));
+    let signer = Signer::new(
+        SigningProvider::LedgerTm,
+        consensus_pubkey,
+        Box::new(provider),
+    );
 
     for chain_id in &ledgertm_configs[0].chain_ids {
         chain_registry.add_to_keyring(chain_id, signer.clone())?;

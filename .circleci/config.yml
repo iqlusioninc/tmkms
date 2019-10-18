@@ -49,14 +49,11 @@ jobs:
           rustc --version
           cargo --version
           cargo test --all-features -- --test-threads 1
-    # TODO(tarcieri): upgrade cargo-audit and/or yubihsm-rs
-    # Audit is failing on RUSTSEC-2016-0004 and cargo-audit is too old to
-    # support the --ignore option
-    #- run:
-    #    name: audit
-    #    command: |
-    #      cargo audit --version
-    #      cargo audit
+    - run:
+        name: audit
+        command: |
+          cargo audit --version
+          cargo audit
     - run:
         name: validate against test harness
         command: |

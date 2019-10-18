@@ -156,7 +156,7 @@ impl Runnable for SetupCommand {
             crate::yubihsm::config().auth.credentials(),
             profile,
         )
-        .unwrap_or_else(|e| hsm_error(e.as_fail()));
+        .unwrap_or_else(|e| hsm_error(&e));
 
         status_ok!(
             "Success",
@@ -489,7 +489,7 @@ fn prompt_for_user_approval(prompt: &str) {
 }
 
 /// Handler for HSM errors
-fn hsm_error(e: &dyn failure::Fail) -> ! {
+fn hsm_error(e: &dyn std::error::Error) -> ! {
     status_err!("HSM error: {}", e);
 
     // TODO: handle exits via abscissa

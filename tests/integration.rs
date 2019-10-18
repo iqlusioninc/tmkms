@@ -5,7 +5,12 @@ extern crate prost_amino as prost;
 use crate::prost::Message;
 use chrono::{DateTime, Utc};
 use rand::Rng;
-use signatory::{ed25519, Decode, PublicKeyed, Signature, Verifier};
+use signatory::{
+    ed25519,
+    encoding::Decode,
+    public_key::PublicKeyed,
+    signature::{Signature, Verifier},
+};
 use signatory_dalek::{Ed25519Signer, Ed25519Verifier};
 use std::{
     fs,

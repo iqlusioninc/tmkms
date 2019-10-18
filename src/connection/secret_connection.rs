@@ -5,12 +5,19 @@ mod nonce;
 mod public_key;
 
 pub use self::{kdf::Kdf, nonce::Nonce, public_key::PublicKey};
+use crate::error::{Error, ErrorKind};
 use byteorder::{ByteOrder, LE};
 use bytes::BufMut;
+use chacha20poly1305::{
+    aead::{generic_array::GenericArray, NewAead},
+    ChaCha20Poly1305,
+};
 use prost::{encoding::encode_varint, Message};
 use rand_os::OsRng;
-use ring::aead;
-use signatory::{ed25519, Signature, Signer, Verifier};
+use signatory::{
+    ed25519,
+    signature::{Signature, Signer, Verifier},
+};
 use signatory_dalek::Ed25519Verifier;
 use std::{
     cmp,
@@ -18,10 +25,7 @@ use std::{
     marker::{Send, Sync},
 };
 use subtle::ConstantTimeEq;
-use tendermint::{
-    amino_types::AuthSigMessage,
-    error::{Error, ErrorKind},
-};
+use tendermint::amino_types::AuthSigMessage;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
 
 /// Size of the MAC tag
@@ -37,8 +41,8 @@ pub struct SecretConnection<IoHandler: Read + Write + Send + Sync> {
     io_handler: IoHandler,
     recv_nonce: Nonce,
     send_nonce: Nonce,
-    recv_secret: aead::OpeningKey,
-    send_secret: aead::SealingKey,
+    recv_cipher: ChaCha20Poly1305,
+    send_cipher: ChaCha20Poly1305,
     remote_pubkey: PublicKey,
     recv_buffer: Vec<u8>,
 }
@@ -48,7 +52,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     pub fn remote_pubkey(&self) -> PublicKey {
         self.remote_pubkey
     }
-    #[allow(clippy::new_ret_no_self)]
+
     /// Performs handshake and returns a new authenticated SecretConnection.
     pub fn new(
         mut handler: IoHandler,
@@ -94,13 +98,11 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             recv_buffer: vec![],
             recv_nonce: Nonce::default(),
             send_nonce: Nonce::default(),
-            recv_secret: aead::OpeningKey::new(&aead::CHACHA20_POLY1305, &kdf.recv_secret)
-                .map_err(|_| ErrorKind::Crypto)?,
-            send_secret: aead::SealingKey::new(&aead::CHACHA20_POLY1305, &kdf.send_secret)
-                .map_err(|_| ErrorKind::Crypto)?,
+            recv_cipher: ChaCha20Poly1305::new(kdf.recv_secret.into()),
+            send_cipher: ChaCha20Poly1305::new(kdf.send_secret.into()),
             remote_pubkey: PublicKey::from(
                 ed25519::PublicKey::from_bytes(remote_eph_pubkey.as_bytes())
-                    .ok_or_else(|| ErrorKind::Crypto)?,
+                    .ok_or_else(|| ErrorKind::CryptoError)?,
             ),
         };
 
@@ -114,13 +116,15 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             }
         };
 
-        let remote_pubkey =
-            ed25519::PublicKey::from_bytes(&auth_sig_msg.key).ok_or_else(|| ErrorKind::Crypto)?;
+        let remote_pubkey = ed25519::PublicKey::from_bytes(&auth_sig_msg.key)
+            .ok_or_else(|| ErrorKind::CryptoError)?;
         let remote_signature: &[u8] = &auth_sig_msg.sig;
-        let remote_sig = ed25519::Signature::from_bytes(remote_signature)?;
+        let remote_sig =
+            ed25519::Signature::from_bytes(remote_signature).map_err(|_| ErrorKind::CryptoError)?;
 
-        let remote_verifier = Ed25519Verifier::from(&remote_pubkey);
-        remote_verifier.verify(&kdf.challenge, &remote_sig)?;
+        Ed25519Verifier::from(&remote_pubkey)
+            .verify(&kdf.challenge, &remote_sig)
+            .map_err(|_| ErrorKind::CryptoError)?;
 
         // We've authorized.
         sc.remote_pubkey = PublicKey::from(remote_pubkey);
@@ -128,53 +132,58 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         Ok(sc)
     }
 
-    /// Unseal (i.e. decrypt) AEAD authenticated data
-    fn open(&self, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        let nonce = aead::Nonce::from(&self.recv_nonce);
-        let associated_data = aead::Aad::empty();
-
-        // optimize if the provided buffer is sufficiently large
-        let len = if out.len() >= ciphertext.len() {
-            let in_out = &mut out[..ciphertext.len()];
-            in_out.copy_from_slice(ciphertext);
-
-            aead::open_in_place(&self.recv_secret, nonce, associated_data, 0, in_out)
-                .map_err(|_| ErrorKind::Crypto)?
-                .len()
-        } else {
-            let mut in_out = ciphertext.to_vec();
-            let out0 =
-                aead::open_in_place(&self.recv_secret, nonce, aead::Aad::empty(), 0, &mut in_out)
-                    .map_err(|_| ErrorKind::Crypto)?;
-            out[..out0.len()].copy_from_slice(out0);
-            out0.len()
-        };
-
-        Ok(len)
-    }
-
-    /// Seal (i.e. encrypt) AEAD authenticated data
-    fn seal(
+    /// Encrypt AEAD authenticated data
+    fn encrypt(
         &self,
         chunk: &[u8],
         sealed_frame: &mut [u8; TAG_SIZE + TOTAL_FRAME_SIZE],
     ) -> Result<(), Error> {
-        let chunk_length = chunk.len();
-        let mut frame = [0u8; TOTAL_FRAME_SIZE];
-        LE::write_u32(&mut frame[..DATA_LEN_SIZE], chunk_length as u32);
-        frame[DATA_LEN_SIZE..DATA_LEN_SIZE + chunk_length].copy_from_slice(chunk);
-        sealed_frame[..frame.len()].copy_from_slice(&frame);
+        debug_assert!(chunk.len() <= TOTAL_FRAME_SIZE - DATA_LEN_SIZE);
+        LE::write_u32(&mut sealed_frame[..DATA_LEN_SIZE], chunk.len() as u32);
+        sealed_frame[DATA_LEN_SIZE..DATA_LEN_SIZE + chunk.len()].copy_from_slice(chunk);
 
-        aead::seal_in_place(
-            &self.send_secret,
-            aead::Nonce::from(&self.send_nonce),
-            aead::Aad::empty(),
-            sealed_frame,
-            TAG_SIZE,
-        )
-        .map_err(|_| ErrorKind::Crypto)?;
+        let tag = self
+            .send_cipher
+            .encrypt_in_place_detached(
+                GenericArray::from_slice(self.send_nonce.to_bytes()),
+                b"",
+                &mut sealed_frame[..TOTAL_FRAME_SIZE],
+            )
+            .map_err(|_| ErrorKind::CryptoError)?;
+
+        sealed_frame[TOTAL_FRAME_SIZE..].copy_from_slice(tag.as_slice());
 
         Ok(())
+    }
+
+    /// Decrypt AEAD authenticated data
+    fn decrypt(&self, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
+        // Ensure ciphertext is at least as long as a Poly1305 tag
+        if ciphertext.len() < TAG_SIZE {
+            return Err(ErrorKind::CryptoError.into());
+        }
+
+        // Split ChaCha20 ciphertext from the Poly1305 tag
+        let (ct, tag) = ciphertext.split_at(ciphertext.len() - TAG_SIZE);
+
+        // Return a length error if the output buffer is too small
+        if out.len() < ct.len() {
+            return Err(ErrorKind::CryptoError.into());
+        }
+
+        let in_out = &mut out[..ct.len()];
+        in_out.copy_from_slice(ct);
+
+        self.recv_cipher
+            .decrypt_in_place_detached(
+                GenericArray::from_slice(self.recv_nonce.to_bytes()),
+                b"",
+                in_out,
+                tag.into(),
+            )
+            .map_err(|_| ErrorKind::CryptoError)?;
+
+        Ok(in_out.len())
     }
 }
 
@@ -199,7 +208,7 @@ where
 
         // decrypt the frame
         let mut frame = [0u8; TOTAL_FRAME_SIZE];
-        let res = self.open(&sealed_frame, &mut frame);
+        let res = self.decrypt(&sealed_frame, &mut frame);
 
         if res.is_err() {
             return Err(io::Error::new(
@@ -255,7 +264,7 @@ where
                 data_copy = &[0u8; 0];
             }
             let sealed_frame = &mut [0u8; TAG_SIZE + TOTAL_FRAME_SIZE];
-            let res = self.seal(chunk, sealed_frame);
+            let res = self.encrypt(chunk, sealed_frame);
             if res.is_err() {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
@@ -315,7 +324,7 @@ fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
     // https://github.com/tendermint/tendermint/blob/013b9cef642f875634c614019ab13b17570778ad/p2p/conn/secret_connection.go#L208-L238
     let mut remote_eph_pubkey_fixed: [u8; 32] = Default::default();
     if buf[0] != 33 || buf[1] != 32 {
-        return Err(ErrorKind::Protocol.into());
+        return Err(ErrorKind::ProtocolError.into());
     }
     // after total length (33) and byte length (32), we expect the raw bytes
     // of the pub key:
@@ -394,7 +403,7 @@ fn sign_challenge(
 ) -> Result<ed25519::Signature, Error> {
     local_privkey
         .try_sign(challenge)
-        .map_err(|_| ErrorKind::Crypto.into())
+        .map_err(|_| ErrorKind::CryptoError.into())
 }
 
 // TODO(ismail): change from DecodeError to something more generic
@@ -406,19 +415,17 @@ fn share_auth_signature<IoHandler: Read + Write + Send + Sync>(
 ) -> Result<AuthSigMessage, Error> {
     let amsg = AuthSigMessage {
         key: pubkey.to_vec(),
-        sig: signature.into_bytes().to_vec(),
+        sig: signature.as_ref().to_vec(),
     };
     let mut buf: Vec<u8> = vec![];
-    amsg.encode_length_delimited(&mut buf)
-        .map_err(|e| Error::new(ErrorKind::Parse, Some(e.to_string())))?;
+    amsg.encode_length_delimited(&mut buf)?;
     sc.write_all(&buf)?;
 
     let mut rbuf = vec![0; 106]; // 100 = 32 + 64 + (amino overhead = 2 fields + 2 lengths + 4 prefix bytes + total length)
     sc.read_exact(&mut rbuf)?;
 
     // TODO: proper error handling:
-    Ok(AuthSigMessage::decode_length_delimited(&rbuf)
-        .map_err(|e| Error::new(ErrorKind::Parse, Some(e.to_string())))?)
+    Ok(AuthSigMessage::decode_length_delimited(&rbuf)?)
 }
 
 #[cfg(tests)]

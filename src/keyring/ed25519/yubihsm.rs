@@ -6,7 +6,7 @@ use crate::{
     error::{Error, ErrorKind::*},
     keyring::{ed25519::Signer, SigningProvider},
 };
-use signatory::PublicKeyed;
+use signatory::public_key::PublicKeyed;
 use tendermint::TendermintKey;
 
 /// Create hardware-backed YubiHSM signer objects from the given configuration
@@ -37,20 +37,21 @@ pub fn init(
                 )
             })?;
 
-        // TODO(tarcieri): support for adding account keys into keyrings
-        let public_key = TendermintKey::ConsensusKey(
-            signer
-                .public_key()
-                .map_err(|_| {
-                    err!(
-                        InvalidKey,
-                        "couldn't get public key for YubiHSM key ID 0x{:04x}"
-                    )
-                })?
+        let public_key = signer.public_key().map_err(|_| {
+            err!(
+                InvalidKey,
+                "couldn't get public key for YubiHSM key ID 0x{:04x}"
+            )
+        })?;
+
+        // TODO(tarcieri): support for adding account keys into keyrings; signatory upgrade
+        let consensus_pubkey = TendermintKey::ConsensusKey(
+            tendermint::signatory::ed25519::PublicKey::from_bytes(public_key.as_bytes())
+                .unwrap()
                 .into(),
         );
 
-        let signer = Signer::new(SigningProvider::Yubihsm, public_key, Box::new(signer));
+        let signer = Signer::new(SigningProvider::Yubihsm, consensus_pubkey, Box::new(signer));
 
         for chain_id in &config.chain_ids {
             chain_registry.add_to_keyring(chain_id, signer.clone())?;

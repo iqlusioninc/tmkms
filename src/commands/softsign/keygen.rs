@@ -2,7 +2,7 @@
 
 use crate::{keyring::SecretKeyEncoding, prelude::*};
 use abscissa_core::{Command, Runnable};
-use signatory::{ed25519, Encode};
+use signatory::{ed25519, encoding::Encode};
 use std::{path::PathBuf, process};
 
 /// `keygen` command

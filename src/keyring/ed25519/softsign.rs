@@ -9,7 +9,7 @@ use crate::{
     error::{Error, ErrorKind::*},
     keyring::{SecretKeyEncoding, SigningProvider},
 };
-use signatory::{ed25519, encoding::Decode, PublicKeyed};
+use signatory::{ed25519, encoding::Decode, public_key::PublicKeyed};
 use signatory_dalek::Ed25519Signer;
 use std::{fs, process};
 use tendermint::{config::PrivValidatorKey, PrivateKey, TendermintKey};
@@ -84,22 +84,29 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
                 .priv_key;
 
             match private_key {
-                PrivateKey::Ed25519(pk) => pk.to_seed(),
+                PrivateKey::Ed25519(pk) => {
+                    // TODO(tarcieri): upgrade Signatory version
+                    ed25519::Seed::from_bytes(pk.to_seed().as_secret_slice()).unwrap()
+                }
             }
         }
     };
 
     let provider = Ed25519Signer::from(&seed);
+    let public_key = provider.public_key().map_err(|_| Error::from(InvalidKey))?;
 
-    // TODO(tarcieri): support for adding account keys into keyrings
-    let public_key = TendermintKey::ConsensusKey(
-        provider
-            .public_key()
-            .map_err(|_| Error::from(InvalidKey))?
+    // TODO(tarcieri): support for adding account keys into keyrings; upgrade Signatory version
+    let consensus_pubkey = TendermintKey::ConsensusKey(
+        tendermint::signatory::ed25519::PublicKey::from_bytes(public_key.as_bytes())
+            .unwrap()
             .into(),
     );
 
-    let signer = Signer::new(SigningProvider::SoftSign, public_key, Box::new(provider));
+    let signer = Signer::new(
+        SigningProvider::SoftSign,
+        consensus_pubkey,
+        Box::new(provider),
+    );
 
     for chain_id in &config.chain_ids {
         chain_registry.add_to_keyring(chain_id, signer.clone())?;

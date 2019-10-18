@@ -4,7 +4,7 @@ use crate::{
     error::{Error, ErrorKind::*},
     keyring::SigningProvider,
 };
-use signatory::ed25519::Signature;
+use signatory::{ed25519::Signature, signature};
 use std::sync::Arc;
 use tendermint::TendermintKey;
 
@@ -18,7 +18,7 @@ pub struct Signer {
     public_key: TendermintKey,
 
     /// Signer trait object
-    signer: Arc<Box<dyn signatory::Signer<Signature> + Send + Sync>>,
+    signer: Arc<Box<dyn signature::Signer<Signature> + Send + Sync>>,
 }
 
 impl Signer {
@@ -26,7 +26,7 @@ impl Signer {
     pub fn new(
         provider: SigningProvider,
         public_key: TendermintKey,
-        signer: Box<dyn signatory::Signer<Signature> + Send + Sync>,
+        signer: Box<dyn signature::Signer<Signature> + Send + Sync>,
     ) -> Self {
         Self {
             provider,

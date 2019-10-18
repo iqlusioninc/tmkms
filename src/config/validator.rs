@@ -5,7 +5,10 @@ use crate::{
     keyring::SecretKeyEncoding,
 };
 use serde::Deserialize;
-use signatory::{ed25519, Decode, Encode};
+use signatory::{
+    ed25519,
+    encoding::{Decode, Encode},
+};
 use std::path::PathBuf;
 use tendermint::{chain, net};
 
