@@ -164,7 +164,11 @@ impl Session {
         let signature = chain.keyring.sign_ed25519(None, &to_sign)?;
 
         self.log_signing_request(&request, started_at).unwrap();
-        request.set_signature(&signature);
+
+        // TODO(tarcieri): bump Signatory version in the `tendermint` crate
+        request.set_signature(&tendermint::signatory::ed25519::Signature::new(
+            signature.to_bytes(),
+        ));
 
         Ok(request.build_response(None))
     }

@@ -18,6 +18,7 @@ abscissa_core = "0.4"
 atomicwrites = "0.2"
 byteorder = "1.2"
 bytes = "0.4"
+chacha20poly1305 = "0.2"
 chrono = "0.4"
 failure = "0.1"
 gumdrop = "0.7"
@@ -29,25 +30,24 @@ log = "0.4"
 prost-amino = "0.4.0"
 prost-amino-derive = "0.4.0"
 rand_os = "0.1"
-ring = "0.14"
 rpassword = { version = "3", optional = true }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
 sha2 = "0.8"
-signatory = { version = "0.12", features = ["ed25519", "ecdsa"] }
-signatory-dalek = "0.12"
-signatory-secp256k1 = "0.12"
-signatory-ledger-tm = { version = "0.12", optional = true }
+signatory = { version = "0.15", features = ["ecdsa", "ed25519", "encoding"] }
+signatory-dalek = "0.15"
+signatory-secp256k1 = "0.15"
+signatory-ledger-tm = { version = "0.15", optional = true }
 subtle = "2"
-subtle-encoding = { version = "0.3", features = ["bech32-preview"] }
+subtle-encoding = { version = "0.4", features = ["bech32-preview"] }
 tiny-bip39 = "0.6"
 wait-timeout = "0.2"
 x25519-dalek = "0.5"
-yubihsm = { version = "0.26", features = ["setup", "usb"], optional = true }
+yubihsm = { version = "0.28", features = ["setup", "usb"], optional = true }
 zeroize = "1"
 
 [dependencies.tendermint]
-version = "0.10"
+version = "0.10.1"
 features = ["amino-types", "config"]
 
 [dev-dependencies]

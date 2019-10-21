@@ -1,5 +1,6 @@
 //! Secret Connection peer public keys
 
+use sha2::{digest::Digest, Sha256};
 use signatory::ed25519;
 use std::fmt::{self, Display};
 use tendermint::{
@@ -32,7 +33,13 @@ impl PublicKey {
     /// Get the remote Peer ID
     pub fn peer_id(self) -> node::Id {
         match self {
-            PublicKey::Ed25519(pk) => node::Id::from(pk),
+            PublicKey::Ed25519(pk) => {
+                // TODO(tarcieri): use `tendermint::node::Id::from`
+                let digest = Sha256::digest(pk.as_bytes());
+                let mut bytes = [0u8; 20];
+                bytes.copy_from_slice(&digest[..20]);
+                node::Id::new(bytes)
+            }
         }
     }
 }

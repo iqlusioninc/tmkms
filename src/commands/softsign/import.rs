@@ -2,7 +2,10 @@
 
 use crate::{config::provider::softsign::KeyFormat, keyring::SecretKeyEncoding, prelude::*};
 use abscissa_core::{Command, Runnable};
-use signatory::{ed25519, Decode, Encode};
+use signatory::{
+    ed25519,
+    encoding::{Decode, Encode},
+};
 use std::{path::PathBuf, process};
 use subtle_encoding::IDENTITY;
 use tendermint::{config::PrivValidatorKey, PrivateKey};
@@ -54,7 +57,10 @@ impl Runnable for ImportCommand {
                     .priv_key;
 
                 match private_key {
-                    PrivateKey::Ed25519(pk) => pk.to_seed(),
+                    PrivateKey::Ed25519(pk) => {
+                        // TODO(tarcieri): upgrade Signatory version
+                        ed25519::Seed::from_bytes(pk.to_seed().as_secret_slice()).unwrap()
+                    }
                 }
             }
             KeyFormat::Raw => {
