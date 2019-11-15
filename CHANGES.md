@@ -1,3 +1,13 @@
+## 0.7.0 (UNRELEASED)
+
+- Upgrade to `signatory` v0.16; `yubihsm` v0.29.0 ([#367])
+- Use the `chacha20poly1305` crate for Secret Connection ([#366])
+- Vendor Secret Connection impl back from `tendermint-rs` ([#365])
+- Add timeout to TCP socket ([#364])
+- Upgrade to `abscissa` v0.4 ([#362])
+- Double signing detection and logging improvements ([#348])
+- Log signing message type during attempted double sign events ([#347])
+
 ## [0.6.3] (2019-08-07)
 
 - Detect and don't attempt to recover from PoisonError ([#345])
@@ -152,6 +162,13 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
+[#367]: https://github.com/tendermint/kms/pull/367
+[#366]: https://github.com/tendermint/kms/pull/366
+[#365]: https://github.com/tendermint/kms/pull/365
+[#364]: https://github.com/tendermint/kms/pull/364
+[#362]: https://github.com/tendermint/kms/pull/362
+[#348]: https://github.com/tendermint/kms/pull/348
+[#347]: https://github.com/tendermint/kms/pull/347
 [0.6.3]: https://github.com/tendermint/kms/pull/346
 [#345]: https://github.com/tendermint/kms/pull/345
 [0.6.2]: https://github.com/tendermint/kms/pull/343
