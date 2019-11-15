@@ -1597,7 +1597,7 @@ dependencies = [
 
 [[package]]
 name = "tmkms"
-version = "0.6.3"
+version = "0.7.0-alpha1"
 dependencies = [
  "abscissa_core 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "atomicwrites 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
