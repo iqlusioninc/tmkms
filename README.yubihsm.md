@@ -10,7 +10,7 @@ with Tendermint KMS.
 ## Compiling `tmkms` with YubiHSM support
 
 Please see the [toplevel README.md] for prerequisites for compiling `tmkms`
-from source code. You will need: Rust (stable, 1.35+), a C compiler,
+from source code. You will need: Rust (stable, 1.39+), a C compiler,
 `pkg-config`, and `libusb` (1.0+) installed.
 
 There are two ways to install `tmkms` with YubiHSM 2 support, and in either
@@ -33,7 +33,7 @@ If successful, this will produce a `tmkms` executable located at
 
 ### Installing with the `cargo install` command
 
-With Rust (1.31+) installed, you can install tmkms with the following:
+With Rust (1.39+) installed, you can install tmkms with the following:
 
 ```
 cargo install tmkms --features=yubihsm

@@ -44,12 +44,8 @@ pub fn init(
             )
         })?;
 
-        // TODO(tarcieri): support for adding account keys into keyrings; signatory upgrade
-        let consensus_pubkey = TendermintKey::ConsensusKey(
-            tendermint::signatory::ed25519::PublicKey::from_bytes(public_key.as_bytes())
-                .unwrap()
-                .into(),
-        );
+        // TODO(tarcieri): support for adding account keys into keyrings
+        let consensus_pubkey = TendermintKey::ConsensusKey(public_key.into());
 
         let signer = Signer::new(SigningProvider::Yubihsm, consensus_pubkey, Box::new(signer));
 
