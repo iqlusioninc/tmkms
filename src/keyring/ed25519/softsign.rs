@@ -95,12 +95,8 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
     let provider = Ed25519Signer::from(&seed);
     let public_key = provider.public_key().map_err(|_| Error::from(InvalidKey))?;
 
-    // TODO(tarcieri): support for adding account keys into keyrings; upgrade Signatory version
-    let consensus_pubkey = TendermintKey::ConsensusKey(
-        tendermint::signatory::ed25519::PublicKey::from_bytes(public_key.as_bytes())
-            .unwrap()
-            .into(),
-    );
+    // TODO(tarcieri): support for adding account keys into keyrings
+    let consensus_pubkey = TendermintKey::ConsensusKey(public_key.into());
 
     let signer = Signer::new(
         SigningProvider::SoftSign,

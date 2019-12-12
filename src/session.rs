@@ -165,10 +165,7 @@ impl Session {
 
         self.log_signing_request(&request, started_at).unwrap();
 
-        // TODO(tarcieri): bump Signatory version in the `tendermint` crate
-        request.set_signature(&tendermint::signatory::ed25519::Signature::new(
-            signature.to_bytes(),
-        ));
+        request.set_signature(&signature);
 
         Ok(request.build_response(None))
     }

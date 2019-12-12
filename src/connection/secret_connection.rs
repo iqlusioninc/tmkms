@@ -1,15 +1,16 @@
 //! `SecretConnection`: Transport layer encryption for Tendermint P2P connections.
 
+mod amino_types;
 mod kdf;
 mod nonce;
 mod public_key;
 
-pub use self::{kdf::Kdf, nonce::Nonce, public_key::PublicKey};
+pub use self::{amino_types::AuthSigMessage, kdf::Kdf, nonce::Nonce, public_key::PublicKey};
 use crate::error::{Error, ErrorKind};
 use byteorder::{ByteOrder, LE};
 use bytes::BufMut;
 use chacha20poly1305::{
-    aead::{generic_array::GenericArray, NewAead},
+    aead::{generic_array::GenericArray, Aead, NewAead},
     ChaCha20Poly1305,
 };
 use prost::{encoding::encode_varint, Message};
@@ -25,7 +26,6 @@ use std::{
     marker::{Send, Sync},
 };
 use subtle::ConstantTimeEq;
-use tendermint::amino_types::AuthSigMessage;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
 
 /// Size of the MAC tag

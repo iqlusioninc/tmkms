@@ -3,7 +3,7 @@
 [![Crate][crate-image]][crate-link]
 [![Build Status][build-image]][build-link]
 [![Apache 2.0 Licensed][license-image]][license-link]
-![Rust 1.35+][rustc-image]
+![MSRV][rustc-image]
 
 Key Management System for [Tendermint] applications, initially targeting
 [Cosmos Validators].
@@ -88,7 +88,7 @@ prerequisites for support.
 
 You will need the following prerequisites:
 
-- **Rust** (stable; 1.35+): https://rustup.rs/
+- **Rust** (stable; **1.39+**): https://rustup.rs/
 - **C compiler**: e.g. gcc, clang
 - **pkg-config**
 - **libusb** (1.0+). Install instructions for common platforms:
@@ -122,7 +122,7 @@ If successful, this will produce a `tmkms` executable located at
 
 ### Installing with the `cargo install` command
 
-With Rust (1.35+) installed, you can install tmkms with the following:
+With Rust (1.39+) installed, you can install tmkms with the following:
 
 ```
 cargo install tmkms --features=yubihsm
@@ -208,13 +208,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+[//]: # (badges)
+
 [crate-image]: https://img.shields.io/crates/v/tmkms.svg
 [crate-link]: https://crates.io/crates/tmkms
 [build-image]: https://circleci.com/gh/tendermint/kms.svg?style=shield
 [build-link]: https://circleci.com/gh/tendermint/kms
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/tendermint/kms/blob/master/LICENSE
-[rustc-image]: https://img.shields.io/badge/rustc-1.35+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.39+-blue.svg
+
+[//]: # (general links)
+
 [Tendermint]: https://tendermint.com/
 [Cosmos Validators]: https://cosmos.network/docs/gaia/validators/validator-faq.html
 [YubiHSM2]: https://github.com/tendermint/kms/blob/master/README.yubihsm.md
