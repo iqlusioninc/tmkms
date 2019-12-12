@@ -28,18 +28,13 @@ pub struct State {
 
 impl State {
     /// Load the state from the given path
-    pub fn load_state<P>(path: P) -> Result<State, Error>
+    pub fn load_state<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        let mut lst = State {
-            consensus_state: consensus::State::default(),
-            state_file_path: path.as_ref().to_owned(),
-        };
-
         match fs::read_to_string(path.as_ref()) {
-            Ok(contents) => {
-                lst.consensus_state = serde_json::from_str(&contents).map_err(|e| {
+            Ok(state_json) => {
+                let consensus_state = serde_json::from_str(&state_json).map_err(|e| {
                     err!(
                         ParseError,
                         "error parsing {}: {}",
@@ -47,16 +42,16 @@ impl State {
                         e
                     )
                 })?;
-                Ok(lst)
+
+                Ok(Self {
+                    consensus_state,
+                    state_file_path: path.as_ref().to_owned(),
+                })
             }
-            Err(e) => {
-                if e.kind() == io::ErrorKind::NotFound {
-                    lst.sync_to_disk()?;
-                    Ok(lst)
-                } else {
-                    Err(e.into())
-                }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                Self::write_initial_state(path.as_ref())
             }
+            Err(e) => Err(Error::from(e)),
         }
     }
 
@@ -163,8 +158,26 @@ impl State {
         Ok(())
     }
 
+    /// Write the initial state to the given path on disk
+    fn write_initial_state(path: &Path) -> Result<Self, Error> {
+        let mut consensus_state = consensus::State::default();
+
+        // TODO(tarcieri): correct upstream `tendermint-rs` default height to 0
+        // Set the initial block height to 0 to indicate we've never signed a block
+        consensus_state.height = 0.into();
+
+        let initial_state = Self {
+            consensus_state,
+            state_file_path: path.to_owned(),
+        };
+
+        initial_state.sync_to_disk()?;
+
+        Ok(initial_state)
+    }
+
     /// Sync the current state to disk
-    fn sync_to_disk(&mut self) -> std::io::Result<()> {
+    fn sync_to_disk(&self) -> io::Result<()> {
         let json = serde_json::to_string(&self.consensus_state)?;
 
         AtomicFile::new(&self.state_file_path, OverwriteBehavior::AllowOverwrite)
