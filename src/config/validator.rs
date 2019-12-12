@@ -37,7 +37,7 @@ impl ValidatorConfig {
     /// Load the configured secret key from disk
     pub fn load_secret_key(&self) -> Result<ed25519::Seed, Error> {
         let secret_key_path = self.secret_key.as_ref().ok_or_else(|| {
-            err!(
+            format_err!(
                 VerificationError,
                 "config error: no `secret_key` for validator {}",
                 &self.addr
@@ -47,7 +47,7 @@ impl ValidatorConfig {
         let seed = if secret_key_path.exists() {
             ed25519::Seed::decode_from_file(secret_key_path, &SecretKeyEncoding::default())
                 .map_err(|e| {
-                    err!(
+                    format_err!(
                         ConfigError,
                         "error loading Secret Connection key from {}: {}",
                         secret_key_path.display(),
@@ -57,7 +57,9 @@ impl ValidatorConfig {
         } else {
             let s = ed25519::Seed::generate();
             s.encode_to_file(&secret_key_path, &SecretKeyEncoding::default())
-                .map_err(|_| err!(IoError, "couldn't write: {}", secret_key_path.display()))?;
+                .map_err(|_| {
+                    format_err!(IoError, "couldn't write: {}", secret_key_path.display())
+                })?;
             s
         };
 

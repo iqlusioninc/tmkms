@@ -35,7 +35,7 @@ impl State {
         match fs::read_to_string(path.as_ref()) {
             Ok(state_json) => {
                 let consensus_state = serde_json::from_str(&state_json).map_err(|e| {
-                    err!(
+                    format_err!(
                         ParseError,
                         "error parsing {}: {}",
                         path.as_ref().display(),
@@ -116,7 +116,7 @@ impl State {
         self.consensus_state = new_state;
 
         self.sync_to_disk().map_err(|e| {
-            err!(
+            format_err!(
                 StateErrorKind::SyncError,
                 "error writing state to {}: {}",
                 self.state_file_path.display(),

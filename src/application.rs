@@ -1,13 +1,13 @@
 //! Abscissa `Application` for the KMS
 
 use crate::{commands::KmsCommand, config::KmsConfig};
-use abscissa_core::{application, logging, Application, FrameworkError, StandardPaths};
-use lazy_static::lazy_static;
+use abscissa_core::{
+    application::{self, AppCell},
+    trace, Application, FrameworkError, StandardPaths,
+};
 
-lazy_static! {
-    /// Application state
-    pub static ref APPLICATION: application::Lock<KmsApplication> = application::Lock::default();
-}
+/// Application state
+pub static APPLICATION: AppCell<KmsApplication> = AppCell::new();
 
 /// Obtain a read-only (multi-reader) lock on the application state.
 ///
@@ -93,12 +93,12 @@ impl Application for KmsApplication {
         Ok(())
     }
 
-    /// Get logging configuration from command-line options
-    fn logging_config(&self, command: &KmsCommand) -> logging::Config {
+    /// Get tracing configuration from command-line options
+    fn tracing_config(&self, command: &KmsCommand) -> trace::Config {
         if command.verbose() {
-            logging::Config::verbose()
+            trace::Config::verbose()
         } else {
-            logging::Config::default()
+            trace::Config::default()
         }
     }
 }

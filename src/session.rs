@@ -240,11 +240,11 @@ where
 {
     let msg_type = request
         .msg_type()
-        .ok_or_else(|| err!(ProtocolError, "no message type for this request"))?;
+        .ok_or_else(|| format_err!(ProtocolError, "no message type for this request"))?;
 
     let mut consensus_state = request
         .consensus_state()
-        .ok_or_else(|| err!(ProtocolError, "no consensus state in request"))?;
+        .ok_or_else(|| format_err!(ProtocolError, "no consensus state in request"))?;
 
     consensus_state.step = match msg_type {
         SignedMsgType::Proposal => 0,

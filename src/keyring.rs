@@ -85,10 +85,9 @@ impl KeyRing {
         msg: &[u8],
     ) -> Result<ed25519::Signature, Error> {
         let signer = match public_key {
-            Some(public_key) => self
-                .keys
-                .get(public_key)
-                .ok_or_else(|| err!(InvalidKey, "not in keyring: {}", public_key.to_bech32("")))?,
+            Some(public_key) => self.keys.get(public_key).ok_or_else(|| {
+                format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
+            })?,
             None => {
                 let mut vals = self.keys.values();
 
@@ -96,7 +95,7 @@ impl KeyRing {
                     fail!(SigningError, "expected only one key in keyring");
                 } else {
                     vals.next()
-                        .ok_or_else(|| err!(InvalidKey, "keyring is empty"))?
+                        .ok_or_else(|| format_err!(InvalidKey, "keyring is empty"))?
                 }
             }
         };

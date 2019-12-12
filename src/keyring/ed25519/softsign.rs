@@ -35,7 +35,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
     let seed = match key_format {
         KeyFormat::Base64 => {
             let base64 = fs::read_to_string(&config.path).map_err(|e| {
-                err!(
+                format_err!(
                     ConfigError,
                     "couldn't read key from {}: {}",
                     &config.path.as_ref().display(),
@@ -48,7 +48,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
 
             ed25519::Seed::decode_from_str(base64_trimmed, &SecretKeyEncoding::default()).map_err(
                 |e| {
-                    err!(
+                    format_err!(
                         ConfigError,
                         "can't decode key from {}: {}",
                         config.path.as_ref().display(),
@@ -59,7 +59,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
         }
         KeyFormat::Raw => {
             let bytes = fs::read(&config.path).map_err(|e| {
-                err!(
+                format_err!(
                     ConfigError,
                     "couldn't read key from {}: {}",
                     &config.path.as_ref().display(),
@@ -68,7 +68,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
             })?;
 
             ed25519::Seed::from_bytes(&bytes).ok_or_else(|| {
-                err!(
+                format_err!(
                     ConfigError,
                     "malformed 'raw' softsign key: {}",
                     config.path.as_ref().display(),

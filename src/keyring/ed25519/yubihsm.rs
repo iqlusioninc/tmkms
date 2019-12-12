@@ -30,7 +30,7 @@ pub fn init(
     for config in &yubihsm_configs[0].keys {
         let signer = yubihsm::ed25519::Signer::create(crate::yubihsm::client().clone(), config.key)
             .map_err(|_| {
-                err!(
+                format_err!(
                     InvalidKey,
                     "YubiHSM key ID 0x{:04x} is not a valid Ed25519 signing key",
                     config.key
@@ -38,7 +38,7 @@ pub fn init(
             })?;
 
         let public_key = signer.public_key().map_err(|_| {
-            err!(
+            format_err!(
                 InvalidKey,
                 "couldn't get public key for YubiHSM key ID 0x{:04x}"
             )

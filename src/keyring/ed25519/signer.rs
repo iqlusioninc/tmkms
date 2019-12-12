@@ -50,6 +50,6 @@ impl Signer {
         Ok(self
             .signer
             .try_sign(msg)
-            .map_err(|e| err!(SigningError, "{}", e))?)
+            .map_err(|e| format_err!(SigningError, "{}", e))?)
     }
 }
