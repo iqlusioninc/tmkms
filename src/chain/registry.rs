@@ -26,7 +26,7 @@ impl Registry {
     ) -> Result<(), Error> {
         // TODO(tarcieri):
         let chain = self.0.get_mut(chain_id).ok_or_else(|| {
-            err!(
+            format_err!(
                 InvalidKey,
                 "can't add signer {} to unregistered chain: {}",
                 signer.provider(),

@@ -1,6 +1,7 @@
 //! Error types
 
 use crate::{chain, prost};
+use abscissa_core::error::{BoxError, Context};
 use std::{
     any::Any,
     fmt::{self, Display},
@@ -8,10 +9,87 @@ use std::{
     ops::Deref,
 };
 use tendermint::amino_types::validate::ValidationError;
+use thiserror::Error;
+
+/// Kinds of errors
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Error)]
+pub enum ErrorKind {
+    /// Access denied
+    #[error("access denied")]
+    #[cfg(feature = "yubihsm")]
+    AccessError,
+
+    /// Error in configuration file
+    #[error("config error")]
+    ConfigError,
+
+    /// KMS internal panic
+    #[error("internal crash")]
+    PanicError,
+
+    /// KMS state has been poisoned
+    #[error("internal state poisoned")]
+    PoisonError,
+
+    /// Cryptographic operation failed
+    #[error("cryptographic error")]
+    CryptoError,
+
+    /// Error running a subcommand to update chain state
+    #[error("subcommand hook failed")]
+    HookError,
+
+    /// Malformatted or otherwise invalid cryptographic key
+    #[error("invalid key")]
+    InvalidKey,
+
+    /// Validation of consensus message failed
+    #[error("invalid consensus message")]
+    InvalidMessageError,
+
+    /// Input/output error
+    #[error("I/O error")]
+    IoError,
+
+    /// Parse error
+    #[error("parse error")]
+    ParseError,
+
+    /// Network protocol-related errors
+    #[error("protocol error")]
+    ProtocolError,
+
+    /// Serialization error
+    #[error("serialization error")]
+    SerializationError,
+
+    /// Signing operation failed
+    #[error("signing operation failed")]
+    SigningError,
+
+    /// Verification operation failed
+    #[error("verification failed")]
+    VerificationError,
+
+    /// Signature invalid
+    #[error("attempted double sign")]
+    DoubleSign,
+
+    ///Request a Signature above max height
+    #[error("requested signature above stop height")]
+    ExceedMaxHeight,
+}
+
+impl ErrorKind {
+    /// Create an error context from this error
+    pub fn context(self, source: impl Into<BoxError>) -> Context<ErrorKind> {
+        Context::new(self, Some(source.into()))
+    }
+}
 
 /// Error type
 #[derive(Debug)]
-pub struct Error(abscissa_core::Error<ErrorKind>);
+pub struct Error(Box<Context<ErrorKind>>);
 
 impl Error {
     /// Create an error from a panic
@@ -30,83 +108,14 @@ impl Error {
             ErrorKind::PanicError
         };
 
-        err!(kind, err_msg).into()
+        format_err!(kind, err_msg).into()
     }
 }
 
-/// Kinds of errors
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
-pub enum ErrorKind {
-    /// Access denied
-    #[fail(display = "access denied")]
-    #[cfg(feature = "yubihsm")]
-    AccessError,
-
-    /// Error in configuration file
-    #[fail(display = "config error")]
-    ConfigError,
-
-    /// KMS internal panic
-    #[fail(display = "internal crash")]
-    PanicError,
-
-    /// KMS state has been poisoned
-    #[fail(display = "internal state poisoned")]
-    PoisonError,
-
-    /// Cryptographic operation failed
-    #[fail(display = "cryptographic error")]
-    CryptoError,
-
-    /// Error running a subcommand to update chain state
-    #[fail(display = "subcommand hook failed")]
-    HookError,
-
-    /// Malformatted or otherwise invalid cryptographic key
-    #[fail(display = "invalid key")]
-    InvalidKey,
-
-    /// Validation of consensus message failed
-    #[fail(display = "invalid consensus message")]
-    InvalidMessageError,
-
-    /// Input/output error
-    #[fail(display = "I/O error")]
-    IoError,
-
-    /// Parse error
-    #[fail(display = "parse error")]
-    ParseError,
-
-    /// Network protocol-related errors
-    #[fail(display = "protocol error")]
-    ProtocolError,
-
-    /// Serialization error
-    #[fail(display = "serialization error")]
-    SerializationError,
-
-    /// Signing operation failed
-    #[fail(display = "signing operation failed")]
-    SigningError,
-
-    /// Verification operation failed
-    #[fail(display = "verification failed")]
-    VerificationError,
-
-    /// Signature invalid
-    #[fail(display = "attempted double sign")]
-    DoubleSign,
-
-    ///Request a Signature above max height
-    #[fail(display = "requested signature above stop height")]
-    ExceedMaxHeight,
-}
-
 impl Deref for Error {
-    type Target = abscissa_core::Error<ErrorKind>;
+    type Target = Context<ErrorKind>;
 
-    fn deref(&self) -> &abscissa_core::Error<ErrorKind> {
+    fn deref(&self) -> &Context<ErrorKind> {
         &self.0
     }
 }
@@ -118,38 +127,44 @@ impl Display for Error {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error(abscissa_core::Error::new(kind, None))
+    fn from(kind: ErrorKind) -> Self {
+        Context::new(kind, None).into()
     }
 }
 
-impl From<abscissa_core::Error<ErrorKind>> for Error {
-    fn from(other: abscissa_core::Error<ErrorKind>) -> Self {
-        Error(other)
+impl From<Context<ErrorKind>> for Error {
+    fn from(context: Context<ErrorKind>) -> Self {
+        Error(Box::new(context))
     }
 }
 
 impl From<io::Error> for Error {
     fn from(other: io::Error) -> Self {
-        err!(ErrorKind::IoError, other).into()
+        ErrorKind::IoError.context(other).into()
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
     }
 }
 
 impl From<prost::DecodeError> for Error {
     fn from(other: prost::DecodeError) -> Self {
-        err!(ErrorKind::ProtocolError, other).into()
+        ErrorKind::ProtocolError.context(other).into()
     }
 }
 
 impl From<prost::EncodeError> for Error {
     fn from(other: prost::EncodeError) -> Self {
-        err!(ErrorKind::ProtocolError, other).into()
+        ErrorKind::ProtocolError.context(other).into()
     }
 }
 
 impl From<serde_json::error::Error> for Error {
     fn from(other: serde_json::error::Error) -> Self {
-        err!(ErrorKind::SerializationError, other).into()
+        ErrorKind::SerializationError.context(other).into()
     }
 }
 
@@ -166,18 +181,18 @@ impl From<tendermint::Error> for Error {
             tendermint::ErrorKind::SignatureInvalid => ErrorKind::VerificationError,
         };
 
-        abscissa_core::Error::new(kind, other.msg().map(|s| s.to_owned())).into()
+        format_err!(kind, other).into()
     }
 }
 
 impl From<ValidationError> for Error {
     fn from(other: ValidationError) -> Self {
-        err!(ErrorKind::InvalidMessageError, other).into()
+        format_err!(ErrorKind::InvalidMessageError, other).into()
     }
 }
 
 impl From<chain::state::StateError> for Error {
     fn from(other: chain::state::StateError) -> Self {
-        err!(ErrorKind::DoubleSign, other).into()
+        ErrorKind::DoubleSign.context(other).into()
     }
 }
