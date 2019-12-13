@@ -1,10 +1,13 @@
 ## 0.7.0 (UNRELEASED)
 
+- Validate chains are registered on startup ([#376])
+- Upgrade to `abscissa` v0.5.0-rc.0 ([#374])
+- Use an initial height of 0 in default chain state ([#373])
+- Upgrade `tendermint-rs` to v0.11 ([#372])
 - Upgrade to `signatory` v0.16; `yubihsm` v0.29.0 ([#367])
 - Use the `chacha20poly1305` crate for Secret Connection ([#366])
 - Vendor Secret Connection impl back from `tendermint-rs` ([#365])
 - Add timeout to TCP socket ([#364])
-- Upgrade to `abscissa` v0.4 ([#362])
 - Double signing detection and logging improvements ([#348])
 - Log signing message type during attempted double sign events ([#347])
 
@@ -162,11 +165,14 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
+[#376]: https://github.com/tendermint/kms/pull/376
+[#374]: https://github.com/tendermint/kms/pull/374
+[#373]: https://github.com/tendermint/kms/pull/373
+[#372]: https://github.com/tendermint/kms/pull/372
 [#367]: https://github.com/tendermint/kms/pull/367
 [#366]: https://github.com/tendermint/kms/pull/366
 [#365]: https://github.com/tendermint/kms/pull/365
 [#364]: https://github.com/tendermint/kms/pull/364
-[#362]: https://github.com/tendermint/kms/pull/362
 [#348]: https://github.com/tendermint/kms/pull/348
 [#347]: https://github.com/tendermint/kms/pull/347
 [0.6.3]: https://github.com/tendermint/kms/pull/346
