@@ -8,6 +8,7 @@ use crate::{
     config::provider::softsign::{KeyFormat, SoftsignConfig},
     error::{Error, ErrorKind::*},
     keyring::{SecretKeyEncoding, SigningProvider},
+    prelude::*,
 };
 use signatory::{ed25519, encoding::Decode, public_key::PublicKeyed};
 use signatory_dalek::Ed25519Signer;

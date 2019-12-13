@@ -4,7 +4,7 @@ mod import;
 mod keygen;
 
 use self::{import::ImportCommand, keygen::KeygenCommand};
-use abscissa_core::{Command, Help, Runnable};
+use abscissa_core::{Command, Help, Options, Runnable};
 
 /// The `softsign` subcommand
 #[derive(Command, Debug, Options, Runnable)]

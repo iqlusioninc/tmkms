@@ -1,7 +1,7 @@
 //! `tmkms softsign keygen` subcommand
 
 use crate::{keyring::SecretKeyEncoding, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::{Command, Options, Runnable};
 use signatory::{ed25519, encoding::Encode};
 use std::{path::PathBuf, process};
 

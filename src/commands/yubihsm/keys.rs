@@ -8,7 +8,7 @@ mod list;
 use self::{
     export::ExportCommand, generate::GenerateCommand, import::ImportCommand, list::ListCommand,
 };
-use abscissa_core::{Command, Help, Runnable};
+use abscissa_core::{Command, Help, Options, Runnable};
 use std::path::PathBuf;
 
 /// Default key type to generate

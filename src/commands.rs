@@ -18,7 +18,7 @@ pub use self::yubihsm::YubihsmCommand;
 
 pub use self::{start::StartCommand, version::VersionCommand};
 use crate::config::{KmsConfig, CONFIG_ENV_VAR, CONFIG_FILE_NAME};
-use abscissa_core::{Command, Configurable, Help, Runnable};
+use abscissa_core::{Command, Configurable, Help, Options, Runnable};
 use std::{env, path::PathBuf};
 
 /// Subcommands of the KMS command-line application

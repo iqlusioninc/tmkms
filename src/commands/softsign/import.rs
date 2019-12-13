@@ -1,7 +1,7 @@
 //! `tmkms softsign import` command
 
 use crate::{config::provider::softsign::KeyFormat, keyring::SecretKeyEncoding, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::{Command, Options, Runnable};
 use signatory::{
     ed25519,
     encoding::{Decode, Encode},

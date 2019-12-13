@@ -1,7 +1,7 @@
 //! Set up a new YubiHSM2 or restore from backup
 
 use crate::prelude::*;
-use abscissa_core::{Command, Runnable};
+use abscissa_core::{Command, Options, Runnable};
 use bip39::Mnemonic;
 use chrono::{SecondsFormat, Utc};
 use hkd32::KeyMaterial;

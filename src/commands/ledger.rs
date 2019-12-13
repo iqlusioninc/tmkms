@@ -1,7 +1,7 @@
 //! `tmkms ledger` CLI (sub)commands
 
 use crate::{chain, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::{Command, Options, Runnable};
 use std::{path::PathBuf, process};
 use tendermint::amino_types::{
     vote::{SignVoteRequest, Vote},
