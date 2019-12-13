@@ -11,12 +11,16 @@ use std::{net::TcpStream, time::Duration};
 use subtle::ConstantTimeEq;
 use tendermint::node;
 
+/// Default timeout in seconds
+const DEFAULT_TIMEOUT: u16 = 10;
+
 /// Open a TCP socket connection encrypted with SecretConnection
 pub fn open_secret_connection(
     host: &str,
     port: u16,
-    peer_id: &Option<node::Id>,
     secret_key: &ed25519::Seed,
+    peer_id: &Option<node::Id>,
+    timeout: Option<u16>,
 ) -> Result<SecretConnection<TcpStream>, Error> {
     let signer = Ed25519Signer::from(secret_key);
     let public_key = PublicKey::from(signer.public_key().map_err(|_| Error::from(InvalidKey))?);
@@ -24,8 +28,11 @@ pub fn open_secret_connection(
     info!("KMS node ID: {}", &public_key);
 
     let socket = TcpStream::connect(format!("{}:{}", host, port))?;
-    socket.set_read_timeout(Some(Duration::from_secs(2)))?;
-    socket.set_write_timeout(Some(Duration::from_secs(2)))?;
+
+    let timeout = Duration::from_secs(timeout.unwrap_or(DEFAULT_TIMEOUT).into());
+    socket.set_read_timeout(Some(timeout))?;
+    socket.set_write_timeout(Some(timeout))?;
+
     let connection = SecretConnection::new(socket, &public_key, &signer)?;
     let actual_peer_id = connection.remote_pubkey().peer_id();
 

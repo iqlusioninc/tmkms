@@ -28,6 +28,7 @@ pub struct Session {
 
 impl Session {
     /// Open a session using the given validator configuration
+    #[allow(clippy::cognitive_complexity)] // TODO(tarcieri): needs refactoring
     pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
         let connection: Box<dyn Connection> = match &config.addr {
             net::Address::Tcp {
@@ -38,7 +39,8 @@ impl Session {
                 debug!("{}: Connecting to {}...", &config.chain_id, &config.addr);
 
                 let seed = config.load_secret_key()?;
-                let conn = tcp::open_secret_connection(host, *port, peer_id, &seed)?;
+                let conn =
+                    tcp::open_secret_connection(host, *port, &seed, peer_id, config.timeout)?;
 
                 info!(
                     "[{}@{}] connected to validator successfully",
@@ -58,6 +60,10 @@ impl Session {
                 Box::new(conn)
             }
             net::Address::Unix { path } => {
+                if let Some(timeout) = config.timeout {
+                    warn!("timeouts not supported with Unix sockets: {}", timeout);
+                }
+
                 debug!(
                     "{}: Connecting to socket at {}...",
                     &config.chain_id, &config.addr

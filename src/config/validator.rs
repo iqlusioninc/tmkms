@@ -27,6 +27,9 @@ pub struct ValidatorConfig {
     #[serde(default = "reconnect_default")]
     pub reconnect: bool,
 
+    /// Optional timeout value in seconds
+    pub timeout: Option<u16>,
+
     /// Path to our Ed25519 identity key (if applicable)
     pub secret_key: Option<PathBuf>,
 
