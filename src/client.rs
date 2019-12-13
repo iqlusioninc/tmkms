@@ -6,12 +6,13 @@
 //! as a "Key Management System".
 
 use crate::{
+    chain,
     config::ValidatorConfig,
     error::{Error, ErrorKind},
     prelude::*,
     session::Session,
 };
-use std::{panic, process, thread, time::Duration};
+use std::{panic, process::exit, thread, time::Duration};
 
 /// Join handle type used by our clients
 type JoinHandle = thread::JoinHandle<Result<(), Error>>;
@@ -36,6 +37,8 @@ pub struct Client {
 impl Client {
     /// Spawn a new client, returning a handle so it can be joined
     pub fn spawn(config: ValidatorConfig) -> Self {
+        register_chain(&config.chain_id);
+
         let name = format!("{}@{}", &config.chain_id, &config.addr);
 
         let handle = thread::Builder::new()
@@ -43,7 +46,7 @@ impl Client {
             .spawn(move || main_loop(config))
             .unwrap_or_else(|e| {
                 status_err!("error spawning thread: {}", e);
-                process::exit(1);
+                exit(1);
             });
 
         Self { name, handle }
@@ -80,6 +83,20 @@ fn main_loop(config: ValidatorConfig) -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+/// Ensure chain with given ID is properly registered
+pub fn register_chain(chain_id: &chain::Id) {
+    let registry = chain::REGISTRY.get();
+
+    debug!("registering chain: {}", chain_id);
+    registry.get_chain(chain_id).unwrap_or_else(|| {
+        status_err!(
+            "unregistered chain: {} (add it to tmkms.toml's [[chain]] section)",
+            chain_id
+        );
+        exit(1);
+    });
 }
 
 /// Open a new session and run the session loop
