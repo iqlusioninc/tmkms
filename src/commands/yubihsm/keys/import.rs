@@ -1,8 +1,8 @@
 //! Import keys either from encrypted backups or existing plaintext keys
 
 use super::*;
-use crate::keyring::SecretKeyEncoding;
-use abscissa_core::{Command, Runnable};
+use crate::{keyring::SecretKeyEncoding, prelude::*};
+use abscissa_core::{Command, Options, Runnable};
 use signatory::{ed25519, encoding::Decode};
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;

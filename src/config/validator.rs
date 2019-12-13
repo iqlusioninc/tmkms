@@ -3,6 +3,7 @@
 use crate::{
     error::{Error, ErrorKind::*},
     keyring::SecretKeyEncoding,
+    prelude::*,
 };
 use serde::Deserialize;
 use signatory::{

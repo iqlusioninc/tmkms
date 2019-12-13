@@ -3,6 +3,7 @@
 use crate::{
     config::chain::HookConfig,
     error::{Error, ErrorKind::HookError},
+    prelude::*,
 };
 use serde::Deserialize;
 use std::{process::Command, time::Duration};

@@ -3,6 +3,7 @@
 use crate::{
     chain,
     error::{Error, ErrorKind::ConfigError},
+    prelude::*,
 };
 use serde::Deserialize;
 use std::{

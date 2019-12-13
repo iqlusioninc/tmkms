@@ -1,6 +1,6 @@
 //! Error types
 
-use crate::{chain, prost};
+use crate::{chain, prelude::*, prost};
 use abscissa_core::error::{BoxError, Context};
 use std::{
     any::Any,

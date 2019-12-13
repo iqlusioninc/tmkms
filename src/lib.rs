@@ -1,7 +1,7 @@
 //! Tendermint Key Management System
 
 #![forbid(unsafe_code)]
-#![deny(warnings, missing_docs, unused_qualifications)]
+#![deny(warnings, rust_2018_idioms, missing_docs, unused_qualifications)]
 #![doc(html_root_url = "https://docs.rs/tmkms/0.7.0-alpha1")]
 
 #[cfg(not(any(feature = "softsign", feature = "yubihsm", feature = "ledgertm")))]
@@ -10,8 +10,6 @@ compile_error!(
      yubihsm, ledgertm, softsign (e.g. --features=yubihsm)"
 );
 
-#[macro_use]
-extern crate abscissa_core;
 extern crate prost_amino as prost;
 
 pub mod application;

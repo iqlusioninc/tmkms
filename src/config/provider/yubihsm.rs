@@ -1,6 +1,6 @@
 //! Configuration for the `YubiHSM` backend
 
-use crate::chain;
+use crate::{chain, prelude::*};
 use abscissa_core::secret::{CloneableSecret, DebugSecret, ExposeSecret, Secret};
 use serde::Deserialize;
 use std::{fs, path::PathBuf, process};

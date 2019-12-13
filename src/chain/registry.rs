@@ -4,6 +4,7 @@ use super::{Chain, Guard, Id};
 use crate::{
     error::{Error, ErrorKind::*},
     keyring,
+    prelude::*,
 };
 use lazy_static::lazy_static;
 use std::{collections::BTreeMap, sync::RwLock};
@@ -68,7 +69,7 @@ pub struct GlobalRegistry(pub(super) RwLock<Registry>);
 
 impl GlobalRegistry {
     /// Acquire a read-only (concurrent) lock to the internal chain registry
-    pub fn get(&self) -> Guard {
+    pub fn get(&self) -> Guard<'_> {
         // TODO(tarcieri): better handle `PoisonError` here?
         self.0.read().unwrap().into()
     }

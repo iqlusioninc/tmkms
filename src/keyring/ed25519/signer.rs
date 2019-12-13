@@ -3,6 +3,7 @@
 use crate::{
     error::{Error, ErrorKind::*},
     keyring::SigningProvider,
+    prelude::*,
 };
 use signatory::{ed25519::Signature, signature};
 use std::sync::Arc;

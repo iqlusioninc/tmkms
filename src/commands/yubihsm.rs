@@ -6,7 +6,7 @@ mod setup;
 mod test;
 
 pub use self::{detect::DetectCommand, keys::KeysCommand, setup::SetupCommand, test::TestCommand};
-use abscissa_core::{Command, Help, Runnable};
+use abscissa_core::{Command, Help, Options, Runnable};
 use std::path::PathBuf;
 
 /// The `yubihsm` subcommand

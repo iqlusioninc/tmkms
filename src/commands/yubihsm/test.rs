@@ -1,6 +1,7 @@
 //! Test the YubiHSM2 is working by performing signatures successively
 
-use abscissa_core::{Command, Runnable};
+use crate::prelude::*;
+use abscissa_core::{Command, Options, Runnable};
 use std::{
     path::PathBuf,
     process, thread,

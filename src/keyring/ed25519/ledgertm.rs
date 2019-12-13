@@ -5,6 +5,7 @@ use crate::{
     config::provider::ledgertm::LedgerTendermintConfig,
     error::{Error, ErrorKind::*},
     keyring::{ed25519::Signer, SigningProvider},
+    prelude::*,
 };
 use signatory::public_key::PublicKeyed;
 use signatory_ledger_tm::Ed25519LedgerTmAppSigner;

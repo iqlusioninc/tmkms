@@ -1,7 +1,7 @@
 //! Start the KMS
 
 use crate::{chain, client::Client, prelude::*};
-use abscissa_core::Command;
+use abscissa_core::{Command, Options};
 use std::{path::PathBuf, process};
 
 /// The `start` command

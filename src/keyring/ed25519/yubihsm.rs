@@ -5,6 +5,7 @@ use crate::{
     config::provider::yubihsm::YubihsmConfig,
     error::{Error, ErrorKind::*},
     keyring::{ed25519::Signer, SigningProvider},
+    prelude::*,
 };
 use signatory::public_key::PublicKeyed;
 use tendermint::TendermintKey;

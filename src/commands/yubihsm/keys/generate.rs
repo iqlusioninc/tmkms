@@ -1,7 +1,8 @@
 //! Generate a new key within the YubiHSM2
 
 use super::*;
-use abscissa_core::{Command, Runnable};
+use crate::prelude::*;
+use abscissa_core::{Command, Options, Runnable};
 use chrono::{SecondsFormat, Utc};
 use std::{
     fs::OpenOptions,
