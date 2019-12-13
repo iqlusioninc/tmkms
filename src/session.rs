@@ -127,7 +127,11 @@ impl Session {
         request.validate()?;
 
         let registry = chain::REGISTRY.get();
+
+        // unwrap is acceptable here as chain presence is validated in client.rs's
+        // `register_chain` function.
         let chain = registry.get_chain(&self.config.chain_id).unwrap();
+
         let (_, request_state) = parse_request(&request)?;
         let mut chain_state = chain.state.lock().unwrap();
 
@@ -178,6 +182,8 @@ impl Session {
 
     /// Get the public key for (the only) public key in the keyring
     fn get_public_key(&mut self, _request: &PubKeyRequest) -> Result<Response, Error> {
+        // unwrap is acceptable here as chain presence is validated in client.rs's
+        // `register_chain` function.
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&self.config.chain_id).unwrap();
 
