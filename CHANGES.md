@@ -1,7 +1,7 @@
-## 0.7.0 (UNRELEASED)
+## [0.7.0] (2019-12-16)
 
+- Upgrade to `abscissa` v0.5 ([#382])
 - Validate chains are registered on startup ([#376])
-- Upgrade to `abscissa` v0.5.0-rc.0 ([#374])
 - Use an initial height of 0 in default chain state ([#373])
 - Upgrade `tendermint-rs` to v0.11 ([#372])
 - Upgrade to `signatory` v0.16; `yubihsm` v0.29.0 ([#367])
@@ -165,8 +165,9 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
+[0.7.0]: https://github.com/tendermint/kms/pull/383
+[#382]: https://github.com/tendermint/kms/pull/382
 [#376]: https://github.com/tendermint/kms/pull/376
-[#374]: https://github.com/tendermint/kms/pull/374
 [#373]: https://github.com/tendermint/kms/pull/373
 [#372]: https://github.com/tendermint/kms/pull/372
 [#367]: https://github.com/tendermint/kms/pull/367
