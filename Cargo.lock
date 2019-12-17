@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 [[package]]
 name = "abscissa_core"
-version = "0.5.0-rc.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "abscissa_derive 0.5.0-rc.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "abscissa_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.3.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "canonical-path 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -29,7 +29,7 @@ dependencies = [
 
 [[package]]
 name = "abscissa_derive"
-version = "0.5.0-rc.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "darling 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1908,7 +1908,7 @@ dependencies = [
 name = "tmkms"
 version = "0.7.0-alpha3"
 dependencies = [
- "abscissa_core 0.5.0-rc.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "abscissa_core 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "atomicwrites 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2379,8 +2379,8 @@ dependencies = [
 ]
 
 [metadata]
-"checksum abscissa_core 0.5.0-rc.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e9cf4b99955b6033aeaa66412dbae527826e370fecc331574c463b5ea41aed46"
-"checksum abscissa_derive 0.5.0-rc.0 (registry+https://github.com/rust-lang/crates.io-index)" = "178c1a93a64d449ce62738df61201307f9f11d051e807a983d5b2b2a4b724b8e"
+"checksum abscissa_core 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e09ff64ef3cdaf970afcfcac324b1975b18cd829e34a57485647d6f61b1734dd"
+"checksum abscissa_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "74f5722bc48763cb9d81d8427ca05b6aa2842f6632cf8e4c0a29eef9baececcc"
 "checksum adler32 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "5d2e7343e7fc9de883d1b0341e0b13970f764c14101234857d2ddafa1cb1cac2"
 "checksum aead 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4cf01b9b56e767bb57b94ebf91a58b338002963785cdd7013e21c0d4679471e4"
 "checksum aes 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "54eb1d8fe354e5fc611daf4f2ea97dd45a765f4f1e4512306ec183ae2e8f20c9"
