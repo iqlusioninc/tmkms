@@ -45,7 +45,7 @@ pub trait TendermintRequest: SignableMsg {
     fn build_response(self, error: Option<RemoteError>) -> Response;
 }
 
-fn compute_prefix(name: &str) -> (Vec<u8>) {
+fn compute_prefix(name: &str) -> Vec<u8> {
     let mut sh = Sha256::default();
     sh.input(name.as_bytes());
     let output = sh.result();
