@@ -50,10 +50,11 @@ jobs:
           cargo --version
           cargo test --all-features -- --test-threads 1
     - run:
-        name: audit
+        name: security audit
         command: |
+          cargo install --force cargo-audit
           cargo audit --version
-          cargo audit
+          cargo audit --deny-warnings --ignore RUSTSEC-2019-0031
     - run:
         name: validate against test harness
         command: |
