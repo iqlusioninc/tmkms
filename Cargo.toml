@@ -27,8 +27,8 @@ hkdf = "0.7"
 hmac = "0.7"
 lazy_static = "1"
 log = "0.4"
-prost-amino = "0.4.0"
-prost-amino-derive = "0.4.0"
+prost-amino = { git = "https://github.com/tendermint/amino_rs/", branch = "zaki-rename-prost" }
+prost-amino-derive = { git = "https://github.com/tendermint/amino_rs/", branch = "zaki-rename-prost" }
 rand_os = "0.1"
 rpassword = { version = "3", optional = true }
 serde = { version = "1", features = ["serde_derive"] }
@@ -40,7 +40,7 @@ signatory-secp256k1 = "0.17"
 signatory-ledger-tm = { version = "0.17", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.4", features = ["bech32-preview"] }
-tendermint = "0.11"
+tendermint = { git = "https://github.com/iqlusioninc/tendermint-rs", branch = "zaki-prost-rename" }
 thiserror = "1"
 tiny-bip39 = "0.6"
 wait-timeout = "0.2"

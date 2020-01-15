@@ -6,10 +6,10 @@ use crate::{
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
-    prost::Message,
     rpc::{Request, Response, TendermintRequest},
 };
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
+use prost_amino::Message;
 use tendermint::{
     amino_types::{
         PingRequest, PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType,
