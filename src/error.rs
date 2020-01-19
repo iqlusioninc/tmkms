@@ -75,9 +75,14 @@ pub enum ErrorKind {
     #[error("attempted double sign")]
     DoubleSign,
 
-    ///Request a Signature above max height
+    /// Request a Signature above max height
     #[error("requested signature above stop height")]
     ExceedMaxHeight,
+
+    /// YubiHSM-related errors
+    #[cfg(feature = "yubihsm")]
+    #[error("YubiHSM error")]
+    YubihsmError,
 }
 
 impl ErrorKind {
