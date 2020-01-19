@@ -262,16 +262,6 @@ checksum = "a7c3dd8985a7111efc5c80b44e23ecdd8c007de8ade3b96595387e812b957cf5"
 
 [[package]]
 name = "bytes"
-version = "0.4.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "206fdffcfa2df7cbe15601ef46c813fce0965eb3286db6b56c583b814b51c81c"
-dependencies = [
- "byteorder",
- "iovec",
-]
-
-[[package]]
-name = "bytes"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10004c15deb332055f7a4a208190aed362cf9a7c2f6ab70a305fba50e1105f38"
@@ -700,7 +690,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9433d71e471c1736fd5a61b671fc0b148d7a2992f666c958d03cd8feb3b88d1"
 dependencies = [
- "bytes 0.5.3",
+ "bytes",
  "fnv",
  "futures-core",
  "futures-sink",
@@ -805,7 +795,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b708cc7f06493459026f53b9a61a7a121a5d1ec6238dee58ea4941132b30156b"
 dependencies = [
- "bytes 0.5.3",
+ "bytes",
  "fnv",
  "itoa",
 ]
@@ -816,7 +806,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13d5ff830006f7646652e057693569bfe0d51760c0085a071769d142a205111b"
 dependencies = [
- "bytes 0.5.3",
+ "bytes",
  "http",
 ]
 
@@ -832,7 +822,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bf49cfb32edee45d890537d9057d1b02ed55f53b7b6a30bae83a38c9231749e"
 dependencies = [
- "bytes 0.5.3",
+ "bytes",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -1272,16 +1262,16 @@ dependencies = [
 [[package]]
 name = "prost-amino"
 version = "0.4.0"
-source = "git+https://github.com/tendermint/amino_rs/?branch=zaki-rename-prost#c92679a27475a624d9d93acbd1c6da9a5aadb5d1"
+source = "git+https://github.com/tendermint/amino_rs/?branch=update_bytes#333f74abcc957d6df15851a564ccd9dd7f1eb7d5"
 dependencies = [
  "byteorder",
- "bytes 0.4.12",
+ "bytes",
 ]
 
 [[package]]
 name = "prost-amino-derive"
 version = "0.4.0"
-source = "git+https://github.com/tendermint/amino_rs/?branch=zaki-rename-prost#c92679a27475a624d9d93acbd1c6da9a5aadb5d1"
+source = "git+https://github.com/tendermint/amino_rs/?branch=update_bytes#333f74abcc957d6df15851a564ccd9dd7f1eb7d5"
 dependencies = [
  "digest 0.7.6",
  "failure",
@@ -1997,10 +1987,9 @@ dependencies = [
 [[package]]
 name = "tendermint"
 version = "0.11.0"
-source = "git+https://github.com/iqlusioninc/tendermint-rs?branch=zaki-prost-rename#2aca20e4e361d4d810c4200d8ab2f5467010cca2"
+source = "git+https://github.com/iqlusioninc/tendermint-rs?branch=zaki-update-bytes#b7add0fa3fa52cdd7e954444a2778041f73d4c48"
 dependencies = [
- "bytes 0.4.12",
- "bytes 0.5.3",
+ "bytes",
  "chrono",
  "failure",
  "getrandom",
@@ -2106,7 +2095,7 @@ dependencies = [
  "abscissa_core",
  "atomicwrites",
  "byteorder",
- "bytes 0.4.12",
+ "bytes",
  "chacha20poly1305",
  "chrono",
  "failure",
@@ -2146,7 +2135,7 @@ version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffa2fdcfa937b20cb3c822a635ceecd5fc1a27a6a474527e5516aa24b8c8820a"
 dependencies = [
- "bytes 0.5.3",
+ "bytes",
  "fnv",
  "iovec",
  "lazy_static",
@@ -2162,7 +2151,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "571da51182ec208780505a32528fc5512a8fe1443ab960b3f2f3ef093cd16930"
 dependencies = [
- "bytes 0.5.3",
+ "bytes",
  "futures-core",
  "futures-sink",
  "log",

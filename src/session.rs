@@ -8,8 +8,8 @@ use crate::{
     prelude::*,
     rpc::{Request, Response, TendermintRequest},
 };
-use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use prost_amino::Message;
+use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use tendermint::{
     amino_types::{
         PingRequest, PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType,

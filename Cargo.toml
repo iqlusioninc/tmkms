@@ -17,7 +17,7 @@ circle-ci = { repository = "tendermint/kms" }
 abscissa_core = "0.5"
 atomicwrites = "0.2"
 byteorder = "1.2"
-bytes = "0.4"
+bytes = "0.5"
 chacha20poly1305 = "0.3"
 chrono = "0.4"
 failure = "0.1"
@@ -27,8 +27,8 @@ hkdf = "0.7"
 hmac = "0.7"
 lazy_static = "1"
 log = "0.4"
-prost-amino = { git = "https://github.com/tendermint/amino_rs/", branch = "zaki-rename-prost" }
-prost-amino-derive = { git = "https://github.com/tendermint/amino_rs/", branch = "zaki-rename-prost" }
+prost-amino = { git = "https://github.com/tendermint/amino_rs/", branch = "update_bytes" }
+prost-amino-derive = { git = "https://github.com/tendermint/amino_rs/", branch = "update_bytes" }
 rand_os = "0.1"
 rpassword = { version = "3", optional = true }
 serde = { version = "1", features = ["serde_derive"] }
@@ -40,7 +40,7 @@ signatory-secp256k1 = "0.17"
 signatory-ledger-tm = { version = "0.17", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.4", features = ["bech32-preview"] }
-tendermint = { git = "https://github.com/iqlusioninc/tendermint-rs", branch = "zaki-prost-rename" }
+tendermint = { git = "https://github.com/iqlusioninc/tendermint-rs", branch = "zaki-update-bytes" }
 thiserror = "1"
 tiny-bip39 = "0.6"
 wait-timeout = "0.2"
