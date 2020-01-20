@@ -222,59 +222,6 @@ fn run_connnector_server(config: HttpConfig, connector: Connector) {
 
 impl From<yubihsm::client::Error> for Error {
     fn from(other: yubihsm::client::Error) -> Error {
-        ErrorKind::from(other.kind()).context(other).into()
-    }
-}
-
-impl From<yubihsm::connector::ErrorKind> for ErrorKind {
-    fn from(other: yubihsm::connector::ErrorKind) -> ErrorKind {
-        match other {
-            yubihsm::connector::ErrorKind::AddrInvalid => ErrorKind::ConfigError,
-            yubihsm::connector::ErrorKind::AccessDenied => ErrorKind::AccessError,
-            yubihsm::connector::ErrorKind::IoError
-            | yubihsm::connector::ErrorKind::ConnectionFailed
-            | yubihsm::connector::ErrorKind::DeviceBusyError
-            | yubihsm::connector::ErrorKind::RequestError
-            | yubihsm::connector::ErrorKind::ResponseError
-            | yubihsm::connector::ErrorKind::UsbError => ErrorKind::IoError,
-        }
-    }
-}
-
-impl From<yubihsm::client::ErrorKind> for ErrorKind {
-    fn from(other: yubihsm::client::ErrorKind) -> ErrorKind {
-        match other {
-            yubihsm::client::ErrorKind::AuthenticationError => ErrorKind::AccessError,
-            yubihsm::client::ErrorKind::ConnectorError { kind } => kind.into(),
-            yubihsm::client::ErrorKind::DeviceError { kind } => kind.into(),
-            yubihsm::client::ErrorKind::CreateFailed
-            | yubihsm::client::ErrorKind::ProtocolError
-            | yubihsm::client::ErrorKind::ClosedSessionError
-            | yubihsm::client::ErrorKind::ResponseError => ErrorKind::IoError,
-        }
-    }
-}
-
-impl From<yubihsm::device::ErrorKind> for ErrorKind {
-    fn from(other: yubihsm::device::ErrorKind) -> ErrorKind {
-        // TODO(tarcieri): better map these to approriate KMS errors
-        match other {
-            yubihsm::device::ErrorKind::AuthenticationFailed => ErrorKind::AccessError,
-            yubihsm::device::ErrorKind::InvalidCommand
-            | yubihsm::device::ErrorKind::InvalidData
-            | yubihsm::device::ErrorKind::InvalidSession
-            | yubihsm::device::ErrorKind::SessionsFull
-            | yubihsm::device::ErrorKind::SessionFailed
-            | yubihsm::device::ErrorKind::StorageFailed
-            | yubihsm::device::ErrorKind::WrongLength
-            | yubihsm::device::ErrorKind::InsufficientPermissions
-            | yubihsm::device::ErrorKind::LogFull
-            | yubihsm::device::ErrorKind::ObjectNotFound
-            | yubihsm::device::ErrorKind::InvalidId
-            | yubihsm::device::ErrorKind::InvalidOtp
-            | yubihsm::device::ErrorKind::GenericError
-            | yubihsm::device::ErrorKind::ObjectExists => ErrorKind::SigningError,
-            _ => ErrorKind::SigningError,
-        }
+        ErrorKind::YubihsmError.context(other).into()
     }
 }

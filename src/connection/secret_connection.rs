@@ -425,7 +425,7 @@ fn share_auth_signature<IoHandler: Read + Write + Send + Sync>(
     sc.read_exact(&mut rbuf)?;
 
     // TODO: proper error handling:
-    Ok(AuthSigMessage::decode_length_delimited(&rbuf)?)
+    Ok(AuthSigMessage::decode_length_delimited(rbuf.as_ref())?)
 }
 
 #[cfg(tests)]

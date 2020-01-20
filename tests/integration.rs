@@ -345,8 +345,8 @@ fn test_handle_and_sign_proposal() {
         let mut resp = vec![0u8; actual_len as usize];
         resp.copy_from_slice(&mut resp_buf[..(actual_len as usize)]);
 
-        let p_req =
-            proposal::SignedProposalResponse::decode(&resp).expect("decoding proposal failed");
+        let p_req = proposal::SignedProposalResponse::decode(resp.as_ref())
+            .expect("decoding proposal failed");
         let mut sign_bytes: Vec<u8> = vec![];
         spr.sign_bytes(chain_id.into(), &mut sign_bytes).unwrap();
 
@@ -408,7 +408,7 @@ fn test_handle_and_sign_vote() {
         let mut resp = vec![0u8; actual_len as usize];
         resp.copy_from_slice(&resp_buf[..actual_len as usize]);
 
-        let v_resp = vote::SignedVoteResponse::decode(&resp).expect("decoding vote failed");
+        let v_resp = vote::SignedVoteResponse::decode(resp.as_ref()).expect("decoding vote failed");
         let mut sign_bytes: Vec<u8> = vec![];
         svr.sign_bytes(chain_id.into(), &mut sign_bytes).unwrap();
 
@@ -475,7 +475,7 @@ fn test_exceed_max_height() {
         let mut resp = vec![0u8; actual_len as usize];
         resp.copy_from_slice(&resp_buf[..actual_len as usize]);
 
-        let v_resp = vote::SignedVoteResponse::decode(&resp).expect("decoding vote failed");
+        let v_resp = vote::SignedVoteResponse::decode(resp.as_ref()).expect("decoding vote failed");
         let mut sign_bytes: Vec<u8> = vec![];
         svr.sign_bytes(chain_id.into(), &mut sign_bytes).unwrap();
 
@@ -511,7 +511,7 @@ fn test_handle_and_sign_get_publickey() {
         let mut resp = vec![0u8; actual_len as usize];
         resp.copy_from_slice(&resp_buf[..actual_len as usize]);
 
-        let pk_resp = PubKeyResponse::decode(&resp).expect("decoding public key failed");
+        let pk_resp = PubKeyResponse::decode(resp.as_ref()).expect("decoding public key failed");
         assert_ne!(pk_resp.pub_key_ed25519.len(), 0);
     });
 }
@@ -530,6 +530,6 @@ fn test_handle_and_sign_ping_pong() {
         let actual_len = extract_actual_len(&resp_buf).unwrap();
         let mut resp = vec![0u8; actual_len as usize];
         resp.copy_from_slice(&resp_buf[..actual_len as usize]);
-        PingResponse::decode(&resp).expect("decoding ping response failed");
+        PingResponse::decode(resp.as_ref()).expect("decoding ping response failed");
     });
 }

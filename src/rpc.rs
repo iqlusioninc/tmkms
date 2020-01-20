@@ -8,10 +8,9 @@ use crate::{
     prost::Message,
 };
 
-use bytes::IntoBuf;
+use bytes::Bytes;
 use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
-use std::io::Cursor;
 use std::io::{self, Read};
 use std::io::{Error, ErrorKind};
 use tendermint::amino_types::*;
@@ -84,25 +83,30 @@ impl Request {
             ));
         }
 
-        let buff: &mut Cursor<Vec<u8>> = &mut buf.into_buf();
-        let len = decode_varint(buff).unwrap();
+        let mut buf_amino: Bytes = Bytes::from(buf.clone());
+        let len = decode_varint(&mut buf_amino).unwrap();
         if len > MAX_MSG_LEN as u64 {
             return Err(Error::new(ErrorKind::InvalidData, "RPC message too large."));
         }
-        let mut amino_pre = vec![0; 4];
-        buff.read_exact(&mut amino_pre)?;
-        buff.set_position(0);
+        let amino_pre = buf_amino.slice(0..4);
+
+        let buf: Bytes = Bytes::from(buf);
+
         let total_len = encoded_len_varint(len).checked_add(len as usize).unwrap();
-        let rem = buff.get_ref()[..total_len].to_vec();
+        let rem = buf.as_ref()[..total_len].to_vec();
         match amino_pre {
-            ref vt if *vt == *VOTE_PREFIX => Ok(Request::SignVote(SignVoteRequest::decode(&rem)?)),
-            ref pr if *pr == *PROPOSAL_PREFIX => {
-                Ok(Request::SignProposal(SignProposalRequest::decode(&rem)?))
+            ref vt if *vt == *VOTE_PREFIX => {
+                Ok(Request::SignVote(SignVoteRequest::decode(rem.as_ref())?))
             }
+            ref pr if *pr == *PROPOSAL_PREFIX => Ok(Request::SignProposal(
+                SignProposalRequest::decode(rem.as_ref())?,
+            )),
             ref pubk if *pubk == *PUBKEY_PREFIX => {
-                Ok(Request::ShowPublicKey(PubKeyRequest::decode(&rem)?))
+                Ok(Request::ShowPublicKey(PubKeyRequest::decode(rem.as_ref())?))
             }
-            ref ping if *ping == *PING_PREFIX => Ok(Request::ReplyPing(PingRequest::decode(&rem)?)),
+            ref ping if *ping == *PING_PREFIX => {
+                Ok(Request::ReplyPing(PingRequest::decode(rem.as_ref())?))
+            }
             _ => Err(Error::new(
                 ErrorKind::InvalidData,
                 "Received unknown RPC message.",

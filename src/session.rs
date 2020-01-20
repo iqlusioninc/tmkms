@@ -6,9 +6,9 @@ use crate::{
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
-    prost::Message,
     rpc::{Request, Response, TendermintRequest},
 };
+use prost_amino::Message;
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use tendermint::{
     amino_types::{
