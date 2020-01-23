@@ -7,7 +7,6 @@ mod public_key;
 
 pub use self::{amino_types::AuthSigMessage, kdf::Kdf, nonce::Nonce, public_key::PublicKey};
 use crate::error::{Error, ErrorKind};
-use byteorder::{ByteOrder, LE};
 use bytes::BufMut;
 use chacha20poly1305::{
     aead::{generic_array::GenericArray, Aead, NewAead},
@@ -21,6 +20,7 @@ use signatory::{
 use signatory_dalek::Ed25519Verifier;
 use std::{
     cmp,
+    convert::TryInto,
     io::{self, Read, Write},
     marker::{Send, Sync},
 };
@@ -138,7 +138,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         sealed_frame: &mut [u8; TAG_SIZE + TOTAL_FRAME_SIZE],
     ) -> Result<(), Error> {
         debug_assert!(chunk.len() <= TOTAL_FRAME_SIZE - DATA_LEN_SIZE);
-        LE::write_u32(&mut sealed_frame[..DATA_LEN_SIZE], chunk.len() as u32);
+        sealed_frame[..DATA_LEN_SIZE].copy_from_slice(&(chunk.len() as u32).to_le_bytes());
         sealed_frame[DATA_LEN_SIZE..DATA_LEN_SIZE + chunk.len()].copy_from_slice(chunk);
 
         let tag = self
@@ -219,10 +219,7 @@ where
         self.recv_nonce.increment();
         // end decryption
 
-        let mut chunk_length_specifier = vec![0; 4];
-        chunk_length_specifier.clone_from_slice(&frame[..4]);
-
-        let chunk_length = LE::read_u32(&chunk_length_specifier);
+        let chunk_length = u32::from_le_bytes(frame[..4].try_into().unwrap());
 
         if chunk_length as usize > DATA_MAX_SIZE {
             return Err(io::Error::new(
