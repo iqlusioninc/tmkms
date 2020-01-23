@@ -1,6 +1,8 @@
-use byteorder::{ByteOrder, LE};
+//! Secret Connection nonces
 
-/// Size of a ChaCha20 nonce
+use std::convert::TryInto;
+
+/// Size of a ChaCha20 (IETF) nonce
 pub const SIZE: usize = 12;
 
 /// SecretConnection nonces (i.e. ChaCha20 nonces)
@@ -15,8 +17,8 @@ impl Default for Nonce {
 impl Nonce {
     /// Increment the nonce's counter by 1
     pub fn increment(&mut self) {
-        let counter: u64 = LE::read_u64(&self.0[4..]);
-        LE::write_u64(&mut self.0[4..], counter.checked_add(1).unwrap());
+        let counter: u64 = u64::from_le_bytes(self.0[4..].try_into().unwrap());
+        self.0[4..].copy_from_slice(&counter.checked_add(1).unwrap().to_le_bytes());
     }
 
     /// Serialize nonce as bytes (little endian)
