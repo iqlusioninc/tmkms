@@ -2064,7 +2064,6 @@ dependencies = [
  "hkd32",
  "hkdf",
  "hmac",
- "log",
  "once_cell",
  "prost-amino",
  "prost-amino-derive",
