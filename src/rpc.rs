@@ -7,12 +7,10 @@ use crate::{
     prost::encoding::{decode_varint, encoded_len_varint},
     prost::Message,
 };
-
 use bytes::Bytes;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
-use std::io::{self, Read};
-use std::io::{Error, ErrorKind};
+use std::io::{self, Error, ErrorKind, Read};
 use tendermint::amino_types::*;
 
 /// Maximum size of an RPC message
@@ -63,12 +61,11 @@ fn compute_prefix(name: &str) -> Vec<u8> {
 
 // pre-compute registered types prefix (this is probably sth. our amino library should
 // provide instead)
-lazy_static! {
-    static ref VOTE_PREFIX: Vec<u8> = compute_prefix(VOTE_AMINO_NAME);
-    static ref PROPOSAL_PREFIX: Vec<u8> = compute_prefix(PROPOSAL_AMINO_NAME);
-    static ref PUBKEY_PREFIX: Vec<u8> = compute_prefix(PUBKEY_AMINO_NAME);
-    static ref PING_PREFIX: Vec<u8> = compute_prefix(PING_AMINO_NAME);
-}
+
+static VOTE_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(VOTE_AMINO_NAME));
+static PROPOSAL_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(PROPOSAL_AMINO_NAME));
+static PUBKEY_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(PUBKEY_AMINO_NAME));
+static PING_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(PING_AMINO_NAME));
 
 impl Request {
     /// Read a request from the given readable

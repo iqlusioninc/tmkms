@@ -5,7 +5,7 @@ use crate::{
     error::{Error, ErrorKind},
     prelude::*,
 };
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 #[cfg(all(feature = "yubihsm-server", not(feature = "yubihsm-mock")))]
 use std::thread;
 use std::{
@@ -25,15 +25,16 @@ use {
     yubihsm::{device::SerialNumber, HttpConfig, UsbConfig},
 };
 
-lazy_static! {
-    /// Connection to the YubiHSM device
-    static ref HSM_CONNECTOR: Connector = init_connector();
+/// Connection to the YubiHSM device
+// TODO(tarcieri): refactor with a straightforward `once_cell::sync::OnceCell`
+static HSM_CONNECTOR: Lazy<Connector> = Lazy::new(init_connector);
 
-    /// Authenticated client connection to the YubiHSM device
-    static ref HSM_CLIENT: Mutex<Client> = Mutex::new(init_client());
-}
+/// Authenticated client connection to the YubiHSM device
+// TODO(tarcieri): refactor with a straightforward `once_cell::sync::OnceCell`
+static HSM_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| Mutex::new(init_client()));
 
 /// Flag indicating we're inside of a `tmkms yubihsm` command
+// TODO(tarcieri): refactor with a straightforward `once_cell::sync::OnceCell`
 static CLI_COMMAND: AtomicBool = AtomicBool::new(false);
 
 /// Mark that we're in a `tmkms yubihsm` command when initializing the YubiHSM

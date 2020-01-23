@@ -61,6 +61,7 @@ impl State {
     }
 
     /// Check and update the chain's height, round, and step
+    // TODO(tarcieri): rewrite this logic to follow Tendermint spec and be clippy-friendly
     pub fn update_consensus_state(
         &mut self,
         new_state: consensus::State,

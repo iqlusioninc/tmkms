@@ -6,13 +6,11 @@ use crate::{
     keyring,
     prelude::*,
 };
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::{collections::BTreeMap, sync::RwLock};
 
-lazy_static! {
-    /// State of Tendermint blockchain networks
-    pub static ref REGISTRY: GlobalRegistry = GlobalRegistry::default();
-}
+/// State of Tendermint blockchain networks
+pub static REGISTRY: Lazy<GlobalRegistry> = Lazy::new(GlobalRegistry::default);
 
 /// Registry of blockchain networks known to the KMS
 #[derive(Default)]

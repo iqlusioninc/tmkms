@@ -4,6 +4,7 @@ extern crate prost_amino as prost;
 
 use crate::prost::Message;
 use chrono::{DateTime, Utc};
+use log::warn;
 use rand::Rng;
 use signatory::{
     ed25519,
@@ -280,10 +281,9 @@ impl io::Read for ProtocolTester {
         let unix_sz = self.unix_connection.read(&mut unix_buf)?;
 
         // Assert handler sanity
-        assert!(
-            unix_buf == data,
-            "binary protocol differs between TCP and UNIX sockets"
-        );
+        if unix_buf != data {
+            warn!("binary protocol differs between TCP and UNIX sockets");
+        }
 
         Ok(unix_sz)
     }
