@@ -1,3 +1,14 @@
+## [0.7.1] (2020-01-23)
+
+- Remove explicit dependency on the `log` crate ([#398])
+- Remove `byteorder` dependency ([#397])
+- Replace `tiny-bip39` with the equivalent `hkd32` functionality ([#396])
+- Replace `lazy_static` with `once_cell` ([#395])
+- Update `rpassword` requirement from 3.0 to 4.0 ([#394])
+- Upgrade `x25519-dalek` to v0.6; remove `rand_os` ([#393])
+- Remove `failure` ([#392])
+- Update to `tendermint-rs` 0.12.0-rc0; `prost-amino` v0.5; `signatory v0.18` ([#391], [#399])
+
 ## [0.7.0] (2019-12-16)
 
 - Upgrade to `abscissa` v0.5 ([#382])
@@ -165,6 +176,16 @@ section in the Tendermint KMS YubiHSM docs:
 
 - Initial "preview" release
 
+[0.7.1]: https://github.com/tendermint/kms/pull/400
+[#399]: https://github.com/tendermint/kms/pull/399
+[#398]: https://github.com/tendermint/kms/pull/398
+[#397]: https://github.com/tendermint/kms/pull/397
+[#396]: https://github.com/tendermint/kms/pull/396
+[#395]: https://github.com/tendermint/kms/pull/395
+[#394]: https://github.com/tendermint/kms/pull/394
+[#393]: https://github.com/tendermint/kms/pull/393
+[#392]: https://github.com/tendermint/kms/pull/392
+[#391]: https://github.com/tendermint/kms/pull/391
 [0.7.0]: https://github.com/tendermint/kms/pull/383
 [#382]: https://github.com/tendermint/kms/pull/382
 [#376]: https://github.com/tendermint/kms/pull/376

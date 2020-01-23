@@ -2052,7 +2052,7 @@ dependencies = [
 
 [[package]]
 name = "tmkms"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "abscissa_core",
  "atomicwrites",
