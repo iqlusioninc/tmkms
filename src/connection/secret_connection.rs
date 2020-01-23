@@ -14,7 +14,6 @@ use chacha20poly1305::{
     ChaCha20Poly1305,
 };
 use prost::{encoding::encode_varint, Message};
-use rand_os::OsRng;
 use signatory::{
     ed25519,
     signature::{Signature, Signer, Verifier},
@@ -288,7 +287,7 @@ where
 
 /// Returns pubkey, private key
 fn gen_eph_keys() -> (EphemeralPublic, EphemeralSecret) {
-    let mut local_csprng = OsRng::new().unwrap();
+    let mut local_csprng = rand::thread_rng();
     let local_privkey = EphemeralSecret::new(&mut local_csprng);
     let local_pubkey = EphemeralPublic::from(&local_privkey);
     (local_pubkey, local_privkey)

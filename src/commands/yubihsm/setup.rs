@@ -4,9 +4,9 @@ use crate::prelude::*;
 use abscissa_core::{Command, Options, Runnable};
 use bip39::Mnemonic;
 use chrono::{SecondsFormat, Utc};
+use getrandom::getrandom;
 use hkd32::KeyMaterial;
 use hkdf::Hkdf;
-use rand_os::{rand_core::RngCore, OsRng};
 use sha2::Sha512;
 use std::{
     fs::File,
@@ -253,7 +253,7 @@ fn generate_mnemonic_from_hsm_and_os_csprngs(hsm_connector: &Connector) -> Mnemo
     // for a total of 512-bits IKM. This ensures we still get 256-bits
     // of good IKM even in the event one of the RNGs fails.
     ikm.extend_from_slice(&[0u8; KEY_SIZE]);
-    OsRng::new().unwrap().fill_bytes(&mut ikm[KEY_SIZE..]);
+    getrandom(&mut ikm[KEY_SIZE..]).expect("RNG failure!");
 
     let kdf = Hkdf::<Sha512>::extract(None, &ikm);
 
