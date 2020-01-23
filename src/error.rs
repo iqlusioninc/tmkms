@@ -1,6 +1,6 @@
 //! Error types
 
-use crate::{chain, prelude::*, prost};
+use crate::{chain, prelude::*};
 use abscissa_core::error::{BoxError, Context};
 use std::{
     any::Any,
@@ -155,14 +155,14 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<prost::DecodeError> for Error {
-    fn from(other: prost::DecodeError) -> Self {
+impl From<prost_amino::DecodeError> for Error {
+    fn from(other: prost_amino::DecodeError) -> Self {
         ErrorKind::ProtocolError.context(other).into()
     }
 }
 
-impl From<prost::EncodeError> for Error {
-    fn from(other: prost::EncodeError) -> Self {
+impl From<prost_amino::EncodeError> for Error {
+    fn from(other: prost_amino::EncodeError) -> Self {
         ErrorKind::ProtocolError.context(other).into()
     }
 }

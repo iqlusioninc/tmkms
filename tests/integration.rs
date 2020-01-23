@@ -1,10 +1,8 @@
 //! KMS integration test
 
-extern crate prost_amino as prost;
-
-use crate::prost::Message;
 use abscissa_core::prelude::warn;
 use chrono::{DateTime, Utc};
+use prost_amino::Message;
 use rand::Rng;
 use signatory::{
     ed25519,
@@ -298,13 +296,13 @@ fn test_key() -> (ed25519::PublicKey, Ed25519Signer) {
 }
 
 /// Extract the actual length of an amino message
-pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost::DecodeError> {
+pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
     let mut buff = Cursor::new(buf);
-    let actual_len = prost::encoding::decode_varint(&mut buff)?;
+    let actual_len = prost_amino::encoding::decode_varint(&mut buff)?;
     if actual_len == 0 {
         return Ok(1);
     }
-    Ok(actual_len + (prost::encoding::encoded_len_varint(actual_len) as u64))
+    Ok(actual_len + (prost_amino::encoding::encoded_len_varint(actual_len) as u64))
 }
 
 #[test]

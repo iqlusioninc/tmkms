@@ -12,7 +12,7 @@ use chacha20poly1305::{
     aead::{generic_array::GenericArray, Aead, NewAead},
     ChaCha20Poly1305,
 };
-use prost::{encoding::encode_varint, Message};
+use prost_amino::{encoding::encode_varint, Message};
 use signatory::{
     ed25519,
     signature::{Signature, Signer, Verifier},
