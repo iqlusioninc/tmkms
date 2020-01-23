@@ -3,12 +3,12 @@
 // TODO: docs for everything
 #![allow(missing_docs)]
 
-use crate::{
-    prost::encoding::{decode_varint, encoded_len_varint},
-    prost::Message,
-};
 use bytes::Bytes;
 use once_cell::sync::Lazy;
+use prost_amino::{
+    encoding::{decode_varint, encoded_len_varint},
+    Message,
+};
 use sha2::{Digest, Sha256};
 use std::io::{self, Error, ErrorKind, Read};
 use tendermint::amino_types::*;

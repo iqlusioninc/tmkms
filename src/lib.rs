@@ -10,8 +10,6 @@ compile_error!(
      yubihsm, ledgertm, softsign (e.g. --features=yubihsm)"
 );
 
-extern crate prost_amino as prost;
-
 pub mod application;
 pub mod chain;
 pub mod client;
