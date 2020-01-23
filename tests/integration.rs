@@ -3,8 +3,8 @@
 extern crate prost_amino as prost;
 
 use crate::prost::Message;
+use abscissa_core::prelude::warn;
 use chrono::{DateTime, Utc};
-use log::warn;
 use rand::Rng;
 use signatory::{
     ed25519,
