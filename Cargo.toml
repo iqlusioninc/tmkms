@@ -20,7 +20,6 @@ byteorder = "1.2"
 bytes = "0.5"
 chacha20poly1305 = "0.3"
 chrono = "0.4"
-failure = "0.1"
 gumdrop = "0.7"
 hkd32 = { version = "0.3", default-features = false, features = ["mnemonic"] }
 hkdf = "0.7"
