@@ -1,0 +1,21 @@
+[package]
+name        = "cosmos-stdtx"
+description = "Extensible schema-driven Cosmos StdTx builder and serializer"
+version     = "0.0.1" # Also update html_root_url in lib.rs when bumping this
+authors     = ["Tony Arcieri <tony@iqlusion.io>"]
+license     = "Apache-2.0"
+repository  = "https://github.com/tendermint/kms/tree/master/cosmos-stdtx"
+readme      = "README.md"
+categories  = ["cryptography", "encoding"]
+keywords    = ["crypto", "cosmos", "stdtx", "transaction", "tendermint"]
+edition     = "2018"
+
+[badges]
+circle-ci = { repository = "tendermint/kms" }
+
+[dependencies]
+anomaly = "0.1"
+serde = { version = "1", features = ["serde_derive"] }
+sha2 = "0.8"
+thiserror = "1"
+toml = "0.5"

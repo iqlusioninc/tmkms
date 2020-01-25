@@ -383,6 +383,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cosmos-stdtx"
+version = "0.0.1"
+dependencies = [
+ "anomaly",
+ "serde",
+ "sha2",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
 name = "crc32fast"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
