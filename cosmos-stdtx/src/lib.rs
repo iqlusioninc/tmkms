@@ -16,6 +16,7 @@ pub mod address;
 pub mod error;
 pub mod msg;
 pub mod schema;
+pub mod stdtx;
 pub mod type_name;
 
 pub use self::{address::Address, error::Error, msg::Msg, schema::Schema, type_name::TypeName};

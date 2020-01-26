@@ -388,6 +388,7 @@ version = "0.0.1"
 dependencies = [
  "anomaly",
  "prost-amino",
+ "prost-amino-derive",
  "rust_decimal",
  "serde",
  "sha2",
