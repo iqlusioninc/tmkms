@@ -1,7 +1,9 @@
 # cosmos-stdtx.rs 🌌
 
 [![Crate][crate-image]][crate-link]
+[![Docs][docs-image]][docs-link]
 [![Build Status][build-image]][build-link]
+[![Safety Dance][safety-image]][safety-link]
 [![Apache 2.0 Licensed][license-image]][license-link]
 ![MSRV][rustc-image]
 
@@ -44,8 +46,12 @@ limitations under the License.
 
 [crate-image]: https://img.shields.io/crates/v/cosmos-stdtx.svg
 [crate-link]: https://crates.io/crates/cosmos-stdtx
+[docs-image]: https://docs.rs/cosmos-stdtx/badge.svg
+[docs-link]: https://docs.rs/cosmos-stdtx/
 [build-image]: https://circleci.com/gh/tendermint/kms.svg?style=shield
 [build-link]: https://circleci.com/gh/tendermint/kms
+[safety-image]: https://img.shields.io/badge/unsafe-forbidden-success.svg
+[safety-link]: https://github.com/rust-secure-code/safety-dance/
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/tendermint/kms/blob/master/LICENSE
 [rustc-image]: https://img.shields.io/badge/rustc-1.39+-blue.svg

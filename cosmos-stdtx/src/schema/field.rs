@@ -1,39 +1,50 @@
 //! Fields in a type definition
 
 use super::ValueType;
+use crate::{msg::Tag, type_name::TypeName};
 use serde::{de, Deserialize};
 use std::collections::BTreeSet as Set;
 
 /// Fields in an Amino-serialized `sdk.Msg`
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Field {
-    /// Field number to use as the key in an Amino message.
-    ///
-    /// These are all ensured to be `Some` in the `deserialize_vec` method below.
-    tag: Option<u64>,
+    /// Name of this field
+    name: TypeName,
 
     /// Amino type to serialize this field as
     #[serde(rename = "type")]
     value_type: ValueType,
+
+    /// Field number to use as the key in an Amino message.
+    ///
+    /// These are all ensured to be `Some` in the `deserialize_vec` method below.
+    tag: Option<Tag>,
 }
 
 impl Field {
     /// Create a new [`Field`] with the given tag and [`ValueType`]
-    pub fn new(tag: u64, value_type: ValueType) -> Self {
+    pub fn new(name: TypeName, value_type: ValueType, tag: Tag) -> Self {
         Self {
+            name,
             tag: Some(tag),
             value_type,
         }
     }
 
-    /// Get the numerical tag for this [`Field`]
-    pub fn tag(&self) -> u64 {
-        self.tag.unwrap()
+    /// Get the [`TypeName`] for this [`Field`]
+    pub fn name(&self) -> &TypeName {
+        &self.name
     }
 
     /// Get the [`ValueType`] for this [`Field`]
     pub fn value_type(&self) -> ValueType {
         self.value_type
+    }
+
+    /// Get the numerical index [`Tag`] for this [`Field`]
+    pub fn tag(&self) -> Tag {
+        self.tag.unwrap()
     }
 }
 
@@ -79,7 +90,7 @@ pub(super) fn check_for_duplicate_tags(fields: &[Field]) -> Result<(), String> {
     let mut tags = Set::new();
 
     for field in fields {
-        let tag = field.tag.unwrap();
+        let tag = field.tag.expect("field with unpopulated tag!");
 
         if !tags.insert(tag) {
             return Err(format!("duplicate field tag: {}", tag));

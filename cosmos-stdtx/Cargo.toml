@@ -15,7 +15,10 @@ circle-ci = { repository = "tendermint/kms" }
 
 [dependencies]
 anomaly = "0.1"
+prost-amino = "0.5"
+rust_decimal = "1.1"
 serde = { version = "1", features = ["serde_derive"] }
 sha2 = "0.8"
+subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 thiserror = "1"
 toml = "0.5"

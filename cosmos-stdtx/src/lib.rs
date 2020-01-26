@@ -12,7 +12,10 @@
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms, missing_docs, unused_qualifications)]
 
+pub mod address;
 pub mod error;
+pub mod msg;
 pub mod schema;
+pub mod type_name;
 
-pub use self::{error::Error, schema::Schema};
+pub use self::{address::Address, error::Error, msg::Msg, schema::Schema, type_name::TypeName};

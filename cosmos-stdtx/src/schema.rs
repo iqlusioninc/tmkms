@@ -20,12 +20,14 @@
 
 mod definition;
 mod field;
-mod type_name;
 mod value_type;
 
-pub use self::{definition::Definition, field::Field, type_name::TypeName, value_type::ValueType};
+pub use self::{definition::Definition, field::Field, value_type::ValueType};
 
-use crate::error::{Error, ErrorKind};
+use crate::{
+    error::{Error, ErrorKind},
+    type_name::TypeName,
+};
 use anomaly::fail;
 use serde::Deserialize;
 use std::{fs, path::Path, str::FromStr};
@@ -37,9 +39,16 @@ use std::{fs, path::Path, str::FromStr};
 /// [`StdTx`]: https://godoc.org/github.com/cosmos/cosmos-sdk/x/auth/types#StdTx
 /// [`sdk.Msg`]: https://godoc.org/github.com/cosmos/cosmos-sdk/types#Msg
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Schema {
     /// `StdTx` namespace for schema
     namespace: TypeName,
+
+    /// Bech32 prefix for account addresses
+    acc_address_prefix: Option<String>,
+
+    /// Bech32 prefix for validator consensus addresses
+    val_address_prefix: Option<String>,
 
     /// Schema definitions
     #[serde(rename = "definition")]
@@ -48,9 +57,19 @@ pub struct Schema {
 
 impl Schema {
     /// Create a new [`Schema`] with the given `StdTx` namespace and [`Definition`] set
-    pub fn new(namespace: TypeName, definitions: impl Into<Vec<Definition>>) -> Self {
+    pub fn new(
+        namespace: TypeName,
+        acc_address_prefix: Option<impl AsRef<str>>,
+        val_address_prefix: Option<impl AsRef<str>>,
+        definitions: impl Into<Vec<Definition>>,
+    ) -> Self {
+        let acc_address_prefix = acc_address_prefix.as_ref().map(|s| s.as_ref().to_owned());
+        let val_address_prefix = val_address_prefix.as_ref().map(|s| s.as_ref().to_owned());
+
         Self {
             namespace,
+            acc_address_prefix,
+            val_address_prefix,
             definitions: definitions.into(),
         }
     }
@@ -68,9 +87,26 @@ impl Schema {
         }
     }
 
+    /// Get the Bech32 prefix for account addresses
+    pub fn acc_address_prefix(&self) -> Option<&str> {
+        self.acc_address_prefix.as_ref().map(AsRef::as_ref)
+    }
+
+    /// Get the Bech32 prefix for validator addresses
+    pub fn val_address_prefix(&self) -> Option<&str> {
+        self.val_address_prefix.as_ref().map(AsRef::as_ref)
+    }
+
     /// [`Definition`] types found in this [`Schema`]
     pub fn definitions(&self) -> &[Definition] {
         &self.definitions
+    }
+
+    /// Get a schema [`Definition`] for the given [`TypeName`]
+    pub fn get_definition(&self, type_name: &TypeName) -> Option<&Definition> {
+        self.definitions
+            .iter()
+            .find(|def| def.type_name() == type_name)
     }
 }
 

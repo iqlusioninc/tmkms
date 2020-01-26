@@ -63,7 +63,7 @@ impl FromStr for TypeName {
     fn from_str(s: &str) -> Result<Self, Error> {
         for c in s.chars() {
             match c {
-                'A'..='Z' | 'a'..='z' | '0'..='9' | '/' => (),
+                'A'..='Z' | 'a'..='z' | '0'..='9' | '/' | '_' => (),
                 _ => fail!(
                     ErrorKind::Parse,
                     "invalid character `{}` in type name: `{}`",

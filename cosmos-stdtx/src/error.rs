@@ -10,6 +10,10 @@ use thiserror::Error;
 /// Kinds of errors
 #[derive(Copy, Clone, Debug, Error, Eq, PartialEq)]
 pub enum ErrorKind {
+    /// Malformed account or validator address
+    #[error("address error")]
+    Address,
+
     /// Input/output errors
     #[error("I/O error")]
     Io,
@@ -17,6 +21,10 @@ pub enum ErrorKind {
     /// Parse error
     #[error("parse error")]
     Parse,
+
+    /// Invalid type
+    #[error("type error")]
+    Type,
 }
 
 impl ErrorKind {
@@ -59,6 +67,12 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(context: Context<ErrorKind>) -> Self {
         Error(Box::new(context))
+    }
+}
+
+impl From<subtle_encoding::Error> for Error {
+    fn from(source: subtle_encoding::Error) -> Error {
+        Context::new(ErrorKind::Parse, Some(source.into())).into()
     }
 }
 
