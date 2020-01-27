@@ -3,12 +3,12 @@
 use super::{Field, Msg, Value};
 use crate::{
     address::Address,
+    decimal::Decimal,
     error::{Error, ErrorKind},
     schema::{Definition, Schema, ValueType},
     type_name::TypeName,
 };
 use anomaly::{ensure, format_err};
-use rust_decimal::Decimal;
 use std::convert::TryInto;
 
 /// Transaction message builder
@@ -58,14 +58,15 @@ impl<'a> Builder<'a> {
     /// <https://godoc.org/github.com/cosmos/cosmos-sdk/types#AccAddress>
     pub fn acc_address(
         &mut self,
-        field_name: &TypeName,
+        field_name: impl TryInto<TypeName, Error = Error>,
         address: Address,
     ) -> Result<&mut Self, Error> {
+        let field_name = field_name.try_into()?;
         let tag = self
             .schema_definition
-            .get_field_tag(field_name, ValueType::SdkAccAddress)?;
+            .get_field_tag(&field_name, ValueType::SdkAccAddress)?;
 
-        let field = Field::new(tag, field_name.clone(), Value::SdkAccAddress(address));
+        let field = Field::new(tag, field_name, Value::SdkAccAddress(address));
 
         self.fields.push(field);
         Ok(self)
@@ -74,7 +75,7 @@ impl<'a> Builder<'a> {
     /// `sdk.AccAddress` encoded as Bech32
     pub fn acc_address_bech32(
         &mut self,
-        field_name: &TypeName,
+        field_name: impl TryInto<TypeName, Error = Error>,
         addr_bech32: impl AsRef<str>,
     ) -> Result<&mut Self, Error> {
         let (hrp, address) = Address::from_bech32(addr_bech32)?;
@@ -94,14 +95,16 @@ impl<'a> Builder<'a> {
     /// <https://godoc.org/github.com/cosmos/cosmos-sdk/types#Dec>s
     pub fn decimal(
         &mut self,
-        field_name: &TypeName,
+        field_name: impl TryInto<TypeName, Error = Error>,
         value: impl Into<Decimal>,
     ) -> Result<&mut Self, Error> {
+        let field_name = field_name.try_into()?;
+
         let tag = self
             .schema_definition
-            .get_field_tag(field_name, ValueType::SdkDecimal)?;
+            .get_field_tag(&field_name, ValueType::SdkDecimal)?;
 
-        let field = Field::new(tag, field_name.clone(), Value::SdkDecimal(value.into()));
+        let field = Field::new(tag, field_name, Value::SdkDecimal(value.into()));
 
         self.fields.push(field);
         Ok(self)
@@ -111,14 +114,15 @@ impl<'a> Builder<'a> {
     /// <https://godoc.org/github.com/cosmos/cosmos-sdk/types#ValAddress>
     pub fn val_address(
         &mut self,
-        field_name: &TypeName,
+        field_name: impl TryInto<TypeName, Error = Error>,
         address: Address,
     ) -> Result<&mut Self, Error> {
+        let field_name = field_name.try_into()?;
         let tag = self
             .schema_definition
-            .get_field_tag(field_name, ValueType::SdkValAddress)?;
+            .get_field_tag(&field_name, ValueType::SdkValAddress)?;
 
-        let field = Field::new(tag, field_name.clone(), Value::SdkValAddress(address));
+        let field = Field::new(tag, field_name, Value::SdkValAddress(address));
 
         self.fields.push(field);
         Ok(self)
@@ -127,7 +131,7 @@ impl<'a> Builder<'a> {
     /// `sdk.ValAddress` encoded as Bech32
     pub fn val_address_bech32(
         &mut self,
-        field_name: &TypeName,
+        field_name: impl TryInto<TypeName, Error = Error>,
         addr_bech32: impl AsRef<str>,
     ) -> Result<&mut Self, Error> {
         let (hrp, address) = Address::from_bech32(addr_bech32)?;
@@ -146,14 +150,15 @@ impl<'a> Builder<'a> {
     /// Strings
     pub fn string(
         &mut self,
-        field_name: &TypeName,
+        field_name: impl TryInto<TypeName, Error = Error>,
         s: impl Into<String>,
     ) -> Result<&mut Self, Error> {
+        let field_name = field_name.try_into()?;
         let tag = self
             .schema_definition
-            .get_field_tag(field_name, ValueType::String)?;
+            .get_field_tag(&field_name, ValueType::String)?;
 
-        let field = Field::new(tag, field_name.clone(), Value::String(s.into()));
+        let field = Field::new(tag, field_name, Value::String(s.into()));
 
         self.fields.push(field);
         Ok(self)

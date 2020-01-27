@@ -5,6 +5,7 @@ use anomaly::fail;
 use serde::{de, Deserialize};
 use sha2::{Digest, Sha256};
 use std::{
+    convert::TryFrom,
     fmt::{self, Display},
     str::FromStr,
 };
@@ -74,5 +75,13 @@ impl FromStr for TypeName {
         }
 
         Ok(TypeName(s.to_owned()))
+    }
+}
+
+impl TryFrom<&str> for TypeName {
+    type Error = Error;
+
+    fn try_from(s: &str) -> Result<Self, Error> {
+        s.parse()
     }
 }

@@ -25,3 +25,6 @@ sha2 = "0.8"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 thiserror = "1"
 toml = "0.5"
+
+[dev-dependencies]
+signatory-secp256k1 = "0.18"

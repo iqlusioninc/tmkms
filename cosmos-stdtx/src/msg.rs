@@ -1,11 +1,12 @@
-//! Transaction message type (i.e `sdk.Msg`)
+//! Transaction message type i.e [`sdk.Msg`]
+//!
+//! [`sdk.Msg`]: https://godoc.org/github.com/cosmos/cosmos-sdk/types#Msg
 
 mod builder;
 mod field;
 mod value;
 
 pub use self::{builder::Builder, field::Field, value::Value};
-pub use rust_decimal::Decimal;
 
 use crate::{Schema, TypeName};
 use prost_amino::encode_length_delimiter as encode_leb128; // Little-endian Base 128
@@ -14,7 +15,7 @@ use std::{collections::BTreeMap, iter::FromIterator};
 /// Tags are indexes which identify message fields
 pub type Tag = u64;
 
-/// Transaction message type (i.e. [`sdk.Msg`]).
+/// Transaction message type i.e. [`sdk.Msg`].
 /// These serve as the payload for [`StdTx`] transactions.
 ///
 /// [`StdTx`]: https://godoc.org/github.com/cosmos/cosmos-sdk/x/auth/types#StdTx

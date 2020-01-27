@@ -4,7 +4,7 @@ mod builder;
 
 pub use self::builder::Builder;
 
-use crate::type_name::TypeName;
+use crate::{Signature, TypeName};
 use prost_amino::{encode_length_delimiter, Message};
 use prost_amino_derive::Message;
 use serde_json::json;
@@ -56,6 +56,13 @@ pub struct StdFee {
 }
 
 impl StdFee {
+    /// Create a [`StdFee`] for a gas-only transaction
+    pub fn for_gas(gas: u64) -> Self {
+        StdFee {
+            amount: vec![],
+            gas,
+        }
+    }
     /// Compute `serde_json::Value` representing this fee
     pub fn to_json_value(&self) -> serde_json::Value {
         let amount = self
@@ -103,4 +110,13 @@ pub struct StdSignature {
     /// Serialized signature
     #[prost_amino(bytes)]
     pub signature: Vec<u8>,
+}
+
+impl From<Signature> for StdSignature {
+    fn from(signature: Signature) -> StdSignature {
+        StdSignature {
+            pub_key: vec![],
+            signature: signature.as_ref().to_vec(),
+        }
+    }
 }

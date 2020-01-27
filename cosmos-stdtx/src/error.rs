@@ -14,6 +14,10 @@ pub enum ErrorKind {
     #[error("address error")]
     Address,
 
+    /// Invalid decimal value
+    #[error("invalid decimal value")]
+    Decimal,
+
     /// Input/output errors
     #[error("I/O error")]
     Io,
@@ -21,6 +25,10 @@ pub enum ErrorKind {
     /// Parse error
     #[error("parse error")]
     Parse,
+
+    /// Signature error
+    #[error("signature error")]
+    Signature,
 
     /// Invalid type
     #[error("type error")]
@@ -70,14 +78,25 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
+impl From<rust_decimal::Error> for Error {
+    fn from(err: rust_decimal::Error) -> Error {
+        Context::new(ErrorKind::Decimal, Some(err.into())).into()
+    }
+}
+
+impl From<ecdsa::signature::Error> for Error {
+    fn from(err: ecdsa::signature::Error) -> Error {
+        Context::new(ErrorKind::Signature, Some(err.into())).into()
+    }
+}
 impl From<subtle_encoding::Error> for Error {
-    fn from(source: subtle_encoding::Error) -> Error {
-        Context::new(ErrorKind::Parse, Some(source.into())).into()
+    fn from(err: subtle_encoding::Error) -> Error {
+        Context::new(ErrorKind::Parse, Some(err.into())).into()
     }
 }
 
 impl From<toml::de::Error> for Error {
-    fn from(source: toml::de::Error) -> Error {
-        Context::new(ErrorKind::Parse, Some(source.into())).into()
+    fn from(err: toml::de::Error) -> Error {
+        Context::new(ErrorKind::Parse, Some(err.into())).into()
     }
 }

@@ -1,4 +1,4 @@
-//! Amino schema for an `sdk.Msg`.
+//! Amino schema for an [`sdk.Msg`].
 //!
 //! Schema files are similar to Protobuf schemas, but use a TOML-based syntax.
 //!
@@ -8,15 +8,41 @@
 //! a type named `oracle/MsgExchangeRatePrevote`:
 //!
 //! ```toml
+//! # Example StdTx message schema definition.
+//! #
+//! # Message types taken from Terra's oracle voter transactions:
+//! # <https://docs.terra.money/docs/dev-spec-oracle#message-types>
+//!
+//! # StdTx namespace for schema definitions
+//! # (e.g. `cosmos-sdk/StdTx` for Cosmos SDK)
+//! namespace = "core/StdTx"
+//!
+//! # Bech32 address prefixes
+//! acc_prefix = "terra"
+//! val_prefix = "terravaloper"
+//!
 //! [[definition]]
 //! type_name = "oracle/MsgExchangeRatePrevote"
 //! fields = [
-//!     { name = "hash",  type = "string", tag = "1" }, # tag will be inferred if unspecified
+//!     { name = "hash",  type = "string" },
+//!     { name = "denom", type = "string" },
+//!     { name = "feeder", type = "sdk.AccAddress" },
+//!     { name = "validator", type = "sdk.ValAddress" },
+//! ]
+//!
+//! [[definition]]
+//! type_name = "oracle/MsgExchangeRateVote"
+//! fields = [
+//!     # explicit field tag example - will start from "1" otherwise
+//!     { name = "exchange_rate", type = "sdk.Dec", tag = 1 },
+//!     { name = "salt", type = "string" },
 //!     { name = "denom", type = "string" },
 //!     { name = "feeder", type = "sdk.AccAddress" },
 //!     { name = "validator", type = "sdk.ValAddress" },
 //! ]
 //! ```
+//!
+//! [`sdk.Msg`]: https://godoc.org/github.com/cosmos/cosmos-sdk/types#Msg
 
 mod definition;
 mod field;
@@ -41,7 +67,7 @@ use std::{fs, path::Path, str::FromStr};
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Schema {
-    /// `StdTx` namespace for schema
+    /// `StdTx` namespace for schema (e.g. `cosmos-sdk/StdTx`)
     namespace: TypeName,
 
     /// Bech32 prefix for account addresses
@@ -82,6 +108,11 @@ impl Schema {
                 e
             ),
         }
+    }
+
+    /// Get the transaction namespace for this schema (e.g. `cosmos-sdk/StdTx`)
+    pub fn namespace(&self) -> &TypeName {
+        &self.namespace
     }
 
     /// Get the Bech32 prefix for account addresses

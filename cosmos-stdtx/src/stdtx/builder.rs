@@ -1,13 +1,8 @@
 //! Builder for `StdTx` transactions which handles construction and signing.
 
-pub use ecdsa::{curve::secp256k1::FixedSignature as Signature, signature::Signer as _};
-
-use super::{StdFee, StdTx};
-use crate::{error::Error, msg::Msg, schema::Schema};
+use super::{StdFee, StdSignature, StdTx};
+use crate::{Error, Msg, Schema, Signer};
 use serde_json::json;
-
-/// Transaction signer
-pub type Signer = dyn ecdsa::signature::Signer<Signature>;
 
 /// [`StdTx`] transaction builder, which handles construction, signing, and
 /// Amino serialization.
@@ -31,13 +26,13 @@ impl Builder {
         schema: Schema,
         account_number: u64,
         chain_id: impl Into<String>,
-        signer: impl Into<Box<Signer>>,
+        signer: Box<Signer>,
     ) -> Self {
         Self {
             schema,
             account_number,
             chain_id: chain_id.into(),
-            signer: signer.into(),
+            signer,
         }
     }
 
@@ -60,13 +55,31 @@ impl Builder {
     pub fn sign_tx(
         &self,
         sequence: u64,
-        fee: &StdFee,
+        fee: StdFee,
         memo: &str,
         messages: &[Msg],
     ) -> Result<StdTx, Error> {
-        let sign_msg = self.create_sign_msg(sequence, fee, memo, messages);
-        let _signature = self.signer.sign(sign_msg.as_bytes());
-        unimplemented!();
+        let sign_msg = self.create_sign_msg(sequence, &fee, memo, messages);
+        let signature = StdSignature::from(self.signer.try_sign(sign_msg.as_bytes())?);
+
+        Ok(StdTx {
+            msg: messages.iter().map(|msg| msg.to_amino_bytes()).collect(),
+            fee: Some(fee),
+            signatures: vec![signature],
+            memo: memo.to_owned(),
+        })
+    }
+
+    /// Build, sign, and encode a transaction in Amino format
+    pub fn sign_amino_tx(
+        &self,
+        sequence: u64,
+        fee: StdFee,
+        memo: &str,
+        messages: &[Msg],
+    ) -> Result<Vec<u8>, Error> {
+        let tx = self.sign_tx(sequence, fee, memo, messages)?;
+        Ok(tx.to_amino_bytes(self.schema.namespace()))
     }
 
     /// Create the JSON message to sign for this transaction
@@ -77,7 +90,7 @@ impl Builder {
             .collect::<Vec<_>>();
 
         json!({
-            "account_number": self.account_number,
+            "account_number": self.account_number.to_string(),
             "chain_id": self.chain_id,
             "fee": fee.to_json_value(),
             "memo": memo,

@@ -2,9 +2,9 @@
 
 use crate::{
     address::Address,
+    decimal::Decimal,
     schema::{Schema, ValueType},
 };
-use rust_decimal::Decimal;
 
 /// Message values - data contained in fields of a message
 #[derive(Clone, Debug)]
@@ -52,9 +52,8 @@ impl Value {
     pub(super) fn to_amino_bytes(&self) -> Vec<u8> {
         match self {
             Value::SdkAccAddress(addr) | Value::SdkValAddress(addr) => addr.as_ref().to_vec(),
-            // TODO(tarcieri): check that decimals are being encoded correctly
-            Value::SdkDecimal(decimal) => decimal.to_string().as_bytes().to_vec(),
-            Value::String(s) => s.as_bytes().to_vec(),
+            Value::SdkDecimal(decimal) => decimal.to_amino_bytes(),
+            Value::String(s) => s.clone().into_bytes(),
         }
     }
 
@@ -62,7 +61,6 @@ impl Value {
     pub(super) fn to_json_value(&self, schema: &Schema) -> serde_json::Value {
         serde_json::Value::String(match self {
             Value::SdkAccAddress(addr) => addr.to_bech32(schema.acc_prefix()),
-            // TODO(tarcieri): check that decimals are being encoded correctly
             Value::SdkDecimal(decimal) => decimal.to_string(),
             Value::SdkValAddress(addr) => addr.to_bech32(schema.val_prefix()),
             Value::String(s) => s.clone(),
