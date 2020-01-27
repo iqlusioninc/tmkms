@@ -4,15 +4,11 @@ description = "Tendermint Key Management System"
 version     = "0.7.1" # Also update html_root_url in lib.rs when bumping this
 authors     = ["Tony Arcieri <tony@iqlusion.io>", "Ismail Khoffi <Ismail.Khoffi@gmail.com>"]
 license     = "Apache-2.0"
-homepage    = "https://tendermint.com/"
-repository  = "https://github.com/tendermint/kms/"
+homepage    = "https://github.com/tendermint/kms/"
 readme      = "README.md"
 categories  = ["cryptography"]
 keywords    = ["cosmos", "ed25519", "kms", "key-management", "yubihsm"]
 edition     = "2018"
-
-[workspace]
-members = [".", "cosmos-stdtx"]
 
 [badges]
 circle-ci = { repository = "tendermint/kms" }

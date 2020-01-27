@@ -4,13 +4,10 @@ jobs:
   build:
     docker:
     - image: tendermint/kms:build-2019-06-05-v0 # bump cache keys when modifying this
-      environment:
-        CARGO_INCREMENTAL: 0
-        RUSTFLAGS: -D warnings
     steps:
     - checkout
     - restore_cache:
-        key: cache-2020-01-27-v0 # bump save_cache key below too
+        key: cache-2019-06-05-v0 # bump save_cache key below too
     - run:
         name: Install Rust 1.39.0 # TODO: update Rust in the upstream Docker image
         command: |
@@ -64,7 +61,7 @@ jobs:
           cargo build --features=softsign
           TMKMS_BIN=./target/debug/tmkms sh tests/support/run-harness-tests.sh
     - save_cache:
-        key: cache-2020-01-27-v0 # bump restore_cache key above too
+        key: cache-2019-06-05-v0 # bump restore_cache key above too
         paths:
         - "~/.cargo"
         - "./target"
