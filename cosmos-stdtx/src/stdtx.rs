@@ -1,8 +1,13 @@
 //! StdTx Amino types
 
+mod builder;
+
+pub use self::builder::Builder;
+
 use crate::type_name::TypeName;
 use prost_amino::{encode_length_delimiter, Message};
 use prost_amino_derive::Message;
+use serde_json::json;
 
 /// StdTx Amino type
 #[derive(Clone, Message)]
@@ -50,7 +55,23 @@ pub struct StdFee {
     pub gas: u64,
 }
 
-/// Coin amino type
+impl StdFee {
+    /// Compute `serde_json::Value` representing this fee
+    pub fn to_json_value(&self) -> serde_json::Value {
+        let amount = self
+            .amount
+            .iter()
+            .map(|amt| amt.to_json_value())
+            .collect::<Vec<_>>();
+
+        json!({
+            "amount": amount,
+            "gas": self.gas.to_string()
+        })
+    }
+}
+
+/// Coin Amino type
 #[derive(Clone, Message)]
 pub struct Coin {
     /// Denomination of coin
@@ -60,6 +81,16 @@ pub struct Coin {
     /// Amount of the given denomination
     #[prost_amino(string)]
     pub amount: String,
+}
+
+impl Coin {
+    /// Compute `serde_json::Value` representing this coin
+    pub fn to_json_value(&self) -> serde_json::Value {
+        json!({
+            "denom": self.denom,
+            "amount": self.amount
+        })
+    }
 }
 
 /// StdSignature amino type

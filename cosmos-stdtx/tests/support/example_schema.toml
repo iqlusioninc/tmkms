@@ -7,6 +7,10 @@
 # (e.g. `cosmos-sdk/StdTx` for Cosmos SDK)
 namespace = "core/StdTx"
 
+# Bech32 address prefixes
+acc_prefix = "terra"
+val_prefix = "terravaloper"
+
 [[definition]]
 type_name = "oracle/MsgExchangeRatePrevote"
 fields = [

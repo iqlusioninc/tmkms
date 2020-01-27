@@ -1,6 +1,9 @@
 //! Message values
 
-use crate::{address::Address, schema::ValueType};
+use crate::{
+    address::Address,
+    schema::{Schema, ValueType},
+};
 use rust_decimal::Decimal;
 
 /// Message values - data contained in fields of a message
@@ -53,5 +56,28 @@ impl Value {
             Value::SdkDecimal(decimal) => decimal.to_string().as_bytes().to_vec(),
             Value::String(s) => s.as_bytes().to_vec(),
         }
+    }
+
+    /// Encode this value as a [`serde_json::Value`]
+    pub(super) fn to_json_value(&self, schema: &Schema) -> serde_json::Value {
+        serde_json::Value::String(match self {
+            Value::SdkAccAddress(addr) => addr.to_bech32(schema.acc_prefix()),
+            // TODO(tarcieri): check that decimals are being encoded correctly
+            Value::SdkDecimal(decimal) => decimal.to_string(),
+            Value::SdkValAddress(addr) => addr.to_bech32(schema.val_prefix()),
+            Value::String(s) => s.clone(),
+        })
+    }
+}
+
+impl From<Decimal> for Value {
+    fn from(dec: Decimal) -> Value {
+        Value::SdkDecimal(dec)
+    }
+}
+
+impl From<String> for Value {
+    fn from(s: String) -> Value {
+        Value::String(s)
     }
 }

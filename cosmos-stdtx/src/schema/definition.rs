@@ -25,7 +25,7 @@ impl Definition {
     pub fn new(type_name: TypeName, fields: impl Into<Vec<Field>>) -> Result<Self, Error> {
         let fields = fields.into();
 
-        if let Err(e) = field::check_for_duplicate_tags(&fields) {
+        if let Err(e) = field::validate(&fields) {
             fail!(ErrorKind::Parse, "{}", e);
         }
 

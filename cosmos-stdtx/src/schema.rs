@@ -45,10 +45,10 @@ pub struct Schema {
     namespace: TypeName,
 
     /// Bech32 prefix for account addresses
-    acc_address_prefix: Option<String>,
+    acc_prefix: String,
 
     /// Bech32 prefix for validator consensus addresses
-    val_address_prefix: Option<String>,
+    val_prefix: String,
 
     /// Schema definitions
     #[serde(rename = "definition")]
@@ -59,17 +59,14 @@ impl Schema {
     /// Create a new [`Schema`] with the given `StdTx` namespace and [`Definition`] set
     pub fn new(
         namespace: TypeName,
-        acc_address_prefix: Option<impl AsRef<str>>,
-        val_address_prefix: Option<impl AsRef<str>>,
+        acc_prefix: impl Into<String>,
+        val_prefix: impl Into<String>,
         definitions: impl Into<Vec<Definition>>,
     ) -> Self {
-        let acc_address_prefix = acc_address_prefix.as_ref().map(|s| s.as_ref().to_owned());
-        let val_address_prefix = val_address_prefix.as_ref().map(|s| s.as_ref().to_owned());
-
         Self {
             namespace,
-            acc_address_prefix,
-            val_address_prefix,
+            acc_prefix: acc_prefix.into(),
+            val_prefix: val_prefix.into(),
             definitions: definitions.into(),
         }
     }
@@ -88,13 +85,13 @@ impl Schema {
     }
 
     /// Get the Bech32 prefix for account addresses
-    pub fn acc_address_prefix(&self) -> Option<&str> {
-        self.acc_address_prefix.as_ref().map(AsRef::as_ref)
+    pub fn acc_prefix(&self) -> &str {
+        self.acc_prefix.as_ref()
     }
 
     /// Get the Bech32 prefix for validator addresses
-    pub fn val_address_prefix(&self) -> Option<&str> {
-        self.val_address_prefix.as_ref().map(AsRef::as_ref)
+    pub fn val_prefix(&self) -> &str {
+        self.val_prefix.as_ref()
     }
 
     /// [`Definition`] types found in this [`Schema`]

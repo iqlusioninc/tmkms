@@ -27,6 +27,11 @@ impl Address {
 
         Ok((hrp, Address(addr.as_slice().try_into().unwrap())))
     }
+
+    /// Encode this address as Bech32
+    pub fn to_bech32(&self, hrp: &str) -> String {
+        bech32::encode(hrp, &self.0)
+    }
 }
 
 impl AsRef<[u8]> for Address {

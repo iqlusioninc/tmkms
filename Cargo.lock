@@ -387,10 +387,12 @@ name = "cosmos-stdtx"
 version = "0.0.1"
 dependencies = [
  "anomaly",
+ "ecdsa",
  "prost-amino",
  "prost-amino-derive",
  "rust_decimal",
  "serde",
+ "serde_json",
  "sha2",
  "subtle-encoding 0.5.0",
  "thiserror",

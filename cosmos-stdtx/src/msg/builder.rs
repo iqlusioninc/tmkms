@@ -20,10 +20,10 @@ pub struct Builder<'a> {
     type_name: TypeName,
 
     /// Bech32 prefix for account addresses
-    acc_address_prefix: Option<String>,
+    acc_prefix: String,
 
     /// Bech32 prefix for validator consensus addresses
-    val_address_prefix: Option<String>,
+    val_prefix: String,
 
     /// Fields in the message
     fields: Vec<Field>,
@@ -45,14 +45,11 @@ impl<'a> Builder<'a> {
             )
         })?;
 
-        let acc_address_prefix = schema.acc_address_prefix().map(ToString::to_string);
-        let val_address_prefix = schema.val_address_prefix().map(ToString::to_string);
-
         Ok(Self {
             schema_definition,
             type_name,
-            acc_address_prefix,
-            val_address_prefix,
+            acc_prefix: schema.acc_prefix().to_owned(),
+            val_prefix: schema.val_prefix().to_owned(),
             fields: vec![],
         })
     }
@@ -68,7 +65,7 @@ impl<'a> Builder<'a> {
             .schema_definition
             .get_field_tag(field_name, ValueType::SdkAccAddress)?;
 
-        let field = (tag, Value::SdkAccAddress(address));
+        let field = Field::new(tag, field_name.clone(), Value::SdkAccAddress(address));
 
         self.fields.push(field);
         Ok(self)
@@ -82,15 +79,13 @@ impl<'a> Builder<'a> {
     ) -> Result<&mut Self, Error> {
         let (hrp, address) = Address::from_bech32(addr_bech32)?;
 
-        if let Some(prefix) = &self.acc_address_prefix {
-            ensure!(
-                &hrp == prefix,
-                ErrorKind::Address,
-                "invalid account address prefix: `{}` (expected `{}`)",
-                hrp,
-                prefix,
-            );
-        }
+        ensure!(
+            hrp == self.acc_prefix,
+            ErrorKind::Address,
+            "invalid account address prefix: `{}` (expected `{}`)",
+            hrp,
+            self.acc_prefix,
+        );
 
         self.acc_address(field_name, address)
     }
@@ -106,7 +101,7 @@ impl<'a> Builder<'a> {
             .schema_definition
             .get_field_tag(field_name, ValueType::SdkDecimal)?;
 
-        let field = (tag, Value::SdkDecimal(value.into()));
+        let field = Field::new(tag, field_name.clone(), Value::SdkDecimal(value.into()));
 
         self.fields.push(field);
         Ok(self)
@@ -123,7 +118,7 @@ impl<'a> Builder<'a> {
             .schema_definition
             .get_field_tag(field_name, ValueType::SdkValAddress)?;
 
-        let field = (tag, Value::SdkValAddress(address));
+        let field = Field::new(tag, field_name.clone(), Value::SdkValAddress(address));
 
         self.fields.push(field);
         Ok(self)
@@ -137,15 +132,13 @@ impl<'a> Builder<'a> {
     ) -> Result<&mut Self, Error> {
         let (hrp, address) = Address::from_bech32(addr_bech32)?;
 
-        if let Some(prefix) = &self.val_address_prefix {
-            ensure!(
-                &hrp == prefix,
-                ErrorKind::Address,
-                "invalid validator address prefix: `{}` (expected `{}`)",
-                hrp,
-                prefix,
-            );
-        }
+        ensure!(
+            hrp == self.val_prefix,
+            ErrorKind::Address,
+            "invalid validator address prefix: `{}` (expected `{}`)",
+            hrp,
+            self.val_prefix,
+        );
 
         self.val_address(field_name, address)
     }
@@ -160,17 +153,17 @@ impl<'a> Builder<'a> {
             .schema_definition
             .get_field_tag(field_name, ValueType::String)?;
 
-        let field = (tag, Value::String(s.into()));
+        let field = Field::new(tag, field_name.clone(), Value::String(s.into()));
 
         self.fields.push(field);
         Ok(self)
     }
 
     /// Consume this builder and output a message
-    pub fn into_msg(self) -> Msg {
+    pub fn to_msg(&self) -> Msg {
         Msg {
-            type_name: self.type_name,
-            fields: self.fields,
+            type_name: self.type_name.clone(),
+            fields: self.fields.clone(),
         }
     }
 }

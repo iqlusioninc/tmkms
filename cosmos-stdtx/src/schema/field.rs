@@ -23,7 +23,7 @@ pub struct Field {
 }
 
 impl Field {
-    /// Create a new [`Field`] with the given tag and [`ValueType`]
+    /// Create a new [`Field`] with the given tag and [`ValueType`].
     pub fn new(name: TypeName, value_type: ValueType, tag: Tag) -> Self {
         Self {
             name,
@@ -55,7 +55,7 @@ where
 {
     let mut fields: Vec<Field> = Vec::deserialize(deserializer)?;
     populate_tags(&mut fields).map_err(de::Error::custom)?;
-    check_for_duplicate_tags(&fields).map_err(de::Error::custom)?;
+    validate(&fields).map_err(de::Error::custom)?;
     Ok(fields)
 }
 
@@ -85,12 +85,18 @@ fn populate_tags(fields: &mut [Field]) -> Result<(), &str> {
     Ok(())
 }
 
-/// Ensure tags are unique across all fields
-pub(super) fn check_for_duplicate_tags(fields: &[Field]) -> Result<(), String> {
+/// Ensure field names and tags are unique across all fields
+pub(super) fn validate(fields: &[Field]) -> Result<(), String> {
+    let mut names = Set::new();
     let mut tags = Set::new();
 
     for field in fields {
+        // This invariant is enforced in `populate_tags` and the `Field::new` methods
         let tag = field.tag.expect("field with unpopulated tag!");
+
+        if !names.insert(&field.name) {
+            return Err(format!("duplicate field name: `{}`", &field.name));
+        }
 
         if !tags.insert(tag) {
             return Err(format!("duplicate field tag: {}", tag));
