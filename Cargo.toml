@@ -39,7 +39,7 @@ tendermint = "= 0.12.0-rc0"
 thiserror = "1"
 wait-timeout = "0.2"
 x25519-dalek = "0.6"
-yubihsm = { version = "0.31", features = ["setup", "usb"], optional = true }
+yubihsm = { version = "0.32", features = ["setup", "usb"], optional = true }
 zeroize = "1"
 
 [dev-dependencies]
