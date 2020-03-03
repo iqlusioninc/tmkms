@@ -22,7 +22,7 @@ impl Kdf {
     pub fn derive_secrets_and_challenge(shared_secret: &[u8; 32], loc_is_lo: bool) -> Self {
         let mut key_material = [0u8; 96];
 
-        Hkdf::<Sha256>::extract(None, shared_secret)
+        Hkdf::<Sha256>::new(None, shared_secret)
             .expand(HKDF_INFO, &mut key_material)
             .unwrap();
 
