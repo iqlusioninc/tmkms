@@ -254,7 +254,7 @@ fn generate_mnemonic_from_hsm_and_os_csprngs(hsm_connector: &Connector) -> mnemo
     ikm.extend_from_slice(&[0u8; KEY_SIZE]);
     getrandom(&mut ikm[KEY_SIZE..]).expect("RNG failure!");
 
-    let kdf = Hkdf::<Sha512>::extract(None, &ikm);
+    let kdf = Hkdf::<Sha512>::new(None, &ikm);
 
     // 32-bytes (256-bits) -> 24 BIP32 words
     let mut okm = [0u8; KEY_SIZE];
