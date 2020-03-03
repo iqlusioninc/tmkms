@@ -100,9 +100,9 @@ dependencies = [
 
 [[package]]
 name = "anomaly"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c7f9e6187c92c6c166ba8cca80b9782e61e3bb34f25a6374d279014535b76e6"
+checksum = "550632e31568ae1a5f47998c3aa48563030fc49b9ec91913ca337cf64fbc5ccb"
 dependencies = [
  "backtrace",
 ]
@@ -2392,9 +2392,9 @@ dependencies = [
 
 [[package]]
 name = "yubihsm"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "262a24398da7e67136850c40ba50e3dcd7652c8dd70208a10a30ba55fb92a349"
+checksum = "f4a39aecc37bd86772f2f38a2481b0a69ede936c33f15e3296542ec3c97a79f3"
 dependencies = [
  "aes",
  "anomaly",
