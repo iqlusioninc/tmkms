@@ -168,7 +168,7 @@ Before opening a pull request, please run the checks below:
 Run the test suite with:
 
 ```
-cargo test --all-features
+cargo test --all-features -- --test-threads 1
 ```
 
 ### Format checking (rustfmt)
