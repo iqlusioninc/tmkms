@@ -34,7 +34,7 @@ signatory-dalek = "0.18"
 signatory-secp256k1 = "0.18"
 signatory-ledger-tm = { version = "0.18", optional = true }
 subtle = "2"
-subtle-encoding = { version = "0.4", features = ["bech32-preview"] }
+subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tendermint = "= 0.12.0-rc0"
 thiserror = "1"
 wait-timeout = "0.2"
