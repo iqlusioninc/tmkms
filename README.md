@@ -34,11 +34,6 @@ In particular, there is presently **no double signing defense** in the case
 that multiple KMS instances are running simultaneously and connecting to
 multiple validators on the same network.
 
-The longer-term story around double-signing is more complex, as it includes
-such scenarios as signing while unbonded. For more information on future-plans
-to provide double-signing defense and high availability in such scenarios,
-see [#115: Improving double-signing prevention](https://github.com/tendermint/kms/issues/115).
-
 ## Signing Providers
 
 You **MUST** select one or more signing provider(s) when compiling the KMS,
@@ -110,7 +105,7 @@ following method.
 The following example adds `--features=yubihsm` to enable YubiHSM 2 support.
 
 ```
-$ git clone https://github.com/tendermint/kms.git && cd kms
+$ git clone https://github.com/iqlusioninc/tmkms.git && cd tmkms
 [...]
 $ cargo build --release --features=yubihsm
 ```
@@ -194,8 +189,6 @@ cargo clippy
 
 ## License
 
-Copyright © 2018-2019 Tendermint
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -212,19 +205,19 @@ limitations under the License.
 
 [crate-image]: https://img.shields.io/crates/v/tmkms.svg
 [crate-link]: https://crates.io/crates/tmkms
-[build-image]: https://circleci.com/gh/tendermint/kms.svg?style=shield
-[build-link]: https://circleci.com/gh/tendermint/kms
+[build-image]: https://github.com/iqlusioninc/tmkms/workflows/Rust/badge.svg?branch=develop&event=push
+[build-link]: https://github.com/iqlusioninc/tmkms/actions
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
-[license-link]: https://github.com/tendermint/kms/blob/master/LICENSE
+[license-link]: https://github.com/iqlusioninc/tmkms/blob/develop/LICENSE
 [rustc-image]: https://img.shields.io/badge/rustc-1.40+-blue.svg
 
 [//]: # (general links)
 
 [Tendermint]: https://tendermint.com/
 [Cosmos Validators]: https://cosmos.network/docs/gaia/validators/validator-faq.html
-[YubiHSM2]: https://github.com/tendermint/kms/blob/master/README.yubihsm.md
+[YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/develop/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
 [ed25519-dalek]: https://github.com/dalek-cryptography/ed25519-dalek
 [supported Rust platform]: https://forge.rust-lang.org/platform-support.html
 [libusb]: https://libusb.info/
-[Dockerfile]: https://github.com/tendermint/kms/blob/master/Dockerfile
+[Dockerfile]: https://github.com/iqlusioninc/tmkms/blob/develop/Dockerfile

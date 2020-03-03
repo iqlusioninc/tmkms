@@ -1,44 +1,46 @@
-## [0.7.1] (2020-01-23)
+## 0.7.1 (2020-01-23)
 
-- Remove explicit dependency on the `log` crate ([#398])
-- Remove `byteorder` dependency ([#397])
-- Replace `tiny-bip39` with the equivalent `hkd32` functionality ([#396])
-- Replace `lazy_static` with `once_cell` ([#395])
-- Update `rpassword` requirement from 3.0 to 4.0 ([#394])
-- Upgrade `x25519-dalek` to v0.6; remove `rand_os` ([#393])
-- Remove `failure` ([#392])
-- Update to `tendermint-rs` 0.12.0-rc0; `prost-amino` v0.5; `signatory v0.18` ([#391], [#399])
+- Remove explicit dependency on the `log` crate
+- Remove `byteorder` dependency
+- Replace `tiny-bip39` with the equivalent `hkd32` functionality
+- Replace `lazy_static` with `once_cell`
+- Update `rpassword` requirement from 3.0 to 4.0
+- Upgrade `x25519-dalek` to v0.6; remove `rand_os`
+- Remove `failure`
+- Update to `tendermint-rs` 0.12.0-rc0; `prost-amino` v0.5; `signatory v0.18`
 
-## [0.7.0] (2019-12-16)
+## 0.7.0 (2019-12-16)
 
-- Upgrade to `abscissa` v0.5 ([#382])
-- Validate chains are registered on startup ([#376])
-- Use an initial height of 0 in default chain state ([#373])
-- Upgrade `tendermint-rs` to v0.11 ([#372])
-- Upgrade to `signatory` v0.16; `yubihsm` v0.29.0 ([#367])
-- Use the `chacha20poly1305` crate for Secret Connection ([#366])
-- Vendor Secret Connection impl back from `tendermint-rs` ([#365])
-- Add timeout to TCP socket ([#364])
-- Double signing detection and logging improvements ([#348])
-- Log signing message type during attempted double sign events ([#347])
+- Upgrade to `abscissa` v0.5
+- Validate chains are registered on startup
+- Use an initial height of 0 in default chain state
+- Upgrade `tendermint-rs` to v0.11
+- Upgrade to `signatory` v0.16; `yubihsm` v0.29.0
+- Use the `chacha20poly1305` crate for Secret Connection
+- Vendor Secret Connection impl back from `tendermint-rs`
+- Add timeout to TCP socket
+- Double signing detection and logging improvements
+- Log signing message type during attempted double sign events
 
-## [0.6.3] (2019-08-07)
+## 0.6.3 (2019-08-07)
 
-- Detect and don't attempt to recover from PoisonError ([#345])
+- Detect and don't attempt to recover from PoisonError
 
-## [0.6.2] (2019-08-07)
+## 0.6.2 (2019-08-07)
 
-- chain/state: Avoid panicking in update_consensus_state ([#342])
+- chain/state: Avoid panicking in update_consensus_state
 
-## [0.6.1] (2019-08-06)
+## 0.6.1 (2019-08-06)
 
-- [`abscissa` crate v0.3] ([#338])
-- Refactor `Session` to remove code duplication ([#337])
-- Remove signal handlers ([#336])
-- Double signing - allow some block ID switches ([#335])
-- Consider signed `<nil>` votes to be double signs ([#334])
+- [`abscissa` crate v0.3]
+- Refactor `Session` to remove code duplication
+- Remove signal handlers
+- Double signing - allow some block ID switches
+- Consider signed `<nil>` votes to be double signs
 
-## [0.6.0] (2019-07-30)
+[`abscissa` crate v0.3]: https://github.com/iqlusioninc/abscissa/pull/127
+
+## 0.6.0 (2019-07-30)
 
 This release is tested against [tendermint v0.31] and known to be compatible
 with [tendermint v0.32].
@@ -70,8 +72,6 @@ We suggest validating the configuration in a staging or other noncritical
 deployment of the KMS in order to ensure your configuration does not contain
 accidental misconfigurations which were previously uncaught.
 
-See [#282] for more information.
-
 #### YubiHSM improvements
 
 This release contains many improvements for users of the `yubihsm` backend:
@@ -90,199 +90,97 @@ This release contains many improvements for users of the `yubihsm` backend:
 For more information on these changes, please see the "yubihsm-server feature"
 section in the Tendermint KMS YubiHSM docs:
 
-<https://github.com/tendermint/kms/blob/master/README.yubihsm.md>
+<https://github.com/iqlusioninc/tmkms/blob/develop/README.yubihsm.md>
 
 ### Detailed Changes
 
-- [`tendermint` crate v0.10.0] ([#328])
-- Double signing logging improvements ([#322], [#319], [#317])
-- Log `tendermint::consensus::State` height/round/step ([#316])
-- `yubihsm keys import`: base64 support ([#306])
-- `yubihsm`: Support for reading password from a file ([#305])
-- `softsign`: Fix private key decoding + `import` command ([#304])
-- `softsign`: Add subcommand; move `keygen` under it ([#303])
-- `yubihsm setup`: use `hkd32` crate to derive key hierarchy ([#302])
-- `yubihsm setup`: Collect 256-bits entropy from both RNGs ([#300])
-- [`abscissa` crate v0.2] ([#294])
-- Log durations for each signing operation ([#283])
-- Add `serde(deny_unknown_fields)` to all config structs ([#282])
-- `tmkms yubihsm keys list`: Use chain-specific formatters ([#275])
-- `yubihsm-server`: Allow CLI commands to use loopback connection ([#274])
-- `yubihsm-server`: Optional `yubihsm-connector` compatibility ([#273])
-- Send `RemoteSignerError` response to validator on double sign ([#249])
-- Logging improvements ([#271])
-- yubihsm: Mark imported `priv_validator.json` keys as re-exportable ([#248])
-- ledger: Add init commands ([#242])
-- Add `max_height` support for stopping chains at specific heights ([#238])
-- Chain-specific keyrings / multitenancy ([#232])
-- ledger: Use `ledger-tendermint` backend ([#225])
+- [`tendermint` crate v0.10.0]
+- Double signing logging improvements
+- Log `tendermint::consensus::State` height/round/step
+- `yubihsm keys import`: base64 support
+- `yubihsm`: Support for reading password from a file
+- `softsign`: Fix private key decoding + `import` command
+- `softsign`: Add subcommand; move `keygen` under it
+- `yubihsm setup`: use `hkd32` crate to derive key hierarchy
+- `yubihsm setup`: Collect 256-bits entropy from both RNGs
+- [`abscissa` crate v0.2]
+- Log durations for each signing operation
+- Add `serde(deny_unknown_fields)` to all config structs
+- `tmkms yubihsm keys list`: Use chain-specific formatters
+- `yubihsm-server`: Allow CLI commands to use loopback connection
+- `yubihsm-server`: Optional `yubihsm-connector` compatibility
+- Send `RemoteSignerError` response to validator on double sign
+- Logging improvements
+- yubihsm: Mark imported `priv_validator.json` keys as re-exportable
+- ledger: Add init commands
+- Add `max_height` support for stopping chains at specific heights
+- Chain-specific keyrings / multitenancy
+- ledger: Use `ledger-tendermint` backend
 
-## [0.5.0] (2019-03-13)
+[tendermint v0.31]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0316
+[tendermint v0.32]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0320
+[`abscissa` crate v0.2]: https://github.com/iqlusioninc/abscissa/pull/98
+[`tendermint` crate v0.10.0]: https://crates.io/crates/tendermint/0.10.0
 
-- [`tendermint` crate v0.5.0] ([#220])
-- Optional peer ID verification ([#219])
-- Bump subtle-encoding dependency to v0.3.3 ([#217])
-- Allow setting config path via `TMKMS_CONFIG_FILE` env var ([#215])
-- yubihsm: Add back HTTP connector support ([#208])
-- Initial Tendermint `[chain]` registry in tmkms.toml ([#205])
-- Disable 'softsign' backend by default ([#203])
-- State tracking for double sign protection ([#193], thanks [@zmanian]!)
+## 0.5.0 (2019-03-13)
 
-## [0.4.0] (2019-03-05)
+- [`tendermint` crate v0.5.0]
+- Optional peer ID verification
+- Bump subtle-encoding dependency to v0.3.3
+- Allow setting config path via `TMKMS_CONFIG_FILE` env var
+- yubihsm: Add back HTTP connector support
+- Initial Tendermint `[chain]` registry in tmkms.toml
+- Disable 'softsign' backend by default
+- State tracking for double sign protection (thanks [@zmanian]!)
 
-- [`tendermint` crate v0.3.0] ([#200])
-- yubihsm: Support for exporting/importing wrapped (encrypted) keys ([#197])
-- yubihsm setup ([#180], [#186])
-- Ledger integration ([#176])
+[`tendermint` crate v0.5.0]: https://crates.io/crates/tendermint/0.5.0
 
-## [0.3.0] (2019-01-23)
+## 0.4.0 (2019-03-05)
 
-- Add ability to terminate on SIGTERM or SIGINT ([#161])
-- Remove `PoisonPillMsg` ([#162]) 
+- [`tendermint` crate v0.3.0]
+- yubihsm: Support for exporting/importing wrapped (encrypted) keys
+- yubihsm setup
+- Ledger integration
 
-## [0.2.4] (2019-01-18)
+[`tendermint` crate v0.3.0]: https://crates.io/crates/tendermint/0.3.0
 
-- Refactor client/tests to always dial out to tendermint/gaiad ([#149], [#150])
-- Migrate to rust 2018 edition ([#138])
+## 0.3.0 (2019-01-23)
 
-## [0.2.3] (2018-12-08)
+- Add ability to terminate on SIGTERM or SIGINT
+- Remove `PoisonPillMsg` 
 
-- Lower reconnect delay to 1s ([#136])
+## 0.2.4 (2019-01-18)
 
-## [0.2.2] (2018-12-03)
+- Refactor client/tests to always dial out to tendermint/gaiad
+- Migrate to rust 2018 edition
 
-- Allow empty BlockIds in validation method ([#131], [#132])
+## 0.2.3 (2018-12-08)
 
-## [0.2.1] (2018-11-27)
+- Lower reconnect delay to 1s
 
-- Encode node (and softwign) private keys as Base64 ([#127])
-- Add integration tests for yubihsm subcommands ([#121])
-- Fix `tmkms yubihsm keys import` command ([#113])
+## 0.2.2 (2018-12-03)
 
-## [0.2.0] (2018-11-20)
+- Allow empty BlockIds in validation method
 
-- Add `tmkms yubihsm keys import` command ([#107])
-- Simplify `tmkms.toml` syntax ([#106])
-- Minor clarifications/fixes ([#103])
+## 0.2.1 (2018-11-27)
 
-## [0.1.0] (2018-11-13)
+- Encode node (and softwign) private keys as Base64
+- Add integration tests for yubihsm subcommands
+- Fix `tmkms yubihsm keys import` command
 
-- Initial validator signing support ([#95], [#91], [#86], [#80], [#55])
-- Extract `tendermint` crate as a reusable Rust library ([#82])
-- Support for Bech32-formatted Cosmos keys/addresses ([#71])
-- Validator signing via Unix domain socket IPC ([#63])
+## 0.2.0 (2018-11-20)
+
+- Add `tmkms yubihsm keys import` command
+- Simplify `tmkms.toml` syntax
+- Minor clarifications/fixes
+
+## 0.1.0 (2018-11-13)
+
+- Initial validator signing support
+- Extract `tendermint` crate as a reusable Rust library
+- Support for Bech32-formatted Cosmos keys/addresses
+- Validator signing via Unix domain socket IPC
 
 ## 0.0.1 (2018-10-16)
 
 - Initial "preview" release
-
-[0.7.1]: https://github.com/tendermint/kms/pull/400
-[#399]: https://github.com/tendermint/kms/pull/399
-[#398]: https://github.com/tendermint/kms/pull/398
-[#397]: https://github.com/tendermint/kms/pull/397
-[#396]: https://github.com/tendermint/kms/pull/396
-[#395]: https://github.com/tendermint/kms/pull/395
-[#394]: https://github.com/tendermint/kms/pull/394
-[#393]: https://github.com/tendermint/kms/pull/393
-[#392]: https://github.com/tendermint/kms/pull/392
-[#391]: https://github.com/tendermint/kms/pull/391
-[0.7.0]: https://github.com/tendermint/kms/pull/383
-[#382]: https://github.com/tendermint/kms/pull/382
-[#376]: https://github.com/tendermint/kms/pull/376
-[#373]: https://github.com/tendermint/kms/pull/373
-[#372]: https://github.com/tendermint/kms/pull/372
-[#367]: https://github.com/tendermint/kms/pull/367
-[#366]: https://github.com/tendermint/kms/pull/366
-[#365]: https://github.com/tendermint/kms/pull/365
-[#364]: https://github.com/tendermint/kms/pull/364
-[#348]: https://github.com/tendermint/kms/pull/348
-[#347]: https://github.com/tendermint/kms/pull/347
-[0.6.3]: https://github.com/tendermint/kms/pull/346
-[#345]: https://github.com/tendermint/kms/pull/345
-[0.6.2]: https://github.com/tendermint/kms/pull/343
-[#342]: https://github.com/tendermint/kms/pull/342
-[0.6.1]: https://github.com/tendermint/kms/pull/339
-[`abscissa` crate v0.3]: https://github.com/iqlusioninc/abscissa/pull/127
-[#338]: https://github.com/tendermint/kms/pull/338
-[#337]: https://github.com/tendermint/kms/pull/337
-[#336]: https://github.com/tendermint/kms/pull/336
-[#335]: https://github.com/tendermint/kms/pull/335
-[#334]: https://github.com/tendermint/kms/pull/334
-[0.6.0]: https://github.com/tendermint/kms/pull/329
-[tendermint v0.31]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0316
-[tendermint v0.32]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0320
-[`abscissa` crate v0.2]: https://github.com/iqlusioninc/abscissa/pull/98
-[`tendermint` crate v0.10.0]: https://github.com/tendermint/kms/pull/328
-[#328]: https://github.com/tendermint/kms/pull/328
-[#322]: https://github.com/tendermint/kms/pull/322
-[#319]: https://github.com/tendermint/kms/pull/319
-[#317]: https://github.com/tendermint/kms/pull/317
-[#316]: https://github.com/tendermint/kms/pull/316
-[#307]: https://github.com/tendermint/kms/pull/307
-[#306]: https://github.com/tendermint/kms/pull/306
-[#305]: https://github.com/tendermint/kms/pull/305
-[#304]: https://github.com/tendermint/kms/pull/304
-[#303]: https://github.com/tendermint/kms/pull/303
-[#302]: https://github.com/tendermint/kms/pull/302
-[#300]: https://github.com/tendermint/kms/pull/300
-[#294]: https://github.com/tendermint/kms/pull/288
-[#283]: https://github.com/tendermint/kms/pull/283
-[#282]: https://github.com/tendermint/kms/pull/282
-[#280]: https://github.com/tendermint/kms/pull/280
-[#275]: https://github.com/tendermint/kms/pull/275
-[#274]: https://github.com/tendermint/kms/pull/274
-[#273]: https://github.com/tendermint/kms/pull/273
-[#249]: https://github.com/tendermint/kms/pull/249
-[#271]: https://github.com/tendermint/kms/pull/271
-[#248]: https://github.com/tendermint/kms/pull/248
-[#242]: https://github.com/tendermint/kms/pull/242
-[#238]: https://github.com/tendermint/kms/pull/238
-[#232]: https://github.com/tendermint/kms/pull/232
-[#225]: https://github.com/tendermint/kms/pull/225
-[0.5.0]: https://github.com/tendermint/kms/pull/222
-[`tendermint` crate v0.5.0]: https://crates.io/crates/tendermint/0.5.0
-[#220]: https://github.com/tendermint/kms/pull/220
-[#219]: https://github.com/tendermint/kms/pull/219
-[#217]: https://github.com/tendermint/kms/pull/217
-[#215]: https://github.com/tendermint/kms/pull/215
-[#208]: https://github.com/tendermint/kms/pull/208
-[#205]: https://github.com/tendermint/kms/pull/205
-[#203]: https://github.com/tendermint/kms/pull/223
-[#193]: https://github.com/tendermint/kms/pull/193
-[@zmanian]: https://github.com/zmanian
-[0.4.0]: https://github.com/tendermint/kms/pull/201
-[`tendermint` crate v0.3.0]: https://crates.io/crates/tendermint/0.3.0
-[#200]: https://github.com/tendermint/kms/pull/200
-[#197]: https://github.com/tendermint/kms/pull/197
-[#186]: https://github.com/tendermint/kms/pull/186
-[#180]: https://github.com/tendermint/kms/pull/180
-[#176]: https://github.com/tendermint/kms/pull/176
-[0.3.0]: https://github.com/tendermint/kms/pull/165
-[#161]: https://github.com/tendermint/kms/pull/161
-[#162]: https://github.com/tendermint/kms/pull/162
-[0.2.4]: https://github.com/tendermint/kms/pull/156
-[#149]: https://github.com/tendermint/kms/pull/149
-[#150]: https://github.com/tendermint/kms/pull/150
-[#138]: https://github.com/tendermint/kms/pull/138
-[0.2.3]: https://github.com/tendermint/kms/pull/137
-[#136]: https://github.com/tendermint/kms/pull/136
-[0.2.2]: https://github.com/tendermint/kms/pull/134
-[#132]: https://github.com/tendermint/kms/pull/132
-[#131]: https://github.com/tendermint/kms/pull/131
-[0.2.1]: https://github.com/tendermint/kms/pull/126
-[#127]: https://github.com/tendermint/kms/pull/127
-[#121]: https://github.com/tendermint/kms/pull/121
-[#113]: https://github.com/tendermint/kms/pull/113
-[0.2.0]: https://github.com/tendermint/kms/pull/108
-[#107]: https://github.com/tendermint/kms/pull/107
-[#106]: https://github.com/tendermint/kms/pull/106
-[#103]: https://github.com/tendermint/kms/pull/103
-[0.1.0]: https://github.com/tendermint/kms/pull/100
-[#95]: https://github.com/tendermint/kms/pull/95
-[#91]: https://github.com/tendermint/kms/pull/91
-[#86]: https://github.com/tendermint/kms/pull/86
-[#82]: https://github.com/tendermint/kms/pull/82
-[#80]: https://github.com/tendermint/kms/pull/80
-[#71]: https://github.com/tendermint/kms/pull/71
-[#63]: https://github.com/tendermint/kms/pull/63
-[#55]: https://github.com/tendermint/kms/pull/55
