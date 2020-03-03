@@ -2077,7 +2077,7 @@ dependencies = [
  "signatory-ledger-tm",
  "signatory-secp256k1",
  "subtle 2.2.2",
- "subtle-encoding 0.4.1",
+ "subtle-encoding 0.5.0",
  "tempfile",
  "tendermint",
  "thiserror",
