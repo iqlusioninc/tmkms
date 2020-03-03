@@ -1,3 +1,13 @@
+## 0.7.2 (2020-03-03)
+
+- Upgrade `hkdf` to v0.8 ([#13])
+- Move repository to `iqlusioninc/tmkms` ([#10])
+- Upgrade `yubihsm` to v0.32 ([#6])
+
+[#13]: https://github.com/iqlusioninc/tmkms/pull/13
+[#10]: https://github.com/iqlusioninc/tmkms/pull/10
+[#6]: https://github.com/iqlusioninc/tmkms/pull/6
+
 ## 0.7.1 (2020-01-23)
 
 - Remove explicit dependency on the `log` crate

@@ -2,7 +2,7 @@
 
 #![forbid(unsafe_code)]
 #![deny(warnings, rust_2018_idioms, missing_docs, unused_qualifications)]
-#![doc(html_root_url = "https://docs.rs/tmkms/0.7.1")]
+#![doc(html_root_url = "https://docs.rs/tmkms/0.7.2")]
 
 #[cfg(not(any(feature = "softsign", feature = "yubihsm", feature = "ledgertm")))]
 compile_error!(
