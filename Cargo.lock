@@ -2393,9 +2393,9 @@ dependencies = [
 
 [[package]]
 name = "yubihsm"
-version = "0.32.0"
+version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4a39aecc37bd86772f2f38a2481b0a69ede936c33f15e3296542ec3c97a79f3"
+checksum = "afae879a569d757afb610de22e762b656f4740432968025042bfc6824ad172a7"
 dependencies = [
  "aes",
  "anomaly",
