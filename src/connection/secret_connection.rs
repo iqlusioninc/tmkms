@@ -26,6 +26,7 @@ use std::{
 };
 use subtle::ConstantTimeEq;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
+use merlin::Transcript;
 
 /// Size of the MAC tag
 pub const TAG_SIZE: usize = 16;
@@ -69,6 +70,10 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // Compute common shared secret.
         let shared_secret = EphemeralSecret::diffie_hellman(local_eph_privkey, &remote_eph_pubkey);
 
+
+        let mut transcript = Transcript::new(b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH");
+
+
         // Reject all-zero outputs from X25519 (i.e. from low-order points)
         //
         // See the following for information on potential attacks this check
@@ -82,8 +87,13 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
 
         // Sort by lexical order.
         let local_eph_pubkey_bytes = *local_eph_pubkey.as_bytes();
-        let (low_eph_pubkey_bytes, _) =
+        let (low_eph_pubkey_bytes, high_eph_pubkey_bytes) =
             sort32(local_eph_pubkey_bytes, *remote_eph_pubkey.as_bytes());
+
+        transcript.append_message(b"EPHEMERAL_LOWER_PUBLIC_KEY",&low_eph_pubkey_bytes);
+        transcript.append_message(b"EPHEMERAL_UPPER_PUBLIC_KEY",&high_eph_pubkey_bytes);
+        transcript.append_message(b"DH_SECRET",shared_secret.as_bytes());
+
 
         // Check if the local ephemeral public key
         // was the least, lexicographically sorted.
@@ -105,8 +115,12 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             ),
         };
 
+        let mut sc_mac: [u8; 32] = [0; 32];
+
+        transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
+
         // Sign the challenge bytes for authentication.
-        let local_signature = sign_challenge(&kdf.challenge, local_privkey)?;
+        let local_signature = sign_challenge(&sc_mac, local_privkey)?;
 
         // Share (in secret) each other's pubkey & challenge signature
         let auth_sig_msg = match local_pubkey {
