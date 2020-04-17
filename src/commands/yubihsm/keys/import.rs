@@ -44,7 +44,7 @@ impl Runnable for ImportCommand {
             process::exit(1);
         });
 
-        match self.key_type.as_ref().map(|ty| ty.as_str()) {
+        match self.key_type.as_deref() {
             Some("wrap") => self.import_wrapped(&contents),
             Some("json") => self.import_priv_validator_json(&contents),
             Some("base64") => self.import_base64(&contents),
