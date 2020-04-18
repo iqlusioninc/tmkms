@@ -12,7 +12,6 @@ use crate::{
     prelude::*,
 };
 use atomicwrites::{AtomicFile, OverwriteBehavior};
-use serde_json;
 use std::{
     fs,
     io::{self, prelude::*},

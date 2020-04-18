@@ -13,7 +13,6 @@ use crate::{
     prelude::*,
 };
 use std::collections::BTreeMap;
-use subtle_encoding;
 use tendermint::TendermintKey;
 
 /// File encoding for software-backed secret keys
