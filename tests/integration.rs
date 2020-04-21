@@ -352,7 +352,7 @@ fn test_handle_and_sign_proposal() {
             .proposal
             .expect("proposal should be embedded but none was found");
         let verifier = Ed25519Verifier::from(&pub_key);
-        let signature = ed25519::Signature::from_bytes(prop.signature).unwrap();
+        let signature = ed25519::Signature::from_bytes(&prop.signature).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
         verifier.verify(msg, &signature).unwrap();
@@ -418,7 +418,7 @@ fn test_handle_and_sign_vote() {
         assert_ne!(sig.len(), 0);
 
         let verifier = Ed25519Verifier::from(&pub_key);
-        let signature = ed25519::Signature::from_bytes(sig).unwrap();
+        let signature = ed25519::Signature::from_bytes(&sig).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
         verifier.verify(msg, &signature).unwrap();
@@ -485,7 +485,7 @@ fn test_exceed_max_height() {
         assert_ne!(sig.len(), 0);
 
         let verifier = Ed25519Verifier::from(&pub_key);
-        let signature = ed25519::Signature::from_bytes(sig).unwrap();
+        let signature = ed25519::Signature::from_bytes(&sig).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
         verifier.verify(msg, &signature).unwrap();
