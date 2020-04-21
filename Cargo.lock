@@ -124,9 +124,9 @@ checksum = "d663a8e9a99154b5fb793032533f6328da35e23aac63d5c152279aa8ba356825"
 
 [[package]]
 name = "ascii"
-version = "0.8.7"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97be891acc47ca214468e09425d02cef3af2c94d0d82081cd02061f996802f14"
+checksum = "bbf56136a5198c7b01a49e3afcbef6cf84597273d298f54432926024107b0109"
 
 [[package]]
 name = "async-trait"
@@ -329,9 +329,9 @@ dependencies = [
 
 [[package]]
 name = "chunked_transfer"
-version = "0.3.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "498d20a7aaf62625b9bf26e637cf7736417cde1d0c99f1d04d1170229a85cf87"
+checksum = "5b89647f09b9f4c838cb622799b2843e4e13bff64661dab9a0362bb92985addd"
 
 [[package]]
 name = "clear_on_drop"
@@ -473,9 +473,9 @@ dependencies = [
 
 [[package]]
 name = "ecdsa"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e96b58e5e926181b2cd9bd547b672e888482644a27b5e067e7a13ee52baf5813"
+checksum = "5a7aaf89875554fab12c9d0855d694803a8820b73bfb89cdc96546b6bcab69e4"
 dependencies = [
  "elliptic-curve",
  "generic-array 0.12.3",
@@ -488,9 +488,9 @@ dependencies = [
 
 [[package]]
 name = "ed25519"
-version = "1.0.0-pre.1"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c28f2b738e873c40ce7339dfb8c5a48c936084b4540127e86c47a0fddcaa8624"
+checksum = "bf038a7b6fd7ef78ad3348b63f3a17550877b0e28f8d68bcc94894d1412158bc"
 dependencies = [
  "signature",
 ]
@@ -888,9 +888,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
-version = "0.1.5"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
+checksum = "02e2673c30ee86b5b96a9cb52ad15718aa1f966f5ab9ad54a8b95d5ca33120a9"
 dependencies = [
  "matches",
  "unicode-bidi",
@@ -1200,9 +1200,9 @@ dependencies = [
 
 [[package]]
 name = "percent-encoding"
-version = "1.0.1"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
+checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
 name = "pin-project"
@@ -1472,6 +1472,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ripemd160"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad5112e0dbbb87577bfbc56c42450235e3012ce336e29c5befd7807bd626da4a"
+dependencies = [
+ "block-buffer",
+ "digest 0.8.1",
+ "opaque-debug",
+]
+
+[[package]]
 name = "rle-decode-fast"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1632,58 +1643,58 @@ dependencies = [
 
 [[package]]
 name = "signatory"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98887ae129a828815e623e2656c6cfcc0a4b2926dcc6104e0c866d9f2f95041c"
+checksum = "09ac23ba234e306afe0d90b1cc809e329622f49a89328aeebe3a6c37a8f8b8a3"
 dependencies = [
  "ecdsa",
  "ed25519",
  "getrandom",
  "sha2",
  "signature",
- "subtle-encoding 0.4.1",
+ "subtle-encoding 0.5.1",
  "zeroize 1.1.0",
 ]
 
 [[package]]
 name = "signatory-dalek"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24b5d13f80962e02eb1113e2bd0c698b6b50db6cffa9b4c48dcfbf33abe2cbe7"
+checksum = "4425bf9e35922750008db1353d22b164711a2d5353a6b72dcc79353e33c80b72"
 dependencies = [
  "digest 0.8.1",
  "ed25519-dalek",
  "sha2",
- "signatory 0.18.1",
+ "signatory 0.19.0",
 ]
 
 [[package]]
 name = "signatory-ledger-tm"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f590f4147b63f666a352f84d38459f1427234ccda358c0847343df289f186bed"
+checksum = "0d28cc57c2b2659d0a93d71eab72433580d4a88da5b3e9e53e3ad7fc2df7f04f"
 dependencies = [
  "lazy_static",
  "ledger-tendermint",
- "signatory 0.18.1",
+ "signatory 0.19.0",
 ]
 
 [[package]]
 name = "signatory-secp256k1"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0158fc0166ff9241c593d02ef6d81f3485cc2c6761a48e4c95e160d14e57974a"
+checksum = "ff08548248a4b10eb37a1976f2e821f6220ce3efea3cda17321c1f0d564216ba"
 dependencies = [
  "secp256k1",
- "signatory 0.18.1",
+ "signatory 0.19.0",
  "signature",
 ]
 
 [[package]]
 name = "signature"
-version = "1.0.0-pre.1"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0cfcdc45066661979294e965c21b60355da35eb5d638af8143e5aa83fdfce53"
+checksum = "685e1c5b65c6cc6fd0eb9ba63c6cfb8431f7f9c7e078c626f23f50e13fa378d7"
 dependencies = [
  "digest 0.8.1",
  "signature_derive",
@@ -1691,9 +1702,9 @@ dependencies = [
 
 [[package]]
 name = "signature_derive"
-version = "1.0.0-pre.1"
+version = "1.0.0-pre.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6586d38c414ce5d216a7b1f9b253ff95f5424c1cfcf09fdac5e047d8e35b4ea"
+checksum = "b0656c180103507cca4b82519908e813225b2f6b90b2bd59ee119f46155ae872"
 dependencies = [
  "proc-macro2 1.0.10",
  "quote 1.0.3",
@@ -1770,15 +1781,6 @@ dependencies = [
  "failure",
  "failure_derive",
  "zeroize 0.9.3",
-]
-
-[[package]]
-name = "subtle-encoding"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30492c59ec8bdeee7d6dd2d851711cae5f1361538f10ecfdcd1d377d57c2a783"
-dependencies = [
- "zeroize 1.1.0",
 ]
 
 [[package]]
@@ -1900,9 +1902,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b1e3a23cd401c69a5ce761815a20adcf33500395fd66faea550e1c116a6e64"
+checksum = "69c4e34977942ecf2e9f57beee3e34231667a6f5363358cc9e4fbd2ce4bf6bad"
 dependencies = [
  "anomaly",
  "async-trait",
@@ -1915,10 +1917,11 @@ dependencies = [
  "once_cell",
  "prost-amino",
  "prost-amino-derive",
+ "ripemd160",
  "serde",
  "serde_json",
  "sha2",
- "signatory 0.18.1",
+ "signatory 0.19.0",
  "signatory-dalek",
  "signatory-secp256k1",
  "subtle 2.2.2",
@@ -1981,9 +1984,9 @@ dependencies = [
 
 [[package]]
 name = "tiny_http"
-version = "0.6.2"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1661fa0a44c95d01604bd05c66732a446c657efb62b5164a7a083a3b552b4951"
+checksum = "15ce4fc3c4cdea1a4399bb1819a539195fb69db4bbe0bde5b7c7f18fed412e02"
 dependencies = [
  "ascii",
  "chrono",
@@ -2014,12 +2017,12 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "signatory 0.18.1",
+ "signatory 0.19.0",
  "signatory-dalek",
  "signatory-ledger-tm",
  "signatory-secp256k1",
  "subtle 2.2.2",
- "subtle-encoding 0.4.1",
+ "subtle-encoding 0.5.1",
  "tempfile",
  "tendermint",
  "thiserror",
@@ -2193,9 +2196,9 @@ checksum = "60369ef7a31de49bcb3f6ca728d4ba7300d9a1658f94c727d4cab8c8d9f4aece"
 
 [[package]]
 name = "url"
-version = "1.7.2"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd4e7c0d531266369519a4aa4f399d748bd37043b00bde1e4ff1f60a120b355a"
+checksum = "829d4a8476c35c9bf0bbce5a3b23f4106f79728039b726d292bb93bc106787cb"
 dependencies = [
  "idna",
  "matches",
@@ -2387,9 +2390,9 @@ dependencies = [
 
 [[package]]
 name = "yubihsm"
-version = "0.32.1"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afae879a569d757afb610de22e762b656f4740432968025042bfc6824ad172a7"
+checksum = "4d457388954f4a8c83b245d6ad6007956a1108aea207f9c40e4bc789dfe71aee"
 dependencies = [
  "aes",
  "anomaly",
@@ -2407,7 +2410,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "signatory 0.18.1",
+ "signatory 0.19.0",
  "signature",
  "subtle 2.2.2",
  "thiserror",
