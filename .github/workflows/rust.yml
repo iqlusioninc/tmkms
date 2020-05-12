@@ -34,7 +34,7 @@ jobs:
           override: true
 
       - name: Install libudev-dev
-        run: sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev
 
       - name: Run cargo check
         uses: actions-rs/cargo@v1
@@ -79,7 +79,7 @@ jobs:
           override: true
 
       - name: Install libudev-dev
-        run: sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev
 
       - name: Run cargo build --features=yubihsm
         uses: actions-rs/cargo@v1
@@ -155,7 +155,7 @@ jobs:
           override: true
 
       - name: Install libudev-dev
-        run: sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -198,7 +198,7 @@ jobs:
           override: true
 
       - name: Install libudev-dev
-        run: sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev
 
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
@@ -314,7 +314,7 @@ jobs:
           override: true
 
       - name: Install libudev-dev
-        run: sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev
 
       - name: Install clippy
         run: rustup component add clippy
