@@ -1,3 +1,11 @@
+## 0.7.3 (2020-05-12)
+
+- Bump `tendermint` crate to v0.13 ([#36])
+- Bump `signatory` to v0.19 ([#36])
+- Bump `yubihsm` crate to v0.33 ([#36])
+
+[#36]: https://github.com/iqlusioninc/tmkms/pull/36
+
 ## 0.7.2 (2020-03-03)
 
 - Upgrade `hkdf` to v0.8 ([#13])
