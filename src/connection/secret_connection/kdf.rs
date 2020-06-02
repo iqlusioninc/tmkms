@@ -12,21 +12,18 @@ pub struct Kdf {
 
     /// Sender's secret
     pub send_secret: [u8; 32],
-
-    /// Challenge to be signed by peer
-    pub challenge: [u8; 32],
 }
 
 impl Kdf {
-    /// Returns recv secret, send secret, challenge as 32 byte arrays
-    pub fn derive_secrets_and_challenge(shared_secret: &[u8; 32], loc_is_lo: bool) -> Self {
+    /// Returns recv secret, send secret as 32 byte arrays
+    pub fn derive_secrets(shared_secret: &[u8; 32], loc_is_lo: bool) -> Self {
         let mut key_material = [0u8; 96];
 
         Hkdf::<Sha256>::new(None, shared_secret)
             .expand(HKDF_INFO, &mut key_material)
             .unwrap();
 
-        let [mut recv_secret, mut send_secret, mut challenge] = [[0u8; 32]; 3];
+        let [mut recv_secret, mut send_secret] = [[0u8; 32]; 2];
 
         if loc_is_lo {
             recv_secret.copy_from_slice(&key_material[0..32]);
@@ -36,13 +33,11 @@ impl Kdf {
             recv_secret.copy_from_slice(&key_material[32..64]);
         }
 
-        challenge.copy_from_slice(&key_material[64..96]);
         key_material.as_mut().zeroize();
 
         Kdf {
             recv_secret,
             send_secret,
-            challenge,
         }
     }
 }
@@ -51,6 +46,5 @@ impl Drop for Kdf {
     fn drop(&mut self) {
         self.recv_secret.zeroize();
         self.send_secret.zeroize();
-        self.challenge.zeroize();
     }
 }

@@ -12,6 +12,9 @@ use chacha20poly1305::{
     aead::{generic_array::GenericArray, Aead, NewAead},
     ChaCha20Poly1305,
 };
+
+use merlin::Transcript;
+
 use prost_amino::{encoding::encode_varint, Message};
 use signatory::{
     ed25519,
@@ -34,6 +37,14 @@ pub const TAG_SIZE: usize = 16;
 const DATA_LEN_SIZE: usize = 4;
 const DATA_MAX_SIZE: usize = 1024;
 const TOTAL_FRAME_SIZE: usize = DATA_MAX_SIZE + DATA_LEN_SIZE;
+
+const CHALLENGE_SIZE: usize = 32;
+
+const TRANSCRIPT_INFO: &[u8] = b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH";
+const LABEL_EPHEMERAL_LOWER_PUBLIC_KEY: &[u8] = b"EPHEMERAL_LOWER_PUBLIC_KEY";
+const LABEL_EPHEMERAL_UPPER_PUBLIC_KEY: &[u8] = b"EPHEMERAL_UPPER_PUBLIC_KEY";
+const LABEL_DH_SECRET: &[u8] = b"DH_SECRET";
+const LABEL_SECRET_CONNECTION_MAC: &[u8] = b"SECRET_CONNECTION_MAC";
 
 /// Encrypted connection between peers in a Tendermint network
 pub struct SecretConnection<IoHandler: Read + Write + Send + Sync> {
@@ -66,8 +77,24 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // (see DJB's Curve25519 paper: http://cr.yp.to/ecdh/curve25519-20060209.pdf)
         let remote_eph_pubkey = share_eph_pubkey(&mut handler, &local_eph_pubkey)?;
 
+        // Sort by lexical order.
+        let local_eph_pubkey_bytes = *local_eph_pubkey.as_bytes();
+        let (low_eph_pubkey_bytes, hi_eph_pubkeuy_bytes) =
+            sort32(local_eph_pubkey_bytes, *remote_eph_pubkey.as_bytes());
+
+        let mut transcript = Transcript::new(TRANSCRIPT_INFO);
+
+        transcript.append_message(LABEL_EPHEMERAL_LOWER_PUBLIC_KEY, &low_eph_pubkey_bytes);
+        transcript.append_message(LABEL_EPHEMERAL_UPPER_PUBLIC_KEY, &hi_eph_pubkeuy_bytes);
+
+        // Check if the local ephemeral public key
+        // was the least, lexicographically sorted.
+        let loc_is_least = local_eph_pubkey_bytes == low_eph_pubkey_bytes;
+
         // Compute common shared secret.
         let shared_secret = EphemeralSecret::diffie_hellman(local_eph_privkey, &remote_eph_pubkey);
+
+        transcript.append_message(LABEL_DH_SECRET, shared_secret.as_bytes());
 
         // Reject all-zero outputs from X25519 (i.e. from low-order points)
         //
@@ -80,16 +107,9 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             return Err(ErrorKind::InvalidKey.into());
         }
 
-        // Sort by lexical order.
-        let local_eph_pubkey_bytes = *local_eph_pubkey.as_bytes();
-        let (low_eph_pubkey_bytes, _) =
-            sort32(local_eph_pubkey_bytes, *remote_eph_pubkey.as_bytes());
-
-        // Check if the local ephemeral public key
-        // was the least, lexicographically sorted.
-        let loc_is_least = local_eph_pubkey_bytes == low_eph_pubkey_bytes;
-
-        let kdf = Kdf::derive_secrets_and_challenge(shared_secret.as_bytes(), loc_is_least);
+        let kdf = Kdf::derive_secrets(shared_secret.as_bytes(), loc_is_least);
+        let mut challenge = [0u8; CHALLENGE_SIZE];
+        transcript.challenge_bytes(LABEL_SECRET_CONNECTION_MAC, &mut challenge);
 
         // Construct SecretConnection.
         let mut sc = SecretConnection {
@@ -106,7 +126,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         };
 
         // Sign the challenge bytes for authentication.
-        let local_signature = sign_challenge(&kdf.challenge, local_privkey)?;
+        let local_signature = sign_challenge(&challenge, local_privkey)?;
 
         // Share (in secret) each other's pubkey & challenge signature
         let auth_sig_msg = match local_pubkey {
@@ -122,7 +142,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             ed25519::Signature::from_bytes(remote_signature).map_err(|_| ErrorKind::CryptoError)?;
 
         Ed25519Verifier::from(&remote_pubkey)
-            .verify(&kdf.challenge, &remote_sig)
+            .verify(&challenge, &remote_sig)
             .map_err(|_| ErrorKind::CryptoError)?;
 
         // We've authorized.
