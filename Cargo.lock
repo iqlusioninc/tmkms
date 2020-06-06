@@ -1035,7 +1035,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6feca46f4fa3443a01769d768727f10c10a20fdb65e52dc16a81f0c8269bb78"
 dependencies = [
  "byteorder",
- "hex",
  "keccak",
  "rand_core 0.5.1",
  "zeroize 1.1.0",

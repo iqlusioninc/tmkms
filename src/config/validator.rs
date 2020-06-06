@@ -35,6 +35,10 @@ pub struct ValidatorConfig {
 
     /// Height at which to stop signing
     pub max_height: Option<tendermint::block::Height>,
+
+    /// Use Tendermint v0.33 handshake
+    #[serde(default = "handshake_default")]
+    pub v0_33_handshake: bool,
 }
 
 impl ValidatorConfig {
@@ -74,4 +78,9 @@ impl ValidatorConfig {
 /// Default value for the `ValidatorConfig` reconnect field
 fn reconnect_default() -> bool {
     true
+}
+
+/// Default value for the `ValidatorConfig` reconnect field
+fn handshake_default() -> bool {
+    false
 }

@@ -12,6 +12,7 @@ use chacha20poly1305::{
     aead::{generic_array::GenericArray, Aead, NewAead},
     ChaCha20Poly1305,
 };
+use merlin::Transcript;
 use prost_amino::{encoding::encode_varint, Message};
 use signatory::{
     ed25519,
@@ -26,7 +27,6 @@ use std::{
 };
 use subtle::ConstantTimeEq;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
-use merlin::Transcript;
 
 /// Size of the MAC tag
 pub const TAG_SIZE: usize = 16;
@@ -58,6 +58,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         mut handler: IoHandler,
         local_pubkey: &PublicKey,
         local_privkey: &dyn Signer<ed25519::Signature>,
+        v0_33_handshake: bool,
     ) -> Result<SecretConnection<IoHandler>, Error> {
         // Generate ephemeral keys for perfect forward secrecy.
         let (local_eph_pubkey, local_eph_privkey) = gen_eph_keys();
@@ -70,9 +71,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // Compute common shared secret.
         let shared_secret = EphemeralSecret::diffie_hellman(local_eph_privkey, &remote_eph_pubkey);
 
-
         let mut transcript = Transcript::new(b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH");
-
 
         // Reject all-zero outputs from X25519 (i.e. from low-order points)
         //
@@ -90,10 +89,9 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         let (low_eph_pubkey_bytes, high_eph_pubkey_bytes) =
             sort32(local_eph_pubkey_bytes, *remote_eph_pubkey.as_bytes());
 
-        transcript.append_message(b"EPHEMERAL_LOWER_PUBLIC_KEY",&low_eph_pubkey_bytes);
-        transcript.append_message(b"EPHEMERAL_UPPER_PUBLIC_KEY",&high_eph_pubkey_bytes);
-        transcript.append_message(b"DH_SECRET",shared_secret.as_bytes());
-
+        transcript.append_message(b"EPHEMERAL_LOWER_PUBLIC_KEY", &low_eph_pubkey_bytes);
+        transcript.append_message(b"EPHEMERAL_UPPER_PUBLIC_KEY", &high_eph_pubkey_bytes);
+        transcript.append_message(b"DH_SECRET", shared_secret.as_bytes());
 
         // Check if the local ephemeral public key
         // was the least, lexicographically sorted.
@@ -120,7 +118,11 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
 
         // Sign the challenge bytes for authentication.
-        let local_signature = sign_challenge(&sc_mac, local_privkey)?;
+        let local_signature = if v0_33_handshake {
+            sign_challenge(&sc_mac, local_privkey)?
+        } else {
+            sign_challenge(&kdf.challenge, local_privkey)?
+        };
 
         // Share (in secret) each other's pubkey & challenge signature
         let auth_sig_msg = match local_pubkey {
@@ -135,10 +137,15 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         let remote_sig =
             ed25519::Signature::from_bytes(remote_signature).map_err(|_| ErrorKind::CryptoError)?;
 
-        Ed25519Verifier::from(&remote_pubkey)
-            .verify(&sc_mac, &remote_sig)
-            .map_err(|_| ErrorKind::CryptoError)?;
-
+        if v0_33_handshake {
+            Ed25519Verifier::from(&remote_pubkey)
+                .verify(&sc_mac, &remote_sig)
+                .map_err(|_| ErrorKind::CryptoError)?;
+        } else {
+            Ed25519Verifier::from(&remote_pubkey)
+                .verify(&kdf.challenge, &remote_sig)
+                .map_err(|_| ErrorKind::CryptoError)?;
+        }
         // We've authorized.
         sc.remote_pubkey = PublicKey::from(remote_pubkey);
 

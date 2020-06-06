@@ -39,8 +39,14 @@ impl Session {
                 debug!("{}: Connecting to {}...", &config.chain_id, &config.addr);
 
                 let seed = config.load_secret_key()?;
-                let conn =
-                    tcp::open_secret_connection(host, *port, &seed, peer_id, config.timeout)?;
+                let conn = tcp::open_secret_connection(
+                    host,
+                    *port,
+                    &seed,
+                    peer_id,
+                    config.timeout,
+                    config.v0_33_handshake,
+                )?;
 
                 info!(
                     "[{}@{}] connected to validator successfully",
