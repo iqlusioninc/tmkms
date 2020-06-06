@@ -136,7 +136,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             ed25519::Signature::from_bytes(remote_signature).map_err(|_| ErrorKind::CryptoError)?;
 
         Ed25519Verifier::from(&remote_pubkey)
-            .verify(&kdf.challenge, &remote_sig)
+            .verify(&sc_mac, &remote_sig)
             .map_err(|_| ErrorKind::CryptoError)?;
 
         // We've authorized.
