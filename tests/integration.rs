@@ -201,7 +201,9 @@ impl KmsProcess {
                 let socket_cp = sock.try_clone().unwrap();
                 let public_key = secret_connection::PublicKey::from(signer.public_key().unwrap());
 
-                KmsConnection::Tcp(SecretConnection::new(socket_cp, &public_key, &signer).unwrap())
+                KmsConnection::Tcp(
+                    SecretConnection::new(socket_cp, &public_key, &signer, false).unwrap(),
+                )
             }
 
             KmsSocket::UNIX(ref sock) => {

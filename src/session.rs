@@ -2,7 +2,7 @@
 
 use crate::{
     chain::{self, state::StateErrorKind},
-    config::ValidatorConfig,
+    config::{TendermintVersion, ValidatorConfig},
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
@@ -39,8 +39,19 @@ impl Session {
                 debug!("{}: Connecting to {}...", &config.chain_id, &config.addr);
 
                 let seed = config.load_secret_key()?;
-                let conn =
-                    tcp::open_secret_connection(host, *port, &seed, peer_id, config.timeout)?;
+                let v0_33_handshake = match config.protocol_version {
+                    TendermintVersion::V0_33 => true,
+                    TendermintVersion::Legacy => false,
+                };
+
+                let conn = tcp::open_secret_connection(
+                    host,
+                    *port,
+                    &seed,
+                    peer_id,
+                    config.timeout,
+                    v0_33_handshake,
+                )?;
 
                 info!(
                     "[{}@{}] connected to validator successfully",

@@ -21,6 +21,7 @@ pub fn open_secret_connection(
     secret_key: &ed25519::Seed,
     peer_id: &Option<node::Id>,
     timeout: Option<u16>,
+    v0_33_handshake: bool,
 ) -> Result<SecretConnection<TcpStream>, Error> {
     let signer = Ed25519Signer::from(secret_key);
     let public_key = PublicKey::from(signer.public_key().map_err(|_| Error::from(InvalidKey))?);
@@ -33,7 +34,7 @@ pub fn open_secret_connection(
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = SecretConnection::new(socket, &public_key, &signer)?;
+    let connection = SecretConnection::new(socket, &public_key, &signer, v0_33_handshake)?;
     let actual_peer_id = connection.remote_pubkey().peer_id();
 
     // TODO(tarcieri): move this into `SecretConnection::new`
