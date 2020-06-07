@@ -29,7 +29,7 @@ chain_id = "cosmoshub-1"
 reconnect = true # true is the default
 secret_key = "path/to/secret_connection.key"
 # max_height = "500000"
-v0_33_handshake = false # false is the default
+protocol_version = "v0.33" # "legacy" is the default
 
 ## Signing provider configuration
 

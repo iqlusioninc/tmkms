@@ -5,7 +5,7 @@ use crate::{
     keyring::SecretKeyEncoding,
     prelude::*,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use signatory::{
     ed25519,
     encoding::{Decode, Encode},
@@ -37,8 +37,20 @@ pub struct ValidatorConfig {
     pub max_height: Option<tendermint::block::Height>,
 
     /// Use Tendermint v0.33 handshake
-    #[serde(default = "handshake_default")]
-    pub v0_33_handshake: bool,
+    #[serde(default = "protocol_default")]
+    pub protocol_version: TendermintVersion,
+}
+
+/// Tendermint secure connection protocol version
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub enum TendermintVersion {
+    /// Legacy V1 SecretConnection Handshake
+    #[serde(rename = "legacy")]
+    Legacy,
+
+    /// Tendermint v0.33+ SecretConnection Handshake
+    #[serde(rename = "v0.33")]
+    V0_33,
 }
 
 impl ValidatorConfig {
@@ -81,6 +93,6 @@ fn reconnect_default() -> bool {
 }
 
 /// Default value for the `ValidatorConfig` reconnect field
-fn handshake_default() -> bool {
-    false
+fn protocol_default() -> TendermintVersion {
+    TendermintVersion::Legacy
 }
