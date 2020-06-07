@@ -4,7 +4,7 @@ use sha2::{digest::Digest, Sha256};
 use signatory::ed25519;
 use std::fmt::{self, Display};
 use tendermint::{
-    error::{Error, ErrorKind},
+    error::{self, Error},
     node,
 };
 
@@ -19,7 +19,7 @@ impl PublicKey {
     /// From raw Ed25519 public key bytes
     pub fn from_raw_ed25519(bytes: &[u8]) -> Result<PublicKey, Error> {
         Ok(PublicKey::Ed25519(
-            ed25519::PublicKey::from_bytes(bytes).ok_or_else(|| ErrorKind::Crypto)?,
+            ed25519::PublicKey::from_bytes(bytes).ok_or_else(|| error::Kind::Crypto)?,
         ))
     }
 

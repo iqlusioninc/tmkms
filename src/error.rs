@@ -8,7 +8,6 @@ use std::{
     io,
     ops::Deref,
 };
-use tendermint::amino_types::validate::ValidationError;
 use thiserror::Error;
 
 /// Kinds of errors
@@ -23,13 +22,13 @@ pub enum ErrorKind {
     #[error("config error")]
     ConfigError,
 
-    /// KMS internal panic
-    #[error("internal crash")]
-    PanicError,
+    /// Double sign attempted
+    #[error("attempted double sign")]
+    DoubleSign,
 
-    /// KMS state has been poisoned
-    #[error("internal state poisoned")]
-    PoisonError,
+    /// Request a signature above max height
+    #[error("requested signature above stop height")]
+    ExceedMaxHeight,
 
     /// Cryptographic operation failed
     #[error("cryptographic error")]
@@ -51,9 +50,17 @@ pub enum ErrorKind {
     #[error("I/O error")]
     IoError,
 
+    /// KMS internal panic
+    #[error("internal crash")]
+    PanicError,
+
     /// Parse error
     #[error("parse error")]
     ParseError,
+
+    /// KMS state has been poisoned
+    #[error("internal state poisoned")]
+    PoisonError,
 
     /// Network protocol-related errors
     #[error("protocol error")]
@@ -67,17 +74,13 @@ pub enum ErrorKind {
     #[error("signing operation failed")]
     SigningError,
 
+    /// Errors originating in the Tendermint crate
+    #[error("Tendermint error")]
+    TendermintError,
+
     /// Verification operation failed
     #[error("verification failed")]
     VerificationError,
-
-    /// Signature invalid
-    #[error("attempted double sign")]
-    DoubleSign,
-
-    /// Request a Signature above max height
-    #[error("requested signature above stop height")]
-    ExceedMaxHeight,
 
     /// YubiHSM-related errors
     #[cfg(feature = "yubihsm")]
@@ -175,24 +178,7 @@ impl From<serde_json::error::Error> for Error {
 
 impl From<tendermint::Error> for Error {
     fn from(other: tendermint::error::Error) -> Self {
-        let kind = match other.kind() {
-            tendermint::ErrorKind::Crypto => ErrorKind::CryptoError,
-            tendermint::ErrorKind::InvalidKey => ErrorKind::InvalidKey,
-            tendermint::ErrorKind::Io => ErrorKind::IoError,
-            tendermint::ErrorKind::Protocol => ErrorKind::ProtocolError,
-            tendermint::ErrorKind::Length
-            | tendermint::ErrorKind::Parse
-            | tendermint::ErrorKind::OutOfRange => ErrorKind::ParseError,
-            tendermint::ErrorKind::SignatureInvalid => ErrorKind::VerificationError,
-        };
-
-        format_err!(kind, other).into()
-    }
-}
-
-impl From<ValidationError> for Error {
-    fn from(other: ValidationError) -> Self {
-        format_err!(ErrorKind::InvalidMessageError, other).into()
+        ErrorKind::TendermintError.context(other).into()
     }
 }
 
