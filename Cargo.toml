@@ -21,7 +21,7 @@ gumdrop = "0.7"
 hkd32 = { version = "0.3", default-features = false, features = ["mnemonic"] }
 hkdf = "0.8"
 hmac = "0.7"
-once_cell = "1.3"
+once_cell = "1.4"
 prost-amino = "0.5"
 prost-amino-derive = "0.5"
 rand = "0.7"
