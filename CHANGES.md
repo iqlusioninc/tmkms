@@ -1,3 +1,16 @@
+## 0.8.0-alpha1 (2020-06-08)
+
+This release adds initial support for [tendermint v0.33].
+
+- Replace `atomicwrites` dependency with `tempfile` ([#62])
+- Refactor locking; add more debug locking ([#60])
+- Support both the Tendermint legacy and v0.33 secret connection handshake ([#58])
+
+[tendermint v0.33]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v033
+[#62]: https://github.com/iqlusioninc/tmkms/pull/62
+[#60]: https://github.com/iqlusioninc/tmkms/pull/60
+[#58]: https://github.com/iqlusioninc/tmkms/pull/58
+
 ## 0.7.3 (2020-05-12)
 
 - Bump `tendermint` crate to v0.13 ([#36])
