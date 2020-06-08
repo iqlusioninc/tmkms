@@ -11,12 +11,12 @@ use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
 };
-use atomicwrites::{AtomicFile, OverwriteBehavior};
 use std::{
     fs,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
+use tempfile::NamedTempFile;
 use tendermint::consensus;
 
 /// State tracking for double signing prevention
@@ -187,8 +187,13 @@ impl State {
 
         let json = serde_json::to_string(&self.consensus_state)?;
 
-        AtomicFile::new(&self.state_file_path, OverwriteBehavior::AllowOverwrite)
-            .write(|f| f.write_all(json.as_bytes()))?;
+        let state_file_dir = self.state_file_path.parent().unwrap_or_else(|| {
+            panic!("state file cannot be root directory");
+        });
+
+        let mut state_file = NamedTempFile::new_in(state_file_dir)?;
+        state_file.write_all(json.as_bytes())?;
+        state_file.persist(&self.state_file_path)?;
 
         debug!(
             "successfully wrote new consensus state to {}",

@@ -12,7 +12,6 @@ edition     = "2018"
 
 [dependencies]
 abscissa_core = "0.5"
-atomicwrites = "0.2"
 bytes = "0.5"
 chacha20poly1305 = "0.4"
 chrono = "0.4"
@@ -35,6 +34,7 @@ signatory-secp256k1 = "0.19"
 signatory-ledger-tm = { version = "0.19", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
+tempfile = "3"
 tendermint = "0.13"
 thiserror = "1"
 wait-timeout = "0.2"
