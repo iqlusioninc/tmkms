@@ -1073,7 +1073,7 @@ dependencies = [
  "byteorder",
  "keccak",
  "rand_core 0.5.1",
- "zeroize 1.1.0",
+ "zeroize",
 ]
 
 [[package]]

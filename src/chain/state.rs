@@ -179,10 +179,21 @@ impl State {
 
     /// Sync the current state to disk
     fn sync_to_disk(&self) -> io::Result<()> {
+        debug!(
+            "writing new consensus state to {}: {:?}",
+            self.state_file_path.display(),
+            &self.consensus_state
+        );
+
         let json = serde_json::to_string(&self.consensus_state)?;
 
         AtomicFile::new(&self.state_file_path, OverwriteBehavior::AllowOverwrite)
             .write(|f| f.write_all(json.as_bytes()))?;
+
+        debug!(
+            "successfully wrote new consensus state to {}",
+            self.state_file_path.display(),
+        );
 
         Ok(())
     }

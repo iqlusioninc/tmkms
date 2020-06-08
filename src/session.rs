@@ -1,7 +1,7 @@
 //! A session with a validator node
 
 use crate::{
-    chain::{self, state::StateErrorKind},
+    chain::{self, state::StateErrorKind, Chain},
     config::{TendermintVersion, ValidatorConfig},
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
@@ -11,9 +11,7 @@ use crate::{
 use prost_amino::Message;
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use tendermint::{
-    amino_types::{
-        PingRequest, PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType,
-    },
+    amino_types::{PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType},
     consensus, net,
 };
 
@@ -36,7 +34,10 @@ impl Session {
                 host,
                 port,
             } => {
-                debug!("{}: Connecting to {}...", &config.chain_id, &config.addr);
+                debug!(
+                    "[{}@{}] connecting to validator...",
+                    &config.chain_id, &config.addr
+                );
 
                 let seed = config.load_secret_key()?;
                 let v0_33_handshake = match config.protocol_version {
@@ -61,7 +62,7 @@ impl Session {
                 if peer_id.is_none() {
                     // TODO(tarcieri): make peer verification mandatory
                     warn!(
-                        "[{}] {}: unverified validator peer ID! ({})",
+                        "[{}@{}]: unverified validator peer ID! ({})",
                         &config.chain_id,
                         &config.addr,
                         conn.remote_pubkey().peer_id()
@@ -105,7 +106,7 @@ impl Session {
     fn handle_request(&mut self) -> Result<bool, Error> {
         let request = Request::read(&mut self.connection)?;
         debug!(
-            "[{}:{}] received request: {:?}",
+            "[{}@{}] received request: {:?}",
             &self.config.chain_id, &self.config.addr, &request
         );
 
@@ -113,12 +114,12 @@ impl Session {
             Request::SignProposal(req) => self.sign(req)?,
             Request::SignVote(req) => self.sign(req)?,
             // non-signable requests:
-            Request::ReplyPing(ref req) => self.reply_ping(req),
+            Request::ReplyPing(_) => Response::Ping(PingResponse {}),
             Request::ShowPublicKey(ref req) => self.get_public_key(req)?,
         };
 
         debug!(
-            "[{}:{}] sending response: {:?}",
+            "[{}@{}] sending response: {:?}",
             &self.config.chain_id, &self.config.addr, &response
         );
 
@@ -142,28 +143,56 @@ impl Session {
         R: TendermintRequest + Debug,
     {
         request.validate()?;
+        self.check_max_height(&mut request)?;
+
+        debug!(
+            "[{}@{}] acquiring chain registry (for signing)",
+            &self.config.chain_id, &self.config.addr
+        );
 
         let registry = chain::REGISTRY.get();
 
-        // unwrap is acceptable here as chain presence is validated in client.rs's
-        // `register_chain` function.
-        let chain = registry.get_chain(&self.config.chain_id).unwrap();
+        debug!(
+            "[{}@{}] acquiring read-only shared lock on chain",
+            &self.config.chain_id, &self.config.addr
+        );
 
-        let (_, request_state) = parse_request(&request)?;
-        let mut chain_state = chain.state.lock().unwrap();
+        let chain = registry
+            .get_chain(&self.config.chain_id)
+            .unwrap_or_else(|| {
+                panic!("chain '{}' missing from registry!", &self.config.chain_id);
+            });
 
-        if let Err(e) = chain_state.update_consensus_state(request_state) {
-            // Report double signing error back to the validator
-            if e.kind() == StateErrorKind::DoubleSign {
-                return self.handle_double_signing(
-                    request,
-                    &chain_state.consensus_state().block_id_prefix(),
-                );
-            } else {
-                return Err(e.into());
-            }
+        if let Some(remote_err) = self.update_consensus_state(chain, &request)? {
+            // In the event of double signing we send a response to notify the validator
+            return Ok(request.build_response(Some(remote_err)));
         }
 
+        let mut to_sign = vec![];
+        request.sign_bytes(self.config.chain_id, &mut to_sign)?;
+
+        debug!(
+            "[{}@{}] performing signature",
+            &self.config.chain_id, &self.config.addr
+        );
+
+        let started_at = Instant::now();
+
+        // TODO(ismail): figure out which key to use here instead of taking the only key
+        let signature = chain.keyring.sign_ed25519(None, &to_sign)?;
+
+        self.log_signing_request(&request, started_at).unwrap();
+        request.set_signature(&signature);
+
+        Ok(request.build_response(None))
+    }
+
+    /// If a max block height is configured, ensure the block we're signing
+    /// doesn't exceed it
+    fn check_max_height<R>(&mut self, request: &mut R) -> Result<(), Error>
+    where
+        R: TendermintRequest + Debug,
+    {
         if let Some(max_height) = self.config.max_height {
             if let Some(height) = request.height() {
                 if height > max_height.value() as i64 {
@@ -177,32 +206,75 @@ impl Session {
             }
         }
 
-        let mut to_sign = vec![];
-        request.sign_bytes(self.config.chain_id, &mut to_sign)?;
-
-        // TODO(ismail): figure out which key to use here instead of taking the only key
-        let started_at = Instant::now();
-        let signature = chain.keyring.sign_ed25519(None, &to_sign)?;
-
-        self.log_signing_request(&request, started_at).unwrap();
-
-        request.set_signature(&signature);
-
-        Ok(request.build_response(None))
+        Ok(())
     }
 
-    /// Reply to a ping request
-    fn reply_ping(&mut self, _request: &PingRequest) -> Response {
-        debug!("replying with PingResponse");
-        Response::Ping(PingResponse {})
+    /// Update our local knowledge of the chain's consensus state, detecting
+    /// attempted double signing and sending a response in the event it happens
+    fn update_consensus_state<R>(
+        &mut self,
+        chain: &Chain,
+        request: &R,
+    ) -> Result<Option<RemoteError>, Error>
+    where
+        R: TendermintRequest + Debug,
+    {
+        let (msg_type, request_state) = parse_request(request)?;
+
+        debug!(
+            "[{}@{}] acquiring read-write exclusive lock on chain",
+            &self.config.chain_id, &self.config.addr
+        );
+
+        let mut chain_state = chain.state.lock().unwrap();
+
+        debug!(
+            "[{}@{}] updating consensus state to: {:?}",
+            &self.config.chain_id, &self.config.addr, &request_state
+        );
+
+        match chain_state.update_consensus_state(request_state.clone()) {
+            Ok(()) => Ok(None),
+            Err(e) if e.kind() == StateErrorKind::DoubleSign => {
+                // Report double signing error back to the validator
+                let original_block_id = chain_state.consensus_state().block_id_prefix();
+
+                error!(
+                    "[{}@{}] attempted double sign {:?} at h/r/s: {} ({} != {})",
+                    &self.config.chain_id,
+                    &self.config.addr,
+                    msg_type,
+                    request_state,
+                    original_block_id,
+                    request_state.block_id_prefix()
+                );
+
+                let remote_err = RemoteError::double_sign(request_state.height.into());
+                Ok(Some(remote_err))
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 
     /// Get the public key for (the only) public key in the keyring
     fn get_public_key(&mut self, _request: &PubKeyRequest) -> Result<Response, Error> {
-        // unwrap is acceptable here as chain presence is validated in client.rs's
-        // `register_chain` function.
+        debug!(
+            "[{}@{}] acquiring chain registry (for public key)",
+            &self.config.chain_id, &self.config.addr
+        );
+
         let registry = chain::REGISTRY.get();
-        let chain = registry.get_chain(&self.config.chain_id).unwrap();
+
+        debug!(
+            "[{}@{}] acquiring read-only shared lock on chain",
+            &self.config.chain_id, &self.config.addr
+        );
+
+        let chain = registry
+            .get_chain(&self.config.chain_id)
+            .unwrap_or_else(|| {
+                panic!("chain '{}' missing from registry!", &self.config.chain_id);
+            });
 
         Ok(Response::PublicKey(PubKeyResponse::from(
             *chain.keyring.default_pubkey()?,
@@ -227,31 +299,6 @@ impl Session {
         );
 
         Ok(())
-    }
-
-    /// Handle attempted double signing
-    fn handle_double_signing<R>(
-        &self,
-        request: R,
-        original_block_id: &str,
-    ) -> Result<Response, Error>
-    where
-        R: TendermintRequest + Debug,
-    {
-        let (msg_type, request_state) = parse_request(&request)?;
-
-        error!(
-            "[{}:{}] attempted double sign {:?} at h/r/s: {} ({} != {})",
-            &self.config.chain_id,
-            &self.config.addr,
-            msg_type,
-            request_state,
-            original_block_id,
-            request_state.block_id_prefix()
-        );
-
-        let remote_err = RemoteError::double_sign(request.height().unwrap());
-        Ok(request.build_response(Some(remote_err)))
     }
 }
 
