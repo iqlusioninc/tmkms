@@ -393,7 +393,7 @@ dependencies = [
  "clear_on_drop",
  "digest 0.8.1",
  "rand_core 0.3.1",
- "subtle 2.2.2",
+ "subtle 2.2.3",
 ]
 
 [[package]]
@@ -405,7 +405,7 @@ dependencies = [
  "byteorder",
  "digest 0.8.1",
  "rand_core 0.5.1",
- "subtle 2.2.2",
+ "subtle 2.2.3",
  "zeroize",
 ]
 
@@ -522,7 +522,7 @@ checksum = "01f69be7d1feb7a7a04f158aaf32c7deaa7604e9bd58145525e536438c4e5096"
 dependencies = [
  "generic-array 0.12.3",
  "getrandom",
- "subtle 2.2.2",
+ "subtle 2.2.3",
  "zeroize",
 ]
 
@@ -1777,9 +1777,9 @@ checksum = "2d67a5a62ba6e01cb2192ff309324cb4875d0c451d55fe2319433abe7a05a8ee"
 
 [[package]]
 name = "subtle"
-version = "2.2.2"
+version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c65d530b10ccaeac294f349038a597e435b18fb456aadd0840a623f83b9e941"
+checksum = "502d53007c02d7605a05df1c1a73ee436952781653da5d0bf57ad608f66932c1"
 
 [[package]]
 name = "subtle-encoding"
@@ -1899,7 +1899,7 @@ dependencies = [
  "signatory",
  "signatory-dalek",
  "signatory-secp256k1",
- "subtle 2.2.2",
+ "subtle 2.2.3",
  "subtle-encoding",
  "tai64",
  "thiserror",
@@ -1996,7 +1996,7 @@ dependencies = [
  "signatory-dalek",
  "signatory-ledger-tm",
  "signatory-secp256k1",
- "subtle 2.2.2",
+ "subtle 2.2.3",
  "subtle-encoding",
  "tempfile",
  "tendermint",
@@ -2160,7 +2160,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df0c900f2f9b4116803415878ff48b63da9edb268668e08cf9292d7503114a01"
 dependencies = [
  "generic-array 0.12.3",
- "subtle 2.2.2",
+ "subtle 2.2.3",
 ]
 
 [[package]]
@@ -2387,7 +2387,7 @@ dependencies = [
  "sha2",
  "signatory",
  "signature",
- "subtle 2.2.2",
+ "subtle 2.2.3",
  "thiserror",
  "tiny_http",
  "uuid",
