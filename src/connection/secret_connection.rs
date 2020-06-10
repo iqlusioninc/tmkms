@@ -9,7 +9,7 @@ pub use self::{amino_types::AuthSigMessage, kdf::Kdf, nonce::Nonce, public_key::
 use crate::error::{Error, ErrorKind};
 use bytes::BufMut;
 use chacha20poly1305::{
-    aead::{generic_array::GenericArray, Aead, NewAead},
+    aead::{generic_array::GenericArray, AeadInPlace, NewAead},
     ChaCha20Poly1305,
 };
 use merlin::Transcript;
@@ -105,8 +105,8 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             recv_buffer: vec![],
             recv_nonce: Nonce::default(),
             send_nonce: Nonce::default(),
-            recv_cipher: ChaCha20Poly1305::new(kdf.recv_secret.into()),
-            send_cipher: ChaCha20Poly1305::new(kdf.send_secret.into()),
+            recv_cipher: ChaCha20Poly1305::new(&kdf.recv_secret.into()),
+            send_cipher: ChaCha20Poly1305::new(&kdf.send_secret.into()),
             remote_pubkey: PublicKey::from(
                 ed25519::PublicKey::from_bytes(remote_eph_pubkey.as_bytes())
                     .ok_or_else(|| ErrorKind::CryptoError)?,
