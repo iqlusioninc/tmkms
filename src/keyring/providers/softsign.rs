@@ -105,7 +105,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
     );
 
     for chain_id in &config.chain_ids {
-        chain_registry.add_to_keyring(chain_id, signer.clone())?;
+        chain_registry.add_consensus_key(chain_id, signer.clone())?;
     }
 
     Ok(())

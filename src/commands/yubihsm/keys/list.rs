@@ -1,8 +1,8 @@
 //! List keys inside the YubiHSM2
 
-use crate::{application::app_config, chain, keyring, prelude::*};
+use crate::{application::app_config, chain, keyring, prelude::*, Map};
 use abscissa_core::{Command, Options, Runnable};
-use std::{collections::BTreeMap as Map, path::PathBuf, process};
+use std::{path::PathBuf, process};
 use tendermint::{PublicKey, TendermintKey};
 
 /// The `yubihsm keys list` subcommand

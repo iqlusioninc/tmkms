@@ -34,3 +34,23 @@ pub struct ProviderConfig {
     #[serde(default)]
     pub ledgertm: Vec<LedgerTendermintConfig>,
 }
+
+/// Types of cryptographic keys
+// TODO(tarcieri): move this into a provider-agnostic module
+#[derive(Clone, Debug, Deserialize)]
+pub enum KeyType {
+    /// Account keys
+    #[serde(rename = "account")]
+    Account,
+
+    /// Consensus keys
+    #[serde(rename = "consensus")]
+    Consensus,
+}
+
+impl Default for KeyType {
+    /// Backwards compat for existing configuration files
+    fn default() -> Self {
+        KeyType::Consensus
+    }
+}

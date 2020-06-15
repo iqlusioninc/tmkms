@@ -5,35 +5,53 @@ use crate::{
     error::{Error, ErrorKind::*},
     keyring,
     prelude::*,
+    Map,
 };
 use once_cell::sync::Lazy;
-use std::{collections::BTreeMap, sync::RwLock};
+use std::sync::RwLock;
 
 /// State of Tendermint blockchain networks
 pub static REGISTRY: Lazy<GlobalRegistry> = Lazy::new(GlobalRegistry::default);
 
 /// Registry of blockchain networks known to the KMS
 #[derive(Default)]
-pub struct Registry(BTreeMap<Id, Chain>);
+pub struct Registry(Map<Id, Chain>);
 
 impl Registry {
-    /// Add a key to a keyring for a chain stored in the registry
-    pub fn add_to_keyring(
+    /// Add an account key to a keyring for a chain stored in the registry
+    pub fn add_account_key(
         &mut self,
         chain_id: &Id,
-        signer: keyring::ed25519::Signer,
+        signer: keyring::ecdsa::Signer,
     ) -> Result<(), Error> {
-        // TODO(tarcieri):
         let chain = self.0.get_mut(chain_id).ok_or_else(|| {
             format_err!(
                 InvalidKey,
-                "can't add signer {} to unregistered chain: {}",
+                "can't add ECDSA signer {} to unregistered chain: {}",
                 signer.provider(),
                 chain_id
             )
         })?;
 
-        chain.keyring.add(signer)
+        chain.keyring.add_ecdsa(signer)
+    }
+
+    /// Add a consensus key to a keyring for a chain stored in the registry
+    pub fn add_consensus_key(
+        &mut self,
+        chain_id: &Id,
+        signer: keyring::ed25519::Signer,
+    ) -> Result<(), Error> {
+        let chain = self.0.get_mut(chain_id).ok_or_else(|| {
+            format_err!(
+                InvalidKey,
+                "can't add Ed25519 signer {} to unregistered chain: {}",
+                signer.provider(),
+                chain_id
+            )
+        })?;
+
+        chain.keyring.add_ed25519(signer)
     }
 
     /// Register a `Chain` with the registry

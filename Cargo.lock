@@ -2341,6 +2341,7 @@ dependencies = [
  "pbkdf2",
  "ring",
  "rusb",
+ "secp256k1",
  "serde",
  "serde_json",
  "sha2",

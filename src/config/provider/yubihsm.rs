@@ -1,5 +1,6 @@
 //! Configuration for the `YubiHSM` backend
 
+use super::KeyType;
 use crate::{chain, prelude::*};
 use abscissa_core::secret::{CloneableSecret, DebugSecret, ExposeSecret, Secret};
 use serde::Deserialize;
@@ -117,6 +118,10 @@ pub struct SigningKeyConfig {
 
     /// Signing key ID
     pub key: u16,
+
+    /// Type of key
+    #[serde(default, rename = "type")]
+    pub key_type: KeyType,
 }
 
 /// Default value for `AdapterConfig::Usb { timeout_ms }`
