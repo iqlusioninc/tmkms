@@ -1,5 +1,14 @@
 //! Signature providers (i.e. backends/plugins)
 
+#[cfg(feature = "ledgertm")]
+pub mod ledgertm;
+
+#[cfg(feature = "softsign")]
+pub mod softsign;
+
+#[cfg(feature = "yubihsm")]
+pub mod yubihsm;
+
 use std::fmt::{self, Display};
 
 /// Enumeration of signing key providers

@@ -106,13 +106,13 @@ impl KeyRing {
 /// Initialize the keyring from the configuration file
 pub fn load_config(registry: &mut chain::Registry, config: &ProviderConfig) -> Result<(), Error> {
     #[cfg(feature = "softsign")]
-    ed25519::softsign::init(registry, &config.softsign)?;
+    providers::softsign::init(registry, &config.softsign)?;
 
     #[cfg(feature = "yubihsm")]
-    ed25519::yubihsm::init(registry, &config.yubihsm)?;
+    providers::yubihsm::init(registry, &config.yubihsm)?;
 
     #[cfg(feature = "ledgertm")]
-    ed25519::ledgertm::init(registry, &config.ledgertm)?;
+    providers::ledgertm::init(registry, &config.ledgertm)?;
 
     Ok(())
 }
