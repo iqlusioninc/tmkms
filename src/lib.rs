@@ -26,3 +26,6 @@ pub mod session;
 pub mod yubihsm;
 
 pub use crate::application::KmsApplication;
+
+// Map type used within this application
+use std::collections::BTreeMap as Map;

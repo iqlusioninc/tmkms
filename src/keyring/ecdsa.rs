@@ -1,6 +1,6 @@
-//! Ed25519 signing keys
+//! ECDSA keys
 
-pub use signatory::ed25519::{PublicKey, Seed, Signature, PUBLIC_KEY_SIZE};
+pub use signatory::ecdsa::curve::secp256k1::{FixedSignature as Signature, PublicKey};
 
 use crate::{
     error::{Error, ErrorKind::*},
@@ -11,7 +11,7 @@ use signatory::signature;
 use std::sync::Arc;
 use tendermint::TendermintKey;
 
-/// Ed25519 signer
+/// ECDSA signer
 #[derive(Clone)]
 pub struct Signer {
     /// Provider for this signer

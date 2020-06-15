@@ -39,7 +39,7 @@ tendermint = "0.13"
 thiserror = "1"
 wait-timeout = "0.2"
 x25519-dalek = "0.6"
-yubihsm = { version = "0.33", features = ["setup", "usb"], optional = true }
+yubihsm = { version = "0.33", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 merlin = "2"
 

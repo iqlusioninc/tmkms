@@ -41,7 +41,7 @@ pub fn init(
     );
 
     for chain_id in &ledgertm_configs[0].chain_ids {
-        chain_registry.add_to_keyring(chain_id, signer.clone())?;
+        chain_registry.add_consensus_key(chain_id, signer.clone())?;
     }
 
     Ok(())

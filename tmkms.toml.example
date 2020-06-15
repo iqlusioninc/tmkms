@@ -37,7 +37,10 @@ protocol_version = "v0.33" # "legacy" is the default
 [[providers.yubihsm]]
 adapter = { type = "usb" }
 auth = { key = 1, password_file = "/path/to/password" } # or pass raw password as `password`
-keys = [{ chain_ids = ["cosmoshub-1"], key = 1 }]
+keys = [
+    { chain_ids = ["cosmoshub-1"], key = 1 }
+    # { chain_ids = ["cosmoshub-2"], key = 2, type = "account" }
+]
 #serial_number = "0123456789" # identify serial number of a specific YubiHSM to connect to
 #connector_server = { laddr = "tcp://127.0.0.1:12345", cli = { auth_key = 2 } } # run yubihsm-connector compatible server
 

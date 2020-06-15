@@ -2,9 +2,12 @@
 
 use crate::{
     chain,
-    config::provider::yubihsm::YubihsmConfig,
+    config::provider::{
+        yubihsm::{SigningKeyConfig, YubihsmConfig},
+        KeyType,
+    },
     error::{Error, ErrorKind::*},
-    keyring::{ed25519::Signer, SigningProvider},
+    keyring::{self, SigningProvider},
     prelude::*,
 };
 use signatory::public_key::PublicKeyed;
@@ -29,30 +32,76 @@ pub fn init(
     }
 
     for config in &yubihsm_configs[0].keys {
-        let signer = yubihsm::ed25519::Signer::create(crate::yubihsm::client().clone(), config.key)
-            .map_err(|_| {
-                format_err!(
-                    InvalidKey,
-                    "YubiHSM key ID 0x{:04x} is not a valid Ed25519 signing key",
-                    config.key
-                )
-            })?;
+        match config.key_type {
+            KeyType::Account => add_account_key(chain_registry, config)?,
+            KeyType::Consensus => add_consensus_key(chain_registry, config)?,
+        }
+    }
 
-        let public_key = signer.public_key().map_err(|_| {
+    Ok(())
+}
+
+/// Add an account key (ECDSA/secp256k1) to the keychain
+fn add_account_key(
+    chain_registry: &mut chain::Registry,
+    config: &SigningKeyConfig,
+) -> Result<(), Error> {
+    let signer = yubihsm::ecdsa::Signer::create(crate::yubihsm::client().clone(), config.key)
+        .map_err(|_| {
             format_err!(
                 InvalidKey,
-                "couldn't get public key for YubiHSM key ID 0x{:04x}"
+                "YubiHSM key ID 0x{:04x} is not a valid ECDSA signing key",
+                config.key
             )
         })?;
 
-        // TODO(tarcieri): support for adding account keys into keyrings
-        let consensus_pubkey = TendermintKey::ConsensusKey(public_key.into());
+    let public_key = signer.public_key().map_err(|_| {
+        format_err!(
+            InvalidKey,
+            "couldn't get public key for YubiHSM key ID 0x{:04x}"
+        )
+    })?;
 
-        let signer = Signer::new(SigningProvider::Yubihsm, consensus_pubkey, Box::new(signer));
+    let account_pubkey = TendermintKey::AccountKey(public_key.into());
 
-        for chain_id in &config.chain_ids {
-            chain_registry.add_to_keyring(chain_id, signer.clone())?;
-        }
+    let signer =
+        keyring::ecdsa::Signer::new(SigningProvider::Yubihsm, account_pubkey, Box::new(signer));
+
+    for chain_id in &config.chain_ids {
+        chain_registry.add_account_key(chain_id, signer.clone())?;
+    }
+
+    Ok(())
+}
+
+/// Add a consensus key (Ed25519) to the keychain
+fn add_consensus_key(
+    chain_registry: &mut chain::Registry,
+    config: &SigningKeyConfig,
+) -> Result<(), Error> {
+    let signer = yubihsm::ed25519::Signer::create(crate::yubihsm::client().clone(), config.key)
+        .map_err(|_| {
+            format_err!(
+                InvalidKey,
+                "YubiHSM key ID 0x{:04x} is not a valid Ed25519 signing key",
+                config.key
+            )
+        })?;
+
+    let public_key = signer.public_key().map_err(|_| {
+        format_err!(
+            InvalidKey,
+            "couldn't get public key for YubiHSM key ID 0x{:04x}"
+        )
+    })?;
+
+    let consensus_pubkey = TendermintKey::ConsensusKey(public_key.into());
+
+    let signer =
+        keyring::ed25519::Signer::new(SigningProvider::Yubihsm, consensus_pubkey, Box::new(signer));
+
+    for chain_id in &config.chain_ids {
+        chain_registry.add_consensus_key(chain_id, signer.clone())?;
     }
 
     Ok(())
