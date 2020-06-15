@@ -27,7 +27,7 @@ rand = "0.7"
 rpassword = { version = "4", optional = true }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
-sha2 = "0.8"
+sha2 = "0.9"
 signatory = { version = "0.19", features = ["ecdsa", "ed25519", "encoding"] }
 signatory-dalek = "0.19"
 signatory-secp256k1 = "0.19"
