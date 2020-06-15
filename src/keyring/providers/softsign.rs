@@ -2,12 +2,11 @@
 //!
 //! This is mainly intended for testing/CI. Ideally real validators will use HSMs
 
-use super::Signer;
 use crate::{
     chain,
     config::provider::softsign::{KeyFormat, SoftsignConfig},
     error::{Error, ErrorKind::*},
-    keyring::{SecretKeyEncoding, SigningProvider},
+    keyring::{ed25519::Signer, SecretKeyEncoding, SigningProvider},
     prelude::*,
 };
 use signatory::{ed25519, encoding::Decode, public_key::PublicKeyed};
