@@ -39,14 +39,14 @@ adapter = { type = "usb" }
 auth = { key = 1, password_file = "/path/to/password" } # or pass raw password as `password`
 keys = [
     { chain_ids = ["cosmoshub-1"], key = 1 }
-    # { chain_ids = ["cosmoshub-2"], key = 2, type = "account" }
+    # { chain_ids = ["irishub"], key = 2, type = "account" }
 ]
 #serial_number = "0123456789" # identify serial number of a specific YubiHSM to connect to
 #connector_server = { laddr = "tcp://127.0.0.1:12345", cli = { auth_key = 2 } } # run yubihsm-connector compatible server
 
 # enable the `ledger` feature to use this backend
-[[providers.ledgertm]]
-chain_ids = ["cosmoshub-1"]
+#[[providers.ledgertm]]
+#chain_ids = ["cosmoshub-1"]
 
 # enable the `softsign` feature to use this backend
 # note: the `yubihsm` or `ledger` backends are recommended
@@ -54,3 +54,16 @@ chain_ids = ["cosmoshub-1"]
 #chain_ids = ["cosmoshub-1"]
 #key_format = "base64"
 #path = "path/to/signing.key"
+
+## (Optional) Transaction signer configuration
+
+# example transaction signer: sign StdTx-strucutred transactions with a KMS-managed key
+# [[tx_signer]]
+# chain_id = "irishub"
+# schema = "iris_tx_schema.toml" # See example TERRA_SCHEMA at https://docs.rs/stdtx#usage
+# account_number = 101072
+# account_address = "iap1qqqsyqcyq5rqwzqfpg9scrgwpugpzysnfxh53h" # must be in the keyring for this chain
+# acl = { msg_type = ["oracle/MsgExchangeRatePrevote", "oracle/MsgExchangeRateVote"] }
+# source = { protocol = "jsonrpc", poll_secs = 30, uri = "http://127.0.0.1:23456" }
+# rpc_addr = "tcp://127.0.0.1:26657"
+# seq_file = "irishub-account-seq.json"

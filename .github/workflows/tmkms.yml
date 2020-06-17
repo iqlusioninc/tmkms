@@ -1,11 +1,15 @@
 # Based on https://github.com/actions-rs/meta/blob/master/recipes/quickstart.md
 
+name: tmkms
+
 on:
   pull_request: {}
   push:
     branches: develop
 
-name: Rust
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   check:
@@ -81,42 +85,11 @@ jobs:
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
 
-      - name: Run cargo build --features=yubihsm
-        uses: actions-rs/cargo@v1
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -D warnings
-        with:
-          command: build
-          args: --features=yubihsm --release
-
-      - name: Run cargo build --features=yubihsm-server
-        uses: actions-rs/cargo@v1
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -D warnings
-        with:
-          command: build
-          args: --features=yubihsm-server --release
-
-      - name: Run cargo build --features=ledgertm
-        uses: actions-rs/cargo@v1
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -D warnings
-        with:
-          command: build
-          args: --features=ledgertm --release
-
-      # NOTE: softsign backend alone is tested via the test harness job
-      - name: Run cargo build --features=yubihsm-server,ledgertm,softsign
-        uses: actions-rs/cargo@v1
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -D warnings
-        with:
-          command: build
-          args: --features=yubihsm-server,ledgertm,softsign --release
+      - run: cargo build --no-default-features --features softsign --release
+      - run: cargo build --features=yubihsm --release
+      - run: cargo build --features=yubihsm-server --release
+      - run: cargo build --features=ledgertm --release
+      - run: cargo build --features=yubihsm-server,ledgertm,softsign --release
 
   test:
     name: Test Suite
@@ -159,9 +132,6 @@ jobs:
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -D warnings
         with:
           command: test
           args: --all-features -- --test-threads 1
@@ -202,8 +172,6 @@ jobs:
 
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
-        env:
-          CARGO_INCREMENTAL: 0
         with:
           version: 0.11.0
           args: --all-features -- --test-threads 1
@@ -252,9 +220,6 @@ jobs:
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -D warnings
         with:
           command: build
           args: --features=softsign --release

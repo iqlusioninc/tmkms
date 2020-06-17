@@ -1,6 +1,7 @@
 //! Chain-specific key configuration
 
 use serde::Deserialize;
+use subtle_encoding::bech32;
 use tendermint::TendermintKey;
 
 /// Options for how keys for this chain are represented
@@ -30,7 +31,9 @@ impl Format {
                 account_key_prefix,
                 consensus_key_prefix,
             } => match public_key {
-                TendermintKey::AccountKey(pk) => pk.to_bech32(account_key_prefix),
+                TendermintKey::AccountKey(pk) => {
+                    bech32::encode(account_key_prefix, tendermint::account::Id::from(pk))
+                }
                 TendermintKey::ConsensusKey(pk) => pk.to_bech32(consensus_key_prefix),
             },
             Format::Hex => public_key.to_hex(),

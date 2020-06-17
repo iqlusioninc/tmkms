@@ -44,8 +44,8 @@ pub trait TendermintRequest: SignableMsg {
 
 fn compute_prefix(name: &str) -> Vec<u8> {
     let mut sh = Sha256::default();
-    sh.input(name.as_bytes());
-    let output = sh.result();
+    sh.update(name.as_bytes());
+    let output = sh.finalize();
 
     let prefix_bytes: Vec<u8> = output
         .iter()

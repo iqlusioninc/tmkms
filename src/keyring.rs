@@ -13,7 +13,7 @@ use crate::{
     prelude::*,
     Map,
 };
-use tendermint::TendermintKey;
+use tendermint::{account, TendermintKey};
 
 /// File encoding for software-backed secret keys
 pub type SecretKeyEncoding = subtle_encoding::Base64;
@@ -113,6 +113,27 @@ impl KeyRing {
         } else {
             fail!(InvalidKey, "expected only one key in keyring");
         }
+    }
+
+    /// Sign a message using ECDSA
+    pub fn sign_ecdsa(
+        &self,
+        account_id: account::Id,
+        msg: &[u8],
+    ) -> Result<ecdsa::Signature, Error> {
+        for (key, signer) in &self.ecdsa_keys {
+            if let TendermintKey::AccountKey(pk) = key {
+                if account_id == account::Id::from(*pk) {
+                    return signer.sign(msg);
+                }
+            }
+        }
+
+        fail!(
+            InvalidKey,
+            "no ECDSA key in keyring for account ID: {}",
+            account_id
+        )
     }
 
     /// Sign a message using the secret key associated with the given public key

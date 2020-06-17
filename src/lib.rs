@@ -1,8 +1,8 @@
 //! Tendermint Key Management System
 
-#![forbid(unsafe_code)]
-#![deny(warnings, rust_2018_idioms, missing_docs, unused_qualifications)]
 #![doc(html_root_url = "https://docs.rs/tmkms/0.8.0-alpha1")]
+#![forbid(unsafe_code)]
+#![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
 
 #[cfg(not(any(feature = "softsign", feature = "yubihsm", feature = "ledgertm")))]
 compile_error!(
@@ -21,6 +21,9 @@ pub mod keyring;
 pub mod prelude;
 pub mod rpc;
 pub mod session;
+
+#[cfg(feature = "tx_signer")]
+pub mod tx_signer;
 
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;

@@ -146,7 +146,7 @@ impl Session {
         self.check_max_height(&mut request)?;
 
         debug!(
-            "[{}@{}] acquiring chain registry (for signing)",
+            "[{}@{}] acquiring chain registry",
             &self.config.chain_id, &self.config.addr
         );
 

@@ -2,9 +2,15 @@
 
 pub mod chain;
 pub mod provider;
+#[cfg(feature = "tx_signer")]
+pub mod tx_signer;
 pub mod validator;
 
 pub use self::validator::*;
+
+#[cfg(feature = "tx_signer")]
+pub use self::tx_signer::TxSignerConfig;
+
 use self::{chain::ChainConfig, provider::ProviderConfig};
 use serde::Deserialize;
 
@@ -22,10 +28,15 @@ pub struct KmsConfig {
     #[serde(default)]
     pub chain: Vec<ChainConfig>,
 
+    /// Cryptographic signature provider configuration
+    pub providers: ProviderConfig,
+
     /// Addresses of validator nodes
     #[serde(default)]
     pub validator: Vec<ValidatorConfig>,
 
-    /// Cryptographic signature provider configuration
-    pub providers: ProviderConfig,
+    /// Transaction signer config (for e.g. oracles)
+    #[cfg(feature = "tx_signer")]
+    #[serde(default)]
+    pub tx_signer: Vec<TxSignerConfig>,
 }
