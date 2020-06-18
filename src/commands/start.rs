@@ -4,6 +4,9 @@ use crate::{chain, client::Client, prelude::*};
 use abscissa_core::{Command, Options};
 use std::{path::PathBuf, process};
 
+#[cfg(feature = "tx_signer")]
+use crate::{application::APPLICATION, config::TxSignerConfig, tx_signer::TxSigner};
+
 /// The `start` command
 #[derive(Command, Debug, Options)]
 pub struct StartCommand {
@@ -34,34 +37,13 @@ impl Runnable for StartCommand {
             env!("CARGO_PKG_VERSION")
         );
 
-        let validator_clients = self.spawn_clients();
-
-        // Wait for all of the validator client threads to exit
-        debug!("Main thread waiting on clients...");
-
-        let mut success = true;
-
-        for client in validator_clients {
-            let name = client.name().to_owned();
-
-            if let Err(e) = client.join() {
-                status_err!("client '{}' exited with error: {}", name, e);
-                success = false;
-            }
-        }
-
-        if success {
-            info!("Shutdown completed successfully");
-        } else {
-            warn!("Shutdown completed with errors");
-            process::exit(1);
-        }
+        run_app(self.spawn_clients());
     }
 }
 
 impl StartCommand {
     /// Spawn clients from the app's configuration
-    pub fn spawn_clients(&self) -> Vec<Client> {
+    fn spawn_clients(&self) -> Vec<Client> {
         let config = app_config();
 
         chain::load_config(&config).unwrap_or_else(|e| {
@@ -77,4 +59,71 @@ impl StartCommand {
             .map(Client::spawn)
             .collect()
     }
+}
+
+/// Run the application (non-`tx_signer` version)
+#[cfg(not(feature = "tx_signer"))]
+fn run_app(validator_clients: Vec<Client>) {
+    blocking_wait(validator_clients);
+}
+
+/// Run the application, launching the Tokio executor if need be
+#[cfg(feature = "tx_signer")]
+fn run_app(validator_clients: Vec<Client>) {
+    let signer_config = {
+        let cfg = app_config();
+
+        match cfg.tx_signer.len() {
+            0 => None,
+            1 => Some(cfg.tx_signer[0].clone()),
+            _ => unimplemented!("only one TX signer supported for now!"),
+        }
+    };
+
+    if let Some(cfg) = signer_config {
+        run_async_executor(cfg);
+    } else {
+        blocking_wait(validator_clients);
+    }
+}
+
+/// Wait for clients to shut down using synchronous thread joins
+fn blocking_wait(validator_clients: Vec<Client>) {
+    // Wait for all of the validator client threads to exit
+    debug!("Main thread waiting on clients...");
+
+    let mut success = true;
+
+    for client in validator_clients {
+        let name = client.name().to_owned();
+
+        if let Err(e) = client.join() {
+            status_err!("client '{}' exited with error: {}", name, e);
+            success = false;
+        }
+    }
+
+    if success {
+        info!("Shutdown completed successfully");
+    } else {
+        warn!("Shutdown completed with errors");
+        process::exit(1);
+    }
+}
+
+/// Launch the Tokio executor and spawn transaction signers
+#[cfg(feature = "tx_signer")]
+fn run_async_executor(config: TxSignerConfig) {
+    abscissa_tokio::run(&APPLICATION, async {
+        let mut signer = TxSigner::new(&config).unwrap_or_else(|e| {
+            status_err!("couldn't initialize TX signer: {}", e);
+            process::exit(1);
+        });
+
+        signer.run().await
+    })
+    .unwrap_or_else(|e| {
+        status_err!("executor exited with error: {}", e);
+        process::exit(1);
+    });
 }

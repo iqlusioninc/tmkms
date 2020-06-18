@@ -55,14 +55,24 @@ fn add_account_key(
             )
         })?;
 
-    let public_key = signer.public_key().map_err(|_| {
+    let signer_public_key = signer.public_key().map_err(|_| {
         format_err!(
             InvalidKey,
             "couldn't get public key for YubiHSM key ID 0x{:04x}"
         )
     })?;
 
-    let account_pubkey = TendermintKey::AccountKey(public_key.into());
+    // The YubiHSM2 returns the uncompressed public key, so for
+    // compatibility with Tendermint, we have to compress it first
+    let uncompressed_pubkey = k256::PublicKey::from_bytes(signer_public_key.as_ref()).unwrap();
+
+    let compressed_point = k256::arithmetic::AffinePoint::from_pubkey(&uncompressed_pubkey)
+        .unwrap()
+        .to_compressed_pubkey();
+
+    let compressed_pubkey =
+        tendermint::PublicKey::from_raw_secp256k1(compressed_point.as_bytes()).unwrap();
+    let account_pubkey = TendermintKey::AccountKey(compressed_pubkey);
 
     let signer =
         keyring::ecdsa::Signer::new(SigningProvider::Yubihsm, account_pubkey, Box::new(signer));

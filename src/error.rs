@@ -15,8 +15,11 @@ use thiserror::Error;
 pub enum ErrorKind {
     /// Access denied
     #[error("access denied")]
-    #[cfg(feature = "yubihsm")]
     AccessError,
+
+    /// Invalid Chain ID
+    #[error("chain ID error")]
+    ChainIdError,
 
     /// Error in configuration file
     #[error("config error")]
@@ -37,6 +40,11 @@ pub enum ErrorKind {
     /// Error running a subcommand to update chain state
     #[error("subcommand hook failed")]
     HookError,
+
+    /// Error making an HTTP request
+    #[cfg(feature = "tx_signer")]
+    #[error("HTTP error")]
+    HttpError,
 
     /// Malformatted or otherwise invalid cryptographic key
     #[error("invalid key")]
@@ -73,6 +81,11 @@ pub enum ErrorKind {
     /// Signing operation failed
     #[error("signing operation failed")]
     SigningError,
+
+    /// Error parsing/serializing a StdTx
+    #[cfg(feature = "tx_signer")]
+    #[error("stdtx error")]
+    StdtxError,
 
     /// Errors originating in the Tendermint crate
     #[error("Tendermint error")]
@@ -146,6 +159,20 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
+#[cfg(feature = "tx_signer")]
+impl From<hyper::Error> for Error {
+    fn from(other: hyper::Error) -> Self {
+        ErrorKind::HttpError.context(other).into()
+    }
+}
+
+#[cfg(feature = "tx_signer")]
+impl From<hyper::http::Error> for Error {
+    fn from(other: hyper::http::Error) -> Self {
+        ErrorKind::HttpError.context(other).into()
+    }
+}
+
 impl From<io::Error> for Error {
     fn from(other: io::Error) -> Self {
         ErrorKind::IoError.context(other).into()
@@ -176,8 +203,22 @@ impl From<serde_json::error::Error> for Error {
     }
 }
 
+#[cfg(feature = "tx_signer")]
+impl From<stdtx::Error> for Error {
+    fn from(other: stdtx::Error) -> Self {
+        ErrorKind::StdtxError.context(other).into()
+    }
+}
+
 impl From<tendermint::Error> for Error {
     fn from(other: tendermint::error::Error) -> Self {
+        ErrorKind::TendermintError.context(other).into()
+    }
+}
+
+#[cfg(feature = "tx_signer")]
+impl From<tendermint_rpc::Error> for Error {
+    fn from(other: tendermint_rpc::error::Error) -> Self {
         ErrorKind::TendermintError.context(other).into()
     }
 }
