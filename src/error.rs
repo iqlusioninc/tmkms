@@ -42,7 +42,7 @@ pub enum ErrorKind {
     HookError,
 
     /// Error making an HTTP request
-    #[cfg(feature = "tx_signer")]
+    #[cfg(feature = "tx-signer")]
     #[error("HTTP error")]
     HttpError,
 
@@ -83,7 +83,7 @@ pub enum ErrorKind {
     SigningError,
 
     /// Error parsing/serializing a StdTx
-    #[cfg(feature = "tx_signer")]
+    #[cfg(feature = "tx-signer")]
     #[error("stdtx error")]
     StdtxError,
 
@@ -159,14 +159,14 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 impl From<hyper::Error> for Error {
     fn from(other: hyper::Error) -> Self {
         ErrorKind::HttpError.context(other).into()
     }
 }
 
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 impl From<hyper::http::Error> for Error {
     fn from(other: hyper::http::Error) -> Self {
         ErrorKind::HttpError.context(other).into()
@@ -203,7 +203,7 @@ impl From<serde_json::error::Error> for Error {
     }
 }
 
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 impl From<stdtx::Error> for Error {
     fn from(other: stdtx::Error) -> Self {
         ErrorKind::StdtxError.context(other).into()
@@ -216,7 +216,7 @@ impl From<tendermint::Error> for Error {
     }
 }
 
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 impl From<tendermint_rpc::Error> for Error {
     fn from(other: tendermint_rpc::error::Error) -> Self {
         ErrorKind::TendermintError.context(other).into()
