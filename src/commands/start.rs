@@ -4,7 +4,7 @@ use crate::{chain, client::Client, prelude::*};
 use abscissa_core::{Command, Options};
 use std::{path::PathBuf, process};
 
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 use crate::{application::APPLICATION, config::TxSignerConfig, tx_signer::TxSigner};
 
 /// The `start` command
@@ -62,13 +62,13 @@ impl StartCommand {
 }
 
 /// Run the application (non-`tx_signer` version)
-#[cfg(not(feature = "tx_signer"))]
+#[cfg(not(feature = "tx-signer"))]
 fn run_app(validator_clients: Vec<Client>) {
     blocking_wait(validator_clients);
 }
 
 /// Run the application, launching the Tokio executor if need be
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 fn run_app(validator_clients: Vec<Client>) {
     let signer_config = {
         let cfg = app_config();
@@ -112,7 +112,7 @@ fn blocking_wait(validator_clients: Vec<Client>) {
 }
 
 /// Launch the Tokio executor and spawn transaction signers
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 fn run_async_executor(config: TxSignerConfig) {
     abscissa_tokio::run(&APPLICATION, async {
         let mut signer = TxSigner::new(&config).unwrap_or_else(|e| {

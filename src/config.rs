@@ -2,13 +2,13 @@
 
 pub mod chain;
 pub mod provider;
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 pub mod tx_signer;
 pub mod validator;
 
 pub use self::validator::*;
 
-#[cfg(feature = "tx_signer")]
+#[cfg(feature = "tx-signer")]
 pub use self::tx_signer::TxSignerConfig;
 
 use self::{chain::ChainConfig, provider::ProviderConfig};
@@ -36,7 +36,7 @@ pub struct KmsConfig {
     pub validator: Vec<ValidatorConfig>,
 
     /// Transaction signer config (for e.g. oracles)
-    #[cfg(feature = "tx_signer")]
+    #[cfg(feature = "tx-signer")]
     #[serde(default)]
     pub tx_signer: Vec<TxSignerConfig>,
 }

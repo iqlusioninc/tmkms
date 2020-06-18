@@ -1980,7 +1980,7 @@ dependencies = [
 [[package]]
 name = "tendermint"
 version = "0.13.0"
-source = "git+https://github.com/informalsystems/tendermint-rs#e2335c40b1c5e1f7d47ee28ae5f9cc679730b7a2"
+source = "git+https://github.com/informalsystems/tendermint-rs#81f7eb3aac9aac24ac83a02ba7e91ac477bf57fc"
 dependencies = [
  "anomaly 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "async-trait",
@@ -2010,7 +2010,7 @@ dependencies = [
 [[package]]
 name = "tendermint-rpc"
 version = "0.1.0"
-source = "git+https://github.com/informalsystems/tendermint-rs#e2335c40b1c5e1f7d47ee28ae5f9cc679730b7a2"
+source = "git+https://github.com/informalsystems/tendermint-rs#81f7eb3aac9aac24ac83a02ba7e91ac477bf57fc"
 dependencies = [
  "async-tungstenite",
  "bytes",

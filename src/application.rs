@@ -81,7 +81,7 @@ impl Application for KmsApplication {
         #[allow(unused_mut)]
         let mut components = self.framework_components(command)?;
 
-        #[cfg(feature = "tx_signer")]
+        #[cfg(feature = "tx-signer")]
         components.push(Box::new(abscissa_tokio::TokioComponent::new()?));
 
         self.state.components.register(components)
