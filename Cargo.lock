@@ -120,14 +120,6 @@ dependencies = [
 [[package]]
 name = "anomaly"
 version = "0.2.0"
-source = "git+https://github.com/iqlusioninc/crates.git?branch=develop#77f658ef41911bf6ea6b030b8a9f91039c04351e"
-dependencies = [
- "backtrace",
-]
-
-[[package]]
-name = "anomaly"
-version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "550632e31568ae1a5f47998c3aa48563030fc49b9ec91913ca337cf64fbc5ccb"
 dependencies = [
@@ -339,7 +331,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "086c0f07ac275808b7bf9a39f2fd013aae1498be83632814c8c4e0bd53f2dc58"
 dependencies = [
  "stream-cipher",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -352,7 +344,7 @@ dependencies = [
  "chacha20",
  "poly1305",
  "stream-cipher",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -446,7 +438,7 @@ dependencies = [
  "digest 0.8.1",
  "rand_core 0.5.1",
  "subtle",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -571,7 +563,7 @@ dependencies = [
  "generic-array 0.14.2",
  "getrandom",
  "subtle",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -868,7 +860,7 @@ dependencies = [
  "hmac",
  "lazy_static",
  "sha2 0.9.0",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -1135,7 +1127,7 @@ dependencies = [
  "byteorder",
  "keccak",
  "rand_core 0.5.1",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -1611,7 +1603,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9182278ed645df3477a9c27bfee0621c621aa16f6972635f7f795dae3d81070f"
 dependencies = [
  "serde",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -1748,8 +1740,8 @@ dependencies = [
  "getrandom",
  "sha2 0.9.0",
  "signature",
- "subtle-encoding 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subtle-encoding",
+ "zeroize",
 ]
 
 [[package]]
@@ -1848,10 +1840,11 @@ checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
 name = "stdtx"
-version = "0.1.0"
-source = "git+https://github.com/iqlusioninc/crates.git?branch=develop#77f658ef41911bf6ea6b030b8a9f91039c04351e"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55a70ea828905d09be07f4a3fa64efb1993c673d7d5f6b2abf8d6cf29a21b2c0"
 dependencies = [
- "anomaly 0.2.0 (git+https://github.com/iqlusioninc/crates.git?branch=develop)",
+ "anomaly",
  "ecdsa",
  "prost-amino",
  "prost-amino-derive",
@@ -1859,7 +1852,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.9.0",
- "subtle-encoding 0.5.1 (git+https://github.com/iqlusioninc/crates.git?branch=develop)",
+ "subtle-encoding",
  "thiserror",
  "toml",
 ]
@@ -1888,18 +1881,10 @@ checksum = "502d53007c02d7605a05df1c1a73ee436952781653da5d0bf57ad608f66932c1"
 [[package]]
 name = "subtle-encoding"
 version = "0.5.1"
-source = "git+https://github.com/iqlusioninc/crates.git?branch=develop#77f658ef41911bf6ea6b030b8a9f91039c04351e"
-dependencies = [
- "zeroize 1.1.0 (git+https://github.com/iqlusioninc/crates.git?branch=develop)",
-]
-
-[[package]]
-name = "subtle-encoding"
-version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dcb1ed7b8330c5eed5441052651dd7a12c75e2ed88f2ec024ae1fa3a5e59945"
 dependencies = [
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -1982,7 +1967,7 @@ name = "tendermint"
 version = "0.13.0"
 source = "git+https://github.com/informalsystems/tendermint-rs#81f7eb3aac9aac24ac83a02ba7e91ac477bf57fc"
 dependencies = [
- "anomaly 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "anomaly",
  "async-trait",
  "bytes",
  "chrono",
@@ -2000,11 +1985,11 @@ dependencies = [
  "signatory-dalek",
  "signatory-secp256k1",
  "subtle",
- "subtle-encoding 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subtle-encoding",
  "tai64",
  "thiserror",
  "toml",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -2124,7 +2109,7 @@ dependencies = [
  "signatory-secp256k1",
  "stdtx",
  "subtle",
- "subtle-encoding 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "subtle-encoding",
  "tempfile",
  "tendermint",
  "tendermint-rpc",
@@ -2132,7 +2117,7 @@ dependencies = [
  "wait-timeout",
  "x25519-dalek",
  "yubihsm",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -2523,7 +2508,7 @@ checksum = "637ff90c9540fa3073bb577e65033069e4bae7c79d49d74aa3ffdf5342a53217"
 dependencies = [
  "curve25519-dalek 2.1.0",
  "rand_core 0.5.1",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
 
 [[package]]
@@ -2541,7 +2526,7 @@ version = "0.33.0"
 source = "git+https://github.com/iqlusioninc/yubihsm.rs.git?branch=develop#d1cade201c516eed35eb91858a9962e17e3a9576"
 dependencies = [
  "aes",
- "anomaly 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "anomaly",
  "bitflags",
  "block-modes",
  "chrono",
@@ -2563,13 +2548,8 @@ dependencies = [
  "thiserror",
  "tiny_http",
  "uuid",
- "zeroize 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zeroize",
 ]
-
-[[package]]
-name = "zeroize"
-version = "1.1.0"
-source = "git+https://github.com/iqlusioninc/crates.git?branch=develop#77f658ef41911bf6ea6b030b8a9f91039c04351e"
 
 [[package]]
 name = "zeroize"

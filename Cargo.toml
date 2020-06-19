@@ -35,7 +35,7 @@ signatory = { version = "0.20", features = ["ecdsa", "ed25519", "encoding"] }
 signatory-dalek = "0.20"
 signatory-secp256k1 = "0.20"
 signatory-ledger-tm = { version = "0.20", optional = true }
-stdtx = { version = "0.1", optional = true }
+stdtx = { version = "0.2", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
@@ -70,7 +70,6 @@ overflow-checks = true
 all-features = true
 
 [patch.crates-io]
-stdtx = { git = "https://github.com/iqlusioninc/crates.git", branch = "develop" }
 tendermint = { git = "https://github.com/informalsystems/tendermint-rs" }
 tendermint-rpc = { git = "https://github.com/informalsystems/tendermint-rs" }
 yubihsm = { git = "https://github.com/iqlusioninc/yubihsm.rs.git", branch = "develop" }

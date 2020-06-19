@@ -198,12 +198,16 @@ impl TxSigner {
             .collect::<Vec<_>>()
             .join(",");
 
+        let address = self
+            .address
+            .to_bech32(self.tx_builder.schema().acc_prefix());
+
         info!(
-            "[{}] signed `{}` TX with {}",
+            "[{}] signed TX {} for {} ({})",
             self.chain_id,
+            self.seq_file.sequence(),
+            address,
             msg_type_info,
-            self.address
-                .to_bech32(self.tx_builder.schema().acc_prefix())
         );
 
         Ok(StdTx::new(&msgs, req.fee, vec![signature], req.memo))
@@ -218,7 +222,12 @@ impl TxSigner {
         let response = self.tendermint_rpc.broadcast_tx_sync(amino_tx).await?;
 
         if response.code.is_ok() {
-            info!("[{}] broadcast TX: {:?}", self.chain_id, response);
+            info!(
+                "[{}] broadcast TX {}: {}",
+                self.chain_id,
+                self.seq_file.sequence(),
+                response.hash
+            );
             Ok(())
         } else {
             fail!(
