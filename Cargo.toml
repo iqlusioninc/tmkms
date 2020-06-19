@@ -39,8 +39,8 @@ stdtx = { version = "0.2", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
-tendermint = "0.13"
-tendermint-rpc = { version = "0.1.0", optional = true, features = ["client"] }
+tendermint = "0.14"
+tendermint-rpc = { version = "0.14.0", optional = true, features = ["client"] }
 thiserror = "1"
 wait-timeout = "0.2"
 x25519-dalek = "0.6"
@@ -68,7 +68,3 @@ overflow-checks = true
 
 [package.metadata.docs.rs]
 all-features = true
-
-[patch.crates-io]
-tendermint = { git = "https://github.com/informalsystems/tendermint-rs" }
-tendermint-rpc = { git = "https://github.com/informalsystems/tendermint-rs" }
