@@ -47,16 +47,14 @@ fn compute_prefix(name: &str) -> Vec<u8> {
     sh.update(name.as_bytes());
     let output = sh.finalize();
 
-    let prefix_bytes: Vec<u8> = output
+    output
         .iter()
         .filter(|&x| *x != 0x00)
         .skip(3)
         .filter(|&x| *x != 0x00)
         .cloned()
         .take(4)
-        .collect();
-
-    prefix_bytes
+        .collect()
 }
 
 // pre-compute registered types prefix (this is probably sth. our amino library should
