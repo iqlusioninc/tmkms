@@ -9,32 +9,23 @@ use crate::{
 use bytes::Buf;
 use hyper::http::{header, Uri};
 use serde::Deserialize;
-use std::time::Duration;
 
 /// Transaction builder JSONRPC client.
 #[derive(Clone, Debug)]
 pub struct Client {
     /// URL to fetch JSON document from
     uri: Uri,
-
-    /// Interval at which we poll the source for new transactions
-    poll_interval: Duration,
 }
 
 impl Client {
     /// Create a new JSONRPC client.
-    pub fn new(uri: Uri, poll_interval: Duration) -> Self {
-        Self { uri, poll_interval }
+    pub fn new(uri: Uri) -> Self {
+        Self { uri }
     }
 
     /// Get the URI this client is requesting
     pub fn uri(&self) -> &Uri {
         &self.uri
-    }
-
-    /// Get the [`Duration`] to sleep after a successful request
-    pub fn poll_interval(&self) -> Duration {
-        self.poll_interval
     }
 
     /// Request transactions to be signed from the transaction service

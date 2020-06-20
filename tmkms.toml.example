@@ -64,6 +64,7 @@ keys = [
 # account_number = 101072
 # account_address = "iap1qqqsyqcyq5rqwzqfpg9scrgwpugpzysnfxh53h" # must be in the keyring for this chain
 # acl = { msg_type = ["oracle/MsgExchangeRatePrevote", "oracle/MsgExchangeRateVote"] }
-# source = { protocol = "jsonrpc", poll_secs = 30, uri = "http://127.0.0.1:23456" }
-# rpc_addr = "tcp://127.0.0.1:26657"
+# poll_interval = { blocks = 5 }
+# source = { protocol = "jsonrpc", uri = "http://127.0.0.1:23456" }
+# rpc = { addr = "tcp://127.0.0.1:26657" }
 # seq_file = "irishub-account-seq.json"
