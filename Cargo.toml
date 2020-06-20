@@ -31,9 +31,10 @@ rpassword = { version = "4", optional = true }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
 sha2 = "0.9"
+secp256k1 = { version = "0.17", optional = true }
 signatory = { version = "0.20", features = ["ecdsa", "ed25519", "encoding"] }
 signatory-dalek = "0.20"
-signatory-secp256k1 = "0.20"
+signatory-secp256k1 = { version = "0.20", optional = true }
 signatory-ledger-tm = { version = "0.20", optional = true }
 stdtx = { version = "0.2", optional = true }
 subtle = "2"
@@ -57,7 +58,7 @@ features = ["testing"]
 [features]
 default = ["tx-signer"]
 ledgertm = ["signatory-ledger-tm"]
-softsign = []
+softsign = ["secp256k1", "signatory-secp256k1"]
 tx-signer = ["hyper", "stdtx", "tendermint-rpc"]
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]

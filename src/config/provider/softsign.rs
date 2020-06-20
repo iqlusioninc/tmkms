@@ -1,5 +1,6 @@
 //! Configuration for software-backed signer (using ed25519-dalek)
 
+use super::KeyType;
 use crate::{
     chain,
     error::{Error, ErrorKind::ConfigError},
@@ -17,6 +18,10 @@ use std::{
 pub struct SoftsignConfig {
     /// Chains this signing key is authorized to be used from
     pub chain_ids: Vec<chain::Id>,
+
+    /// Type of key (account vs consensus, default consensus)
+    #[serde(default)]
+    pub key_type: KeyType,
 
     /// Private key file format
     pub key_format: Option<KeyFormat>,
@@ -41,10 +46,6 @@ impl AsRef<Path> for SoftPrivateKey {
 /// Private key format
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq)]
 pub enum KeyFormat {
-    /// Raw (i.e. binary)
-    #[serde(rename = "raw")]
-    Raw,
-
     /// Base64-encoded
     #[serde(rename = "base64")]
     Base64,
@@ -56,8 +57,7 @@ pub enum KeyFormat {
 
 impl Default for KeyFormat {
     fn default() -> Self {
-        // TODO(tarcieri): change to Base64
-        KeyFormat::Raw
+        KeyFormat::Base64
     }
 }
 
@@ -66,7 +66,6 @@ impl FromStr for KeyFormat {
 
     fn from_str(s: &str) -> Result<Self, Error> {
         let format = match s {
-            "raw" => KeyFormat::Raw,
             "base64" => KeyFormat::Base64,
             "json" => KeyFormat::Json,
             other => fail!(ConfigError, "invalid key format: {}", other),
