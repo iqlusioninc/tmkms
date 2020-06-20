@@ -2,12 +2,8 @@
 
 use crate::{config::provider::softsign::KeyFormat, keyring::SecretKeyEncoding, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
-use signatory::{
-    ed25519,
-    encoding::{Decode, Encode},
-};
+use signatory::{ed25519, encoding::Encode};
 use std::{path::PathBuf, process};
-use subtle_encoding::IDENTITY;
 use tendermint::{config::PrivValidatorKey, PrivateKey};
 
 /// `import` command: import a `priv_validator.json` formatted key and convert
@@ -62,12 +58,6 @@ impl Runnable for ImportCommand {
                         ed25519::Seed::from_bytes(pk.to_seed().as_secret_slice()).unwrap()
                     }
                 }
-            }
-            KeyFormat::Raw => {
-                ed25519::Seed::decode_from_file(input_path, IDENTITY).unwrap_or_else(|e| {
-                    status_err!("couldn't load {}: {}", input_path.display(), e);
-                    process::exit(1);
-                })
             }
             KeyFormat::Base64 => {
                 status_err!("invalid format: baes64 (must be 'json' or 'raw')");

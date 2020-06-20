@@ -38,7 +38,7 @@ protocol_version = "v0.33" # "legacy" is the default
 adapter = { type = "usb" }
 auth = { key = 1, password_file = "/path/to/password" } # or pass raw password as `password`
 keys = [
-    { chain_ids = ["cosmoshub-1"], key = 1 }
+    { chain_ids = ["cosmoshub-1"], key = 1, type = "consensus" }
     # { chain_ids = ["irishub"], key = 2, type = "account" }
 ]
 #serial_number = "0123456789" # identify serial number of a specific YubiHSM to connect to
@@ -49,11 +49,17 @@ keys = [
 #chain_ids = ["cosmoshub-1"]
 
 # enable the `softsign` feature to use this backend
-# note: the `yubihsm` or `ledger` backends are recommended
+# note: the `yubihsm` or `ledger` backends are preferred over this one
+[[providers.softsign]]
+chain_ids = ["cosmoshub-1"]
+key_type = "consensus"
+path = "path/to/consensus-ed25519.key" # generate using `tmkms softsign keygen -t consensus consensus-ed25519.key`
+
+# the `softsign` backend also supports account keys
 #[[providers.softsign]]
-#chain_ids = ["cosmoshub-1"]
-#key_format = "base64"
-#path = "path/to/signing.key"
+#chain_ids = ["irishub"]
+#key_type = "account"
+#path = "path/to/account-secp256k1.key" # generate using `tmkms softsign keygen -t account account-secp256k1.key`
 
 ## (Optional) Transaction signer configuration
 
