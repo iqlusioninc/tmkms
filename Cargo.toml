@@ -19,7 +19,7 @@ chrono = "0.4"
 getrandom = "0.1"
 gumdrop = "0.7"
 hkd32 = { version = "0.4", default-features = false, features = ["mnemonic"] }
-hkdf = "0.9.0-alpha.0"
+hkdf = "0.9"
 hyper = { version = "0.13", optional = true }
 k256 = "0.3"
 merlin = "2"
