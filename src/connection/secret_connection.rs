@@ -6,7 +6,11 @@ mod nonce;
 mod public_key;
 
 pub use self::{amino_types::AuthSigMessage, kdf::Kdf, nonce::Nonce, public_key::PublicKey};
-use crate::error::{Error, ErrorKind};
+use crate::{
+    error::{Error, ErrorKind},
+    keyring::SecretKeyEncoding,
+    prelude::*,
+};
 use bytes::BufMut;
 use chacha20poly1305::{
     aead::{generic_array::GenericArray, AeadInPlace, NewAead},
@@ -16,6 +20,7 @@ use merlin::Transcript;
 use prost_amino::{encoding::encode_varint, Message};
 use signatory::{
     ed25519,
+    encoding::Encode,
     signature::{Signature, Signer, Verifier},
 };
 use signatory_dalek::Ed25519Verifier;
@@ -24,6 +29,7 @@ use std::{
     convert::TryInto,
     io::{self, Read, Write},
     marker::{Send, Sync},
+    path::Path,
 };
 use subtle::ConstantTimeEq;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
@@ -35,6 +41,21 @@ pub const TAG_SIZE: usize = 16;
 const DATA_LEN_SIZE: usize = 4;
 const DATA_MAX_SIZE: usize = 1024;
 const TOTAL_FRAME_SIZE: usize = DATA_MAX_SIZE + DATA_LEN_SIZE;
+
+/// Generate a Secret Connection key at the given path
+pub fn generate_key(path: impl AsRef<Path>) -> Result<(), Error> {
+    ed25519::Seed::generate()
+        .encode_to_file(path.as_ref(), &SecretKeyEncoding::default())
+        .map_err(|_| {
+            format_err!(
+                ErrorKind::IoError,
+                "couldn't write: {}",
+                path.as_ref().display()
+            )
+        })?;
+
+    Ok(())
+}
 
 /// Encrypted connection between peers in a Tendermint network
 pub struct SecretConnection<IoHandler: Read + Write + Send + Sync> {

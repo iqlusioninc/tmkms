@@ -1,15 +1,13 @@
 //! Validator configuration
 
 use crate::{
+    connection::secret_connection,
     error::{Error, ErrorKind::*},
     keyring::SecretKeyEncoding,
     prelude::*,
 };
 use serde::{Deserialize, Serialize};
-use signatory::{
-    ed25519,
-    encoding::{Decode, Encode},
-};
+use signatory::{ed25519, encoding::Decode};
 use std::path::PathBuf;
 use tendermint::{chain, net};
 
@@ -64,26 +62,21 @@ impl ValidatorConfig {
             )
         })?;
 
-        let seed = if secret_key_path.exists() {
-            ed25519::Seed::decode_from_file(secret_key_path, &SecretKeyEncoding::default())
-                .map_err(|e| {
-                    format_err!(
-                        ConfigError,
-                        "error loading Secret Connection key from {}: {}",
-                        secret_key_path.display(),
-                        e
-                    )
-                })?
-        } else {
-            let s = ed25519::Seed::generate();
-            s.encode_to_file(&secret_key_path, &SecretKeyEncoding::default())
-                .map_err(|_| {
-                    format_err!(IoError, "couldn't write: {}", secret_key_path.display())
-                })?;
-            s
-        };
+        if !secret_key_path.exists() {
+            secret_connection::generate_key(&secret_key_path)?;
+        }
 
-        Ok(seed)
+        ed25519::Seed::decode_from_file(secret_key_path, &SecretKeyEncoding::default()).map_err(
+            |e| {
+                format_err!(
+                    ConfigError,
+                    "error loading Secret Connection key from {}: {}",
+                    secret_key_path.display(),
+                    e
+                )
+                .into()
+            },
+        )
     }
 }
 

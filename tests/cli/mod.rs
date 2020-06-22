@@ -8,6 +8,8 @@ use std::{
 
 use super::KMS_EXE_PATH;
 
+mod init;
+
 #[cfg(feature = "yubihsm")]
 mod yubihsm;
 
@@ -22,6 +24,7 @@ where
 
 /// Run the `tmkms` CLI command with the expectation that it will exit successfully,
 /// panicking and printing stdout/stderr if it does not
+#[allow(dead_code)]
 pub fn run_successfully<I, S>(args: I) -> Output
 where
     I: IntoIterator<Item = S>,

@@ -1,0 +1,4 @@
+[[providers.softsign]]
+chain_ids = ["$CHAIN_ID"]
+key_type = "consensus"
+path = "$KMS_HOME/secrets/$CHAIN_ID-consensus.key"

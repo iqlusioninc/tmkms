@@ -26,7 +26,6 @@ pub struct Session {
 
 impl Session {
     /// Open a session using the given validator configuration
-    #[allow(clippy::cognitive_complexity)] // TODO(tarcieri): needs refactoring
     pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
         let connection: Box<dyn Connection> = match &config.addr {
             net::Address::Tcp {
