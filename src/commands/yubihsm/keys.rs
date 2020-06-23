@@ -26,18 +26,23 @@ pub const DEFAULT_WRAP_KEY: yubihsm::object::Id = 1;
 /// The `yubihsm keys` subcommand
 #[derive(Command, Debug, Options, Runnable)]
 pub enum KeysCommand {
+    /// `yubihsm keys export`
     #[options(help = "export an encrypted backup of a signing key inside the HSM device")]
     Export(ExportCommand),
 
+    /// `yubihsm keys generate`
     #[options(help = "generate an Ed25519 signing key inside the HSM device")]
     Generate(GenerateCommand),
 
+    /// `yubihsm keys help`
     #[options(help = "show help for the 'yubihsm keys' subcommand")]
     Help(Help<Self>),
 
+    /// `yubihsm keys import`
     #[options(help = "import validator signing key for the 'yubihsm keys' subcommand")]
     Import(ImportCommand),
 
+    /// `yubihsm keys list`
     #[options(help = "list all suitable Ed25519 keys in the HSM")]
     List(ListCommand),
 }

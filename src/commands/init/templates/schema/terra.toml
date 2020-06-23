@@ -1,0 +1,34 @@
+# Terra stablecoin project schema
+# <https://terra.money/>
+
+namespace = "core/StdTx"
+acc_prefix = "terra"
+val_prefix = "terravaloper"
+
+#
+# Oracle vote transactions
+# <https://docs.terra.money/dev/spec-oracle.html>
+#
+
+# MsgExchangeRatePrevote
+# <https://docs.terra.money/dev/spec-oracle.html#msgexchangerateprevote>
+[[definition]]
+type_name = "oracle/MsgExchangeRatePrevote"
+fields = [
+    { name = "hash",  type = "string" },
+    { name = "denom", type = "string" },
+    { name = "feeder", type = "sdk.AccAddress" },
+    { name = "validator", type = "sdk.ValAddress" },
+]
+
+# MsgExchangeRateVote
+# <https://docs.terra.money/dev/spec-oracle.html#msgexchangeratevote>
+[[definition]]
+type_name = "oracle/MsgExchangeRateVote"
+fields = [
+    { name = "exchange_rate", type = "sdk.Dec"},
+    { name = "salt", type = "string" },
+    { name = "denom", type = "string" },
+    { name = "feeder", type = "sdk.AccAddress" },
+    { name = "validator", type = "sdk.ValAddress" },
+]

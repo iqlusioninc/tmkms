@@ -1,6 +1,9 @@
 # Example KMS configuration file
 #
-# Copy this to 'tmkms.toml' and edit for your own purposes
+# This is just an example for reference. You can now use the following command
+# to generate a customizable configuration based on your preferences:
+#
+#     $ tmkms init [-n cosmoshub,irishub,...] /path/to/tmkms/homedir
 
 # Information about Tendermint blockchain networks this KMS services
 #

@@ -1,13 +1,14 @@
 //! Subcommands of the `tmkms` command-line application
 
+pub mod init;
 #[cfg(feature = "ledgertm")]
-mod ledger;
+pub mod ledger;
 #[cfg(feature = "softsign")]
-mod softsign;
-mod start;
-mod version;
+pub mod softsign;
+pub mod start;
+pub mod version;
 #[cfg(feature = "yubihsm")]
-mod yubihsm;
+pub mod yubihsm;
 
 #[cfg(feature = "ledgertm")]
 pub use self::ledger::LedgerCommand;
@@ -16,7 +17,8 @@ pub use self::softsign::SoftsignCommand;
 #[cfg(feature = "yubihsm")]
 pub use self::yubihsm::YubihsmCommand;
 
-pub use self::{start::StartCommand, version::VersionCommand};
+pub use self::{init::InitCommand, start::StartCommand, version::VersionCommand};
+
 use crate::config::{KmsConfig, CONFIG_ENV_VAR, CONFIG_FILE_NAME};
 use abscissa_core::{Command, Configurable, Help, Options, Runnable};
 use std::{env, path::PathBuf};
@@ -27,6 +29,10 @@ pub enum KmsCommand {
     /// `help` subcommand
     #[options(help = "show help for a command")]
     Help(Help<Self>),
+
+    /// `init` subcommand
+    #[options(help = "initialize KMS configuration")]
+    Init(InitCommand),
 
     /// `start` subcommand
     #[options(help = "start the KMS application")]

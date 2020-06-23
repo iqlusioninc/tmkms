@@ -131,10 +131,31 @@ cargo install tmkms --features=yubihsm --version=0.4.0
 
 Alternatively, substitute `--features=ledgertm` to enable Ledger support.
 
-## Usage
+## Configuration: `tmkms init`
 
-After compiling, start `tmkms` with the following:
+The `tmkms init` command can be used to generate a directory containing
+the configuration files needed to run the KMS. Run the following:
 
+```
+$ tmkms init /path/to/kms/home
+```
+
+This will output a `tmkms.toml` file, a `kms-identity.key` (used to authenticate
+the KMS to the validator), and create `secrets` and `state` subdirectories.
+
+Please look through `tmkms.toml` after it's generated, as various sections
+will require some customization.
+
+The `tmkms init` command also accepts a `-n` or `--networks` argument which can
+be used to specify certain well-known Tendermint chains to initialize:
+
+```
+$ tmkms init -n cosmoshub,irishub,columbus /path/to/kms/home
+```
+
+## Running: `tmkms start`
+
+After creading the configuration, start `tmkms` with the following:
 
 ```
 $ tmkms start
