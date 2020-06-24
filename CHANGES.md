@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.8.0-alpha2 (2020-06-22)
+## 0.8.0-rc0 (2020-06-23)
 
 This release adds initial support for [tendermint v0.33].
 
@@ -15,10 +15,12 @@ This release adds initial support for [tendermint v0.33].
 - Support both the Tendermint legacy and v0.33 secret connection handshake ([#58])
 
 ### Changed
+- Bump `prost-amino` to v0.6 ([#92])
 - Replace `atomicwrites` dependency with `tempfile` ([#62])
 - Refactor locking; add more debug locking ([#60])
 
 [tendermint v0.33]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v033
+[#92]: https://github.com/iqlusioninc/tmkms/pull/92
 [#89]: https://github.com/iqlusioninc/tmkms/pull/89
 [#86]: https://github.com/iqlusioninc/tmkms/pull/86
 [#78]: https://github.com/iqlusioninc/tmkms/pull/78
