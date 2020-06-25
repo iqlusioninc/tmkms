@@ -95,7 +95,7 @@ checksum = "4925647ee64e5056cf231608957ce7c81e12d6d6e316b9ce1404778cc1d35fa7"
 dependencies = [
  "block-cipher",
  "byteorder",
- "opaque-debug",
+ "opaque-debug 0.2.3",
 ]
 
 [[package]]
@@ -105,7 +105,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d050d39b0b7688b3a3254394c3e30a9d66c41dcf9b05b0e2dbdc623f6505d264"
 dependencies = [
  "block-cipher",
- "opaque-debug",
+ "opaque-debug 0.2.3",
 ]
 
 [[package]]
@@ -255,6 +255,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "block-buffer"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
+dependencies = [
+ "generic-array 0.14.2",
+]
+
+[[package]]
 name = "block-cipher"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -400,6 +409,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cpuid-bool"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d375c433320f6c5057ae04a04376eef4d04ce2801448cf8863a78da99107be4"
+
+[[package]]
 name = "crc32fast"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -516,7 +531,7 @@ dependencies = [
  "k256",
  "p256",
  "p384",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "signature",
 ]
 
@@ -857,7 +872,7 @@ dependencies = [
  "getrandom",
  "hmac",
  "lazy_static",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "zeroize",
 ]
 
@@ -1241,6 +1256,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
 
 [[package]]
+name = "opaque-debug"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
 name = "owning_ref"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1376,7 +1397,7 @@ dependencies = [
  "itertools",
  "proc-macro2",
  "quote",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "syn",
 ]
 
@@ -1516,7 +1537,7 @@ checksum = "7037e00ff78e861f53edd08ea4c4351fbf9b357145fdb791bc2f9a2236a33b45"
 dependencies = [
  "block-buffer 0.8.0",
  "digest 0.9.0",
- "opaque-debug",
+ "opaque-debug 0.2.3",
 ]
 
 [[package]]
@@ -1687,7 +1708,7 @@ dependencies = [
  "block-buffer 0.7.3",
  "digest 0.8.1",
  "fake-simd",
- "opaque-debug",
+ "opaque-debug 0.2.3",
 ]
 
 [[package]]
@@ -1699,19 +1720,20 @@ dependencies = [
  "block-buffer 0.7.3",
  "digest 0.8.1",
  "fake-simd",
- "opaque-debug",
+ "opaque-debug 0.2.3",
 ]
 
 [[package]]
 name = "sha2"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72377440080fd008550fe9b441e854e43318db116f90181eef92e9ae9aedab48"
+checksum = "2933378ddfeda7ea26f48c555bdad8bb446bf8a3d17832dc83e380d444cfb8c1"
 dependencies = [
- "block-buffer 0.8.0",
+ "block-buffer 0.9.0",
+ "cfg-if",
+ "cpuid-bool",
  "digest 0.9.0",
- "fake-simd",
- "opaque-debug",
+ "opaque-debug 0.3.0",
 ]
 
 [[package]]
@@ -1743,7 +1765,7 @@ dependencies = [
  "ecdsa",
  "ed25519",
  "getrandom",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "signature",
  "subtle-encoding",
  "zeroize",
@@ -1856,7 +1878,7 @@ dependencies = [
  "rust_decimal",
  "serde",
  "serde_json",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "subtle-encoding",
  "thiserror",
  "toml",
@@ -1975,7 +1997,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "serde_repr",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "signatory",
  "signatory-dalek",
  "signatory-secp256k1",
@@ -2099,7 +2121,7 @@ dependencies = [
  "secp256k1",
  "serde",
  "serde_json",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "signatory",
  "signatory-dalek",
  "signatory-ledger-tm",
@@ -2533,7 +2555,7 @@ dependencies = [
  "secp256k1",
  "serde",
  "serde_json",
- "sha2 0.9.0",
+ "sha2 0.9.1",
  "signatory",
  "signature",
  "subtle",
