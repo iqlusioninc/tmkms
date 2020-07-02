@@ -95,6 +95,17 @@ fn display_key_info(
     key: &yubihsm::object::Entry,
     key_formatters: &Map<u16, keyring::Format>,
 ) {
+    let key_info = hsm
+        .get_object_info(key.object_id, yubihsm::object::Type::AsymmetricKey)
+        .unwrap_or_else(|e| {
+            status_err!(
+                "couldn't get object info for asymmetric key #{}: {}",
+                key.object_id,
+                e
+            );
+            process::exit(1);
+        });
+
     let public_key = hsm.get_public_key(key.object_id).unwrap_or_else(|e| {
         status_err!(
             "couldn't get public key for asymmetric key #{}: {}",
@@ -142,4 +153,5 @@ fn display_key_info(
     };
 
     status_attr_ok!(key_id, "[{}] {}", key_type, key_serialized);
+    println!("   label: \"{}\"", &key_info.label);
 }
