@@ -202,8 +202,10 @@ Finally, confirm you see the key listed when you run
 ```
 $ tmkms yubihsm keys list
 Listing keys in YubiHSM #0001234567:
-- 0x0001: [cons] cosmosvalconspub1zcjduepqpxg30wtw7tlt750lhl3fdjfex6eq7tj3gfer3ugrzahd27srflhqv6ep6j
+- 0x0001: [cons] cosmosvalconspub...
+  [...]
 - 0x0123: [acct] terra13tdvxsauagu33glu74u93mdka7ahvm5a6yfr76
+   label: "columbus-3 oracle signer"
 ```
 
 If the newly generated account key is properly configured for the desired chain
