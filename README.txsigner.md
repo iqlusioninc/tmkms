@@ -58,13 +58,12 @@ cargo install tmkms --features=tx-signer,yubihsm
 
 ## Architecture
 
-![TODO: Diagram]()
+![Diagram](https://raw.githubusercontent.com/iqlusioninc/tmkms/develop/img/tx-signer.svg)
 
 Tendermint KMS polls a microservice you provide at an interval you specify to
 obtain transactions to be signed. After signing them, it automatically submits
 them to a Tendermint full node, meaning that the microservice generating the
-transactions need only handle constructing them, and the KMS service handles
-the rest.
+transactions need only handle constructing them, and the KMS handles the rest.
 
 The KMS initiates a "webhook"-style HTTP request to the Transaction Microservice
 at specified intervals (i.e. a block height interval), requesting a batch of
