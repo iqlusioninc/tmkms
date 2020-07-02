@@ -177,20 +177,11 @@ the following arguments:
 
 ```
 $ tmkms yubihsm keys generate -t account -l "columbus-3 oracle signer" -b columbus-oracle-key.enc 0x123
+   Generated account (secp256k1) key 0x0123
 ```
 
-If the operation succeeded, you should now see the key listed when you run
-`tmkms yubihsm keys list`, flagged as being an `[acct]` key:
-
-```
-$ tmkms yubihsm keys list
-Listing keys in YubiHSM #0001234567:
-- 0x0001: [cons] cosmosvalconspub1zcjduepqpxg30wtw7tlt750lhl3fdjfex6eq7tj3gfer3ugrzahd27srflhqv6ep6j
-- 0x0123: [acct] terra13tdvxsauagu33glu74u93mdka7ahvm5a6yfr76
-```
-
-Finally, add the generated key to your [`tmkms.toml`] config file's
-`[[providers.yubihsm]]` section (under `keys`):
+If that succeeded, you can now add the generated key to your [`tmkms.toml`]
+config file's `[[providers.yubihsm]]` section (under `keys`):
 
 ```toml
 [[providers.yubihsm]]
@@ -204,6 +195,21 @@ keys = [
 
 This will register the newly generated key as an account key on the provided
 chain IDs (i.e. `columbus-3` in this case)
+
+Finally, confirm you see the key listed when you run
+`tmkms yubihsm keys list`, flagged as being an `[acct]` key:
+
+```
+$ tmkms yubihsm keys list
+Listing keys in YubiHSM #0001234567:
+- 0x0001: [cons] cosmosvalconspub1zcjduepqpxg30wtw7tlt750lhl3fdjfex6eq7tj3gfer3ugrzahd27srflhqv6ep6j
+- 0x0123: [acct] terra13tdvxsauagu33glu74u93mdka7ahvm5a6yfr76
+```
+
+If the newly generated account key is properly configured for the desired chain
+the `list` command should display its Bech32-formatted account address. Make a
+note of this as you'll need to configure it as `[[tx_signer.account_address]]`
+(see below).
 
 ### `softsign`: creating account keys
 

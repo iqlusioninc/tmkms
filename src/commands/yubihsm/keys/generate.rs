@@ -1,7 +1,7 @@
 //! Generate a new key within the YubiHSM2
 
 use super::*;
-use crate::prelude::*;
+use crate::{config::provider::KeyType, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
 use chrono::{SecondsFormat, Utc};
 use std::{
@@ -59,12 +59,12 @@ pub struct GenerateCommand {
 
     /// Key ID to generate
     #[options(free, help = "key ID to generate")]
-    key_ids: Vec<u16>,
+    key_ids: Vec<String>,
 }
 
-impl Runnable for GenerateCommand {
-    /// Generate an Ed25519 signing key inside a YubiHSM2 device
-    fn run(&self) {
+impl GenerateCommand {
+    /// Parse the key ID provided in the arguments
+    pub fn parse_key_id(&self) -> u16 {
         if self.key_ids.len() != 1 {
             status_err!(
                 "expected exactly 1 key ID to generate, got {}",
@@ -73,17 +73,37 @@ impl Runnable for GenerateCommand {
             process::exit(1);
         }
 
-        let key_id = self.key_ids[0];
+        let key_id_str = &self.key_ids[0];
 
-        if let Some(key_type) = self.key_type.as_ref() {
-            if key_type != DEFAULT_KEY_TYPE {
-                status_err!(
-                    "only supported key type is: ed25519 (given: \"{}\")",
-                    key_type
-                );
+        if key_id_str.starts_with("0x") {
+            u16::from_str_radix(&key_id_str[2..], 16).ok()
+        } else {
+            key_id_str.parse().ok()
+        }
+        .unwrap_or_else(|| {
+            status_err!("couldn't parse key ID: {}", key_id_str);
+            process::exit(1);
+        })
+    }
+
+    /// Parse the key type provided in the arguments
+    pub fn parse_key_type(&self) -> KeyType {
+        match self.key_type.as_ref().map(AsRef::as_ref) {
+            Some("account") => KeyType::Account,
+            Some("consensus") | None => KeyType::Consensus, // default
+            Some(other) => {
+                status_err!("invalid key type: {}", other);
                 process::exit(1);
             }
         }
+    }
+}
+
+impl Runnable for GenerateCommand {
+    /// Generate an Ed25519 signing key inside a YubiHSM2 device
+    fn run(&self) {
+        let key_id = self.parse_key_id();
+        let key_type = self.parse_key_type();
 
         let hsm = crate::yubihsm::client();
         let mut capabilities = DEFAULT_CAPABILITIES;
@@ -99,39 +119,58 @@ impl Runnable for GenerateCommand {
                 Some(ref l) => l.to_owned(),
                 None => match self.bech32_prefix {
                     Some(ref prefix) => format!("{}:{}", prefix, timestamp),
-                    None => format!("ed25519:{}", timestamp),
+                    None => format!("{}:{}", key_type, timestamp),
                 },
             }
             .as_ref(),
         );
+
+        let algorithm = match key_type {
+            KeyType::Account => yubihsm::asymmetric::Algorithm::EcK256,
+            KeyType::Consensus => yubihsm::asymmetric::Algorithm::Ed25519,
+        };
 
         if let Err(e) = hsm.generate_asymmetric_key(
             key_id,
             label,
             DEFAULT_DOMAINS, // TODO(tarcieri): customize domains
             capabilities,
-            yubihsm::asymmetric::Algorithm::Ed25519,
+            algorithm,
         ) {
             status_err!("couldn't generate key #{}: {}", key_id, e);
             process::exit(1);
         }
 
-        let public_key = PublicKey::from_raw_ed25519(
-            hsm.get_public_key(key_id)
-                .unwrap_or_else(|e| {
-                    status_err!("couldn't get public key for key #{}: {}", key_id, e);
-                    process::exit(1);
-                })
-                .as_ref(),
-        )
-        .unwrap();
+        match key_type {
+            KeyType::Account => {
+                // TODO(tarcieri): generate and show account ID (fingerprint)
+                status_ok!("Generated", "account (secp256k1) key 0x{:04x}", key_id)
+            }
+            KeyType::Consensus => {
+                // TODO(tarcieri): use KeyFormat (when available) to format Bech32
+                let public_key = PublicKey::from_raw_ed25519(
+                    hsm.get_public_key(key_id)
+                        .unwrap_or_else(|e| {
+                            status_err!("couldn't get public key for key #{}: {}", key_id, e);
+                            process::exit(1);
+                        })
+                        .as_ref(),
+                )
+                .unwrap();
 
-        let public_key_string = match self.bech32_prefix {
-            Some(ref prefix) => public_key.to_bech32(prefix),
-            None => public_key.to_hex(),
-        };
+                let public_key_string = match self.bech32_prefix {
+                    Some(ref prefix) => public_key.to_bech32(prefix),
+                    None => public_key.to_hex(),
+                };
 
-        status_ok!("Generated", "key 0x{:04x}: {}", key_id, public_key_string);
+                status_ok!(
+                    "Generated",
+                    "consensus (ed25519) key 0x{:04x}: {}",
+                    key_id,
+                    public_key_string
+                )
+            }
+        }
 
         if let Some(ref backup_file) = self.backup_file {
             create_encrypted_backup(

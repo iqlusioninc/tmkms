@@ -11,9 +11,6 @@ use self::{
 use abscissa_core::{Command, Help, Options, Runnable};
 use std::path::PathBuf;
 
-/// Default key type to generate
-pub const DEFAULT_KEY_TYPE: &str = "ed25519";
-
 /// Default YubiHSM2 domain (internal partitioning)
 pub const DEFAULT_DOMAINS: yubihsm::Domain = yubihsm::Domain::DOM1;
 

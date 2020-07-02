@@ -13,7 +13,9 @@ use self::ledgertm::LedgerTendermintConfig;
 use self::softsign::SoftsignConfig;
 #[cfg(feature = "yubihsm")]
 use self::yubihsm::YubihsmConfig;
+
 use serde::Deserialize;
+use std::fmt;
 
 /// Provider configuration
 #[derive(Default, Deserialize, Debug)]
@@ -52,5 +54,14 @@ impl Default for KeyType {
     /// Backwards compat for existing configuration files
     fn default() -> Self {
         KeyType::Consensus
+    }
+}
+
+impl fmt::Display for KeyType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            KeyType::Account => f.write_str("account"),
+            KeyType::Consensus => f.write_str("consensus"),
+        }
     }
 }
