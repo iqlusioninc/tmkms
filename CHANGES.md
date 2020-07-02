@@ -4,22 +4,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.8.0-rc0 (2020-06-23)
+## 0.8.0 (2020-07-02)
 
 This release adds initial support for [tendermint v0.33].
 
 ### Added
+- yubihsm: show labels when listing keys ([#102])
+- yubihsm: add account key support to `yubihsm keys generate` ([#101])
+- Transaction Signer (`tx-signer`) documentation ([#98])
 - `tmkms init` subcommand ([#89])
 - Initial ECDSA support ([#76], [#86])
 - Transaction signer ([#78])
 - Support both the Tendermint legacy and v0.33 secret connection handshake ([#58])
 
 ### Changed
+- Minimum Supported Rust Version: 1.41.0
 - Bump `prost-amino` to v0.6 ([#92])
 - Replace `atomicwrites` dependency with `tempfile` ([#62])
 - Refactor locking; add more debug locking ([#60])
 
 [tendermint v0.33]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v033
+[#102]: https://github.com/iqlusioninc/tmkms/pull/102
+[#101]: https://github.com/iqlusioninc/tmkms/pull/101
+[#98]: https://github.com/iqlusioninc/tmkms/pull/98
 [#92]: https://github.com/iqlusioninc/tmkms/pull/92
 [#89]: https://github.com/iqlusioninc/tmkms/pull/89
 [#86]: https://github.com/iqlusioninc/tmkms/pull/86

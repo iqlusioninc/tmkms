@@ -1,6 +1,6 @@
 //! Tendermint Key Management System
 
-#![doc(html_root_url = "https://docs.rs/tmkms/0.8.0-rc0")]
+#![doc(html_root_url = "https://docs.rs/tmkms/0.8.0")]
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
 
