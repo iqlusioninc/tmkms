@@ -71,7 +71,7 @@ transactions to be signed, then submits them to a Tendermint Node for broadcast:
 
 1. Transaction Microservice generates batch of transactions to be signed, e.g.
    for an oracle service, making requests to several exchanges and computing
-   average price pairs, then producing a JSON document (presently Amino JSON)
+   average price pairs, then producing a JSON document (presently [Amino JSON])
    describing the transaction to be signed.
 2. KMS retrieves the batch of transactions to be signed from Transaction
    Microservice. If it's non-empty, it parses the JSON, checks it against
@@ -85,11 +85,11 @@ transactions to be signed, then submits them to a Tendermint Node for broadcast:
 
 ## Transaction JSON format
 
-The KMS is configured to poll a particular HTTP endpoint for a JSON-formatted
-response containing a batch of Amino JSON transactions.
-(NOTE: HTTPS support forthcoming)
+The KMS is configured to periodically poll a specified HTTP endpoint of a
+Transaction Microservice you provide (NOTE: [HTTPS support] forthcoming!)
 
-The request must be an **HTTP POST**.
+The KMS will send an **HTTP POST** to the configured HTTP endpoint. It expects
+to receive a batch of [Amino JSON]-encoded transactions to be signed.
 
 Below is an example of the (tentative!) JSON format:
 
@@ -165,6 +165,7 @@ own internal random number generator), run the following command:
 
 ```
 $ tmkms yubihsm keys generate -t account -l "columbus-3 oracle signer" 0x123
+   Generated account (secp256k1) key 0x0123
 ```
 
 This will generate a new account key (secp256k1) with the label
@@ -177,7 +178,6 @@ the following arguments:
 
 ```
 $ tmkms yubihsm keys generate -t account -l "columbus-3 oracle signer" -b columbus-oracle-key.enc 0x123
-   Generated account (secp256k1) key 0x0123
 ```
 
 If that succeeded, you can now add the generated key to your [`tmkms.toml`]
@@ -469,6 +469,8 @@ interacting with and make sure it achieved the desired outcome.
 [Protobuf]: https://github.com/iqlusioninc/crates/issues/459
 [secp256k1]: https://en.bitcoin.it/wiki/Secp256k1
 [ECDSA]: https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
+[Amino JSON]: https://docs.tendermint.com/master/spec/blockchain/encoding.html#json
+[HTTPS support]: https://github.com/iqlusioninc/tmkms/issues/107
 [`tmkms.toml`]: https://github.com/iqlusioninc/tmkms/blob/develop/tmkms.toml.example
 [Cosmos Send Tokens]: https://hub.cosmos.network/master/resources/gaiacli.html#send-tokens
 [Terra Oracle]: https://docs.terra.money/dev/spec-oracle.html#message-types
