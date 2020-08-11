@@ -397,6 +397,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "const-oid"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2d9162b7289a46e86208d6af2c686ca5bfde445878c41a458a9fac706252d0b"
+
+[[package]]
 name = "cpuid-bool"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -515,8 +521,8 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb6ba8a681d3a9c48875d277f2b11c81934ad690a60a20bcc4eef500ff68e25d"
 dependencies = [
- "elliptic-curve",
- "k256",
+ "elliptic-curve 0.4.0",
+ "k256 0.3.0",
  "p256",
  "p384",
  "sha2 0.9.1",
@@ -561,6 +567,17 @@ dependencies = [
  "getrandom",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "elliptic-curve"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9abe4578ed343c7a2c9d617cd2b1895ba0a87a6a4dee97bde156d65f608c7b2d"
+dependencies = [
+ "const-oid",
+ "generic-array 0.14.2",
+ "subtle",
 ]
 
 [[package]]
@@ -1009,8 +1026,17 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c34f5cb67f9625a99c159fc0776e75d2e37f988cdf31c115e9c25225e61d858c"
 dependencies = [
- "elliptic-curve",
- "subtle",
+ "elliptic-curve 0.4.0",
+]
+
+[[package]]
+name = "k256"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5581546e3e82b0a04a3f39e7db75ca520a72131cc041931cbf7b16307325e6e7"
+dependencies = [
+ "cfg-if",
+ "elliptic-curve 0.5.0",
 ]
 
 [[package]]
@@ -1264,7 +1290,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a425ecb71515663b2735fd1e65bb638fd134c5ad23857eb197c2f157784476cf"
 dependencies = [
- "elliptic-curve",
+ "elliptic-curve 0.4.0",
 ]
 
 [[package]]
@@ -1273,7 +1299,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ae962014118ae1621d13f011e14902223013b1b4151922c3a682a233a967ddb"
 dependencies = [
- "elliptic-curve",
+ "elliptic-curve 0.4.0",
 ]
 
 [[package]]
@@ -2099,7 +2125,7 @@ dependencies = [
  "hkd32",
  "hkdf",
  "hyper",
- "k256",
+ "k256 0.4.1",
  "merlin",
  "once_cell",
  "prost-amino",
