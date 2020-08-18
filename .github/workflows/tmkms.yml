@@ -52,7 +52,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - 1.41.0
+          - 1.43.0
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -97,7 +97,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - 1.41.0
+          - 1.43.0
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
