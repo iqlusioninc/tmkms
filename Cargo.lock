@@ -1998,10 +1998,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "tendermint-rpc"
-version = "0.14.0"
+name = "tendermint"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e00ce8b37ce16abab8f5cb65bfa01c43db340f166b6288d73c44790fc51e8139"
+checksum = "3b3920b9773738bcd15ed4c9088faa0e73671f9b93ba538f04909e893e571725"
+dependencies = [
+ "anomaly",
+ "async-trait",
+ "bytes",
+ "chrono",
+ "futures",
+ "once_cell",
+ "prost-amino",
+ "prost-amino-derive",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "serde_repr",
+ "sha2 0.9.1",
+ "signatory",
+ "signatory-dalek",
+ "subtle",
+ "subtle-encoding",
+ "tai64",
+ "thiserror",
+ "toml",
+ "zeroize",
+]
+
+[[package]]
+name = "tendermint-rpc"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ee992790a74bf6c83150ca8ff4a060a5db5e0166bf3bc4b6361fb88ae174961"
 dependencies = [
  "async-tungstenite",
  "bytes",
@@ -2012,7 +2041,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "tendermint",
+ "tendermint 0.15.0",
  "thiserror",
  "tokio",
  "uuid",
@@ -2118,7 +2147,7 @@ dependencies = [
  "subtle",
  "subtle-encoding",
  "tempfile",
- "tendermint",
+ "tendermint 0.14.1",
  "tendermint-rpc",
  "thiserror",
  "wait-timeout",
