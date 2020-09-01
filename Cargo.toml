@@ -44,7 +44,7 @@ tendermint = { version = "0.15.0", features = ["secp256k1"] }
 tendermint-rpc = { version = "0.15.0", optional = true, features = ["client"] }
 thiserror = "1"
 wait-timeout = "0.2"
-x25519-dalek = "1.0"
+x25519-dalek = "1.1"
 yubihsm = { version = "0.34", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 
