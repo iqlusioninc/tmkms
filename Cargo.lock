@@ -1553,7 +1553,16 @@ version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2932dc07acd2066ff2e3921a4419606b220ba6cd03a9935123856cc534877056"
 dependencies = [
- "secp256k1-sys",
+ "secp256k1-sys 0.1.2",
+]
+
+[[package]]
+name = "secp256k1"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6179428c22c73ac0fbb7b5579a56353ce78ba29759b3b8575183336ea74cdfb"
+dependencies = [
+ "secp256k1-sys 0.3.0",
 ]
 
 [[package]]
@@ -1561,6 +1570,15 @@ name = "secp256k1-sys"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ab2c26f0d3552a0f12e639ae8a64afc2e3db9c52fe32f5fc6c289d38519f220"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11553d210db090930f4432bea123b31f70bbf693ace14504ea2a35e796c28dd2"
 dependencies = [
  "cc",
 ]
@@ -1742,7 +1760,7 @@ version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02a50b18b66b81b859f8ee57b0e85658e1777fe2683ac37b7e756380f0a28f6e"
 dependencies = [
- "secp256k1",
+ "secp256k1 0.17.2",
  "signatory",
  "signature",
 ]
@@ -2062,7 +2080,7 @@ dependencies = [
  "prost-amino-derive",
  "rand",
  "rpassword",
- "secp256k1",
+ "secp256k1 0.19.0",
  "serde",
  "serde_json",
  "sha2 0.9.1",
@@ -2503,7 +2521,7 @@ dependencies = [
  "pbkdf2",
  "ring",
  "rusb",
- "secp256k1",
+ "secp256k1 0.17.2",
  "serde",
  "serde_json",
  "sha2 0.9.1",
