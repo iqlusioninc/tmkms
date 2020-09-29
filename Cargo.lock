@@ -1725,6 +1725,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "signatory-dalek"
+version = "0.99.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b29993a932f3c05a28297eee3216c459119594410e6b0a7c771552e1e22fa85e"
+
+[[package]]
 name = "signatory-ledger-tm"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1942,7 +1948,7 @@ dependencies = [
  "serde_repr",
  "sha2 0.9.1",
  "signatory",
- "signatory-dalek",
+ "signatory-dalek 0.20.0",
  "signatory-secp256k1",
  "subtle",
  "subtle-encoding",
@@ -2067,7 +2073,7 @@ dependencies = [
  "serde_json",
  "sha2 0.9.1",
  "signatory",
- "signatory-dalek",
+ "signatory-dalek 0.99.0",
  "signatory-ledger-tm",
  "signatory-secp256k1",
  "stdtx",
