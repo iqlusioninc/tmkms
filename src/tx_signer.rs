@@ -319,6 +319,12 @@ impl TxSigner {
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
 
+        debug!(
+            "[{}] broadcasting TX: {:X?}",
+            self.chain_id,
+            amino_tx.as_ref()
+        );
+
         let response = self.rpc_client.broadcast_tx_sync(amino_tx).await?;
 
         if response.code.is_ok() {
