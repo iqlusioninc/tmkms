@@ -19,6 +19,7 @@ use abscissa_tokio::tokio;
 use sequence_file::SequenceFile;
 use std::{collections::BTreeSet as Set, process};
 use stdtx::{StdSignature, StdTx};
+use subtle_encoding::hex;
 use tokio::time;
 
 /// Frequency at which to retry after failures
@@ -325,17 +326,20 @@ impl TxSigner {
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
 
-        debug!(
-            "[{}] broadcasting TX: {:X?}",
+        let amino_tx_hex =
+            String::from_utf8(hex::encode(amino_tx.as_ref())).expect("hex should always be UTF-8");
+
+        info!(
+            "[{}] broadcasting TX: {}",
             self.chain_id,
-            amino_tx.as_ref()
+            amino_tx_hex.to_ascii_uppercase()
         );
 
         let response = self.rpc_client.broadcast_tx_sync(amino_tx).await?;
 
         if response.code.is_ok() {
             info!(
-                "[{}] broadcast TX {}: {}",
+                "[{}] successfully broadcast TX {} (hash: {})",
                 self.chain_id,
                 self.seq_file.sequence(),
                 response.hash
