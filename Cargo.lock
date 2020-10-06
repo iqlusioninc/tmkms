@@ -1831,9 +1831,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stdtx"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "548792c82d2a3485b7fda4bf8d8fbed0a6d7814f37bde6903cd6dfe45ab92255"
+checksum = "3c8a097cf3e175aa2061644b249c6af55c3926bb562b5c293d3b8ffc13e2dc4b"
 dependencies = [
  "anomaly",
  "base64 0.13.0",
