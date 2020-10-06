@@ -216,12 +216,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 
 [[package]]
-name = "base64"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
-
-[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1831,12 +1825,11 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stdtx"
-version = "0.2.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "548792c82d2a3485b7fda4bf8d8fbed0a6d7814f37bde6903cd6dfe45ab92255"
+checksum = "ac38856c3a6c9b0d4107b51409e97879e3e3d6fd6519c22637322de5224820d0"
 dependencies = [
  "anomaly",
- "base64 0.13.0",
  "ecdsa",
  "prost-amino",
  "prost-amino-derive",
@@ -2230,7 +2223,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfea31758bf674f990918962e8e5f07071a3161bd7c4138ed23e416e1ac4264e"
 dependencies = [
- "base64 0.11.0",
+ "base64",
  "byteorder",
  "bytes",
  "http",

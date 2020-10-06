@@ -36,7 +36,7 @@ signatory = { version = "0.20", features = ["ecdsa", "ed25519", "encoding"] }
 signatory-dalek = "0.20"
 signatory-secp256k1 = { version = "0.20", optional = true }
 signatory-ledger-tm = { version = "0.20", optional = true }
-stdtx = { version = "0.2", optional = true }
+stdtx = { version = "0.2.4", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
