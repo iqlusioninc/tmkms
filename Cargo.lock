@@ -554,7 +554,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2298f66754d859f4c099b0e645cfd258d2dfdfd1bac9496fd514d603ff6a5c6b"
 dependencies = [
  "generic-array 0.14.4",
- "getrandom",
+ "getrandom 0.1.15",
  "subtle",
  "zeroize",
 ]
@@ -756,6 +756,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "getrandom"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee8025cf36f917e6a52cce185b7c7177689b838b7ec138364e50cc2277a56cf4"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "wasi 0.9.0+wasi-snapshot-preview1",
+]
+
+[[package]]
 name = "gimli"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -846,7 +857,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0124735b175a890d1fb749bad117f2d6474ea5c20dfdfdc3a93ab8c10c192d36"
 dependencies = [
- "getrandom",
+ "getrandom 0.1.15",
  "hmac",
  "lazy_static",
  "sha2 0.9.1",
@@ -1402,7 +1413,7 @@ version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
 dependencies = [
- "getrandom",
+ "getrandom 0.1.15",
  "libc",
  "rand_chacha",
  "rand_core 0.5.1",
@@ -1440,7 +1451,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90bde5296fc891b0cef12a6d03ddccc162ce7b2aff54160af9338f8d40df6d19"
 dependencies = [
- "getrandom",
+ "getrandom 0.1.15",
 ]
 
 [[package]]
@@ -1728,7 +1739,7 @@ checksum = "7c20cbcf205bedce2ce5944ab41dd2e10b1dcee2831a0a2a071806761ed6eaba"
 dependencies = [
  "ecdsa",
  "ed25519",
- "getrandom",
+ "getrandom 0.1.15",
  "sha2 0.9.1",
  "signature",
  "subtle-encoding",
@@ -1977,7 +1988,7 @@ dependencies = [
  "async-tungstenite",
  "bytes",
  "futures",
- "getrandom",
+ "getrandom 0.1.15",
  "http",
  "hyper",
  "serde",
@@ -2066,7 +2077,7 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "chrono",
- "getrandom",
+ "getrandom 0.2.0",
  "gumdrop",
  "hkd32",
  "hkdf",
@@ -2513,7 +2524,7 @@ dependencies = [
  "block-modes",
  "chrono",
  "cmac",
- "getrandom",
+ "getrandom 0.1.15",
  "harp",
  "hmac",
  "log",
