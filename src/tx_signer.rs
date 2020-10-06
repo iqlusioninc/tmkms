@@ -288,8 +288,14 @@ impl TxSigner {
 
         let account_id = tendermint::account::Id::new(self.address.0);
 
-        let signature =
+        let mut signature =
             StdSignature::from(chain.keyring.sign_ecdsa(account_id, sign_msg.as_bytes())?);
+
+        signature.pub_key = chain
+            .keyring
+            .get_account_pubkey(account_id)
+            .expect("missing account key")
+            .as_bytes();
 
         let msg_type_info = msg_types
             .iter()

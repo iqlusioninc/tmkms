@@ -115,6 +115,19 @@ impl KeyRing {
         }
     }
 
+    /// Get ECDSA public key bytes for a given account ID
+    pub fn get_account_pubkey(&self, account_id: account::Id) -> Option<tendermint::PublicKey> {
+        for key in self.ecdsa_keys.keys() {
+            if let TendermintKey::AccountKey(pk) = key {
+                if account_id == account::Id::from(*pk) {
+                    return Some(*pk);
+                }
+            }
+        }
+
+        None
+    }
+
     /// Sign a message using ECDSA
     pub fn sign_ecdsa(
         &self,
