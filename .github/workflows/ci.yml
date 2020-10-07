@@ -1,6 +1,4 @@
-# Based on https://github.com/actions-rs/meta/blob/master/recipes/quickstart.md
-
-name: tmkms
+name: CI
 
 on:
   pull_request: {}
