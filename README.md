@@ -226,7 +226,7 @@ limitations under the License.
 
 [crate-image]: https://img.shields.io/crates/v/tmkms.svg
 [crate-link]: https://crates.io/crates/tmkms
-[build-image]: https://github.com/iqlusioninc/tmkms/workflows/Rust/badge.svg?branch=develop&event=push
+[build-image]: https://github.com/iqlusioninc/tmkms/workflows/CI/badge.svg?branch=develop&event=push
 [build-link]: https://github.com/iqlusioninc/tmkms/actions
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/iqlusioninc/tmkms/blob/develop/LICENSE
