@@ -64,14 +64,14 @@ pub struct SecretConnection<IoHandler: Read + Write + Send + Sync> {
     send_nonce: Nonce,
     recv_cipher: ChaCha20Poly1305,
     send_cipher: ChaCha20Poly1305,
-    remote_pubkey: PublicKey,
+    remote_pubkey: Option<PublicKey>,
     recv_buffer: Vec<u8>,
 }
 
 impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     /// Returns authenticated remote pubkey
     pub fn remote_pubkey(&self) -> PublicKey {
-        self.remote_pubkey
+        self.remote_pubkey.expect("remote_pubkey uninitialized")
     }
 
     /// Performs handshake and returns a new authenticated SecretConnection.
@@ -128,10 +128,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             send_nonce: Nonce::default(),
             recv_cipher: ChaCha20Poly1305::new(&kdf.recv_secret.into()),
             send_cipher: ChaCha20Poly1305::new(&kdf.send_secret.into()),
-            remote_pubkey: PublicKey::from(
-                ed25519::PublicKey::from_bytes(remote_eph_pubkey.as_bytes())
-                    .ok_or_else(|| ErrorKind::CryptoError)?,
-            ),
+            remote_pubkey: None,
         };
 
         let mut sc_mac: [u8; 32] = [0; 32];
@@ -154,9 +151,9 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
 
         let remote_pubkey = ed25519::PublicKey::from_bytes(&auth_sig_msg.key)
             .ok_or_else(|| ErrorKind::CryptoError)?;
-        let remote_signature: &[u8] = &auth_sig_msg.sig;
-        let remote_sig =
-            ed25519::Signature::from_bytes(remote_signature).map_err(|_| ErrorKind::CryptoError)?;
+
+        let remote_sig = ed25519::Signature::from_bytes(auth_sig_msg.sig.as_slice())
+            .map_err(|_| ErrorKind::CryptoError)?;
 
         if v0_33_handshake {
             Ed25519Verifier::from(&remote_pubkey)
@@ -167,8 +164,9 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
                 .verify(&kdf.challenge, &remote_sig)
                 .map_err(|_| ErrorKind::CryptoError)?;
         }
+
         // We've authorized.
-        sc.remote_pubkey = PublicKey::from(remote_pubkey);
+        sc.remote_pubkey = Some(remote_pubkey.into());
 
         Ok(sc)
     }
