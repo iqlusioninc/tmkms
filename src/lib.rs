@@ -17,6 +17,7 @@ pub mod commands;
 pub mod config;
 pub mod connection;
 pub mod error;
+pub mod key_utils;
 pub mod keyring;
 pub mod prelude;
 pub mod rpc;

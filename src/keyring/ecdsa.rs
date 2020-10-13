@@ -1,6 +1,6 @@
 //! ECDSA keys
 
-pub use signatory::ecdsa::curve::secp256k1::{FixedSignature as Signature, PublicKey};
+pub use k256::{ecdsa::Signature, EncodedPoint as PublicKey};
 
 use crate::{
     error::{Error, ErrorKind::*},

@@ -1,10 +1,9 @@
 //! Create encrypted backups of YubiHSM2 keys
 
 use super::*;
-use crate::prelude::*;
+use crate::{key_utils, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
-use std::{fs::OpenOptions, io::Write, os::unix::fs::OpenOptionsExt, path::PathBuf, process};
-use subtle_encoding::base64;
+use std::{path::PathBuf, process};
 
 /// The `yubihsm keys export` subcommand: create encrypted backups of keys
 #[derive(Command, Debug, Default, Options)]
@@ -50,23 +49,10 @@ impl Runnable for ExportCommand {
                 process::exit(1);
             });
 
-        let mut export_file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .mode(0o600)
-            .open(&self.path)
-            .unwrap_or_else(|e| {
-                status_err!("couldn't export to {} ({})", &self.path.display(), e);
-                process::exit(1);
-            });
-
-        export_file
-            .write_all(&base64::encode(&wrapped_bytes.into_vec()))
-            .unwrap_or_else(|e| {
-                status_err!("error exporting {}: {}", &self.path.display(), e);
-                process::exit(1);
-            });
+        key_utils::write_base64_secret(&self.path, &wrapped_bytes.into_vec()).unwrap_or_else(|e| {
+            status_err!("{}", e);
+            process::exit(1);
+        });
 
         status_ok!(
             "Exported",

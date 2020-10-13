@@ -1,7 +1,7 @@
 //! Secret Connection peer public keys
 
+use ed25519_dalek as ed25519;
 use sha2::{digest::Digest, Sha256};
-use signatory::ed25519;
 use std::fmt::{self, Display};
 use tendermint::{
     error::{self, Error},
@@ -9,18 +9,18 @@ use tendermint::{
 };
 
 /// Secret Connection peer public keys (signing, presently Ed25519-only)
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PublicKey {
-    /// Ed25519 Secret Connection keys
+    /// Ed25519 Secret Connection Keys
     Ed25519(ed25519::PublicKey),
 }
 
 impl PublicKey {
     /// From raw Ed25519 public key bytes
     pub fn from_raw_ed25519(bytes: &[u8]) -> Result<PublicKey, Error> {
-        Ok(PublicKey::Ed25519(
-            ed25519::PublicKey::from_bytes(bytes).ok_or_else(|| error::Kind::Crypto)?,
-        ))
+        ed25519::PublicKey::from_bytes(bytes)
+            .map(PublicKey::Ed25519)
+            .map_err(|_| error::Kind::Crypto.into())
     }
 
     /// Get Ed25519 public key
@@ -47,6 +47,12 @@ impl PublicKey {
 impl Display for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.peer_id())
+    }
+}
+
+impl From<&ed25519::Keypair> for PublicKey {
+    fn from(sk: &ed25519::Keypair) -> PublicKey {
+        PublicKey::Ed25519(sk.public)
     }
 }
 

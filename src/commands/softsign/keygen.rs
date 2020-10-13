@@ -1,12 +1,11 @@
 //! `tmkms softsign keygen` subcommand
 
-use crate::{keyring::SecretKeyEncoding, prelude::*};
+use crate::{key_utils, keyring::SecretKeyEncoding, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
-use rand::{rngs::OsRng, RngCore};
+use k256::ecdsa;
+use rand_core::OsRng;
 use signatory::{ed25519, encoding::Encode};
-use std::{fs::OpenOptions, io::Write, os::unix::fs::OpenOptionsExt};
 use std::{path::PathBuf, process};
-use zeroize::Zeroize;
 
 /// Default type of key to generate
 pub const DEFAULT_KEY_TYPE: &str = "consensus";
@@ -56,38 +55,12 @@ impl Runnable for KeygenCommand {
 
 /// Randomly generate a Base64-encoded secp256k1 key and store it at the given path
 fn generate_secp256k1_key(output_path: &PathBuf) {
-    // This method may look gross but it is in fact the same method
-    // used by the upstream `secp256k1` crate's `rand` feature.
-    // We don't use that because it's using the outdated `rand` v0.6
-    let mut bytes = [0u8; 32];
+    let signing_key = ecdsa::SigningKey::random(&mut OsRng);
 
-    loop {
-        OsRng.fill_bytes(&mut bytes);
-        if secp256k1::key::SecretKey::from_slice(&bytes).is_ok() {
-            break;
-        }
-    }
-
-    let mut file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .mode(0o600)
-        .open(output_path)
-        .unwrap_or_else(|e| {
-            status_err!("couldn't open `{}`: {}", output_path.display(), e);
-            process::exit(1);
-        });
-
-    let mut encoded = subtle_encoding::base64::encode(&bytes);
-    bytes.zeroize();
-
-    file.write_all(&encoded).unwrap_or_else(|e| {
-        status_err!("couldn't write to `{}`: {}", output_path.display(), e);
+    key_utils::write_base64_secret(output_path, &signing_key.to_bytes()).unwrap_or_else(|e| {
+        status_err!("{}", e);
         process::exit(1);
     });
-
-    encoded.zeroize();
 
     status_ok!(
         "Generated",

@@ -121,16 +121,14 @@ fn display_key_info(
         yubihsm::asymmetric::Algorithm::EcK256 => {
             // The YubiHSM2 returns the uncompressed public key, so for
             // compatibility with Tendermint, we have to compress it first
-            let uncompressed_pubkey =
-                k256::PublicKey::from_untagged_point(GenericArray::from_slice(public_key.as_ref()));
+            let compressed_pubkey = k256::EncodedPoint::from_untagged_bytes(
+                GenericArray::from_slice(public_key.as_ref()),
+            )
+            .compress();
 
-            let compressed_point = k256::arithmetic::AffinePoint::from_pubkey(&uncompressed_pubkey)
-                .unwrap()
-                .to_compressed_pubkey();
-
-            let compressed_pubkey =
-                PublicKey::from_raw_secp256k1(compressed_point.as_bytes()).unwrap();
-            TendermintKey::AccountKey(compressed_pubkey)
+            TendermintKey::AccountKey(
+                PublicKey::from_raw_secp256k1(compressed_pubkey.as_ref()).unwrap(),
+            )
         }
         yubihsm::asymmetric::Algorithm::Ed25519 => {
             let pk = PublicKey::from_raw_ed25519(public_key.as_ref()).unwrap();
