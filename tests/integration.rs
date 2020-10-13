@@ -2,16 +2,11 @@
 
 use abscissa_core::prelude::warn;
 use chrono::{DateTime, Utc};
+use ed25519_dalek::{self as ed25519, Verifier};
 use prost_amino::Message;
 use rand::Rng;
-use signatory::{
-    ed25519,
-    encoding::Decode,
-    public_key::PublicKeyed,
-    signature::{Signature, Verifier},
-};
-use signatory_dalek::{Ed25519Signer, Ed25519Verifier};
 use std::{
+    convert::TryFrom,
     fs,
     io::{self, Cursor, Read, Write},
     net::{TcpListener, TcpStream},
@@ -20,12 +15,9 @@ use std::{
 };
 use tempfile::NamedTempFile;
 use tendermint::amino_types::{self, *};
-use tmkms::{
-    connection::{
-        secret_connection::{self, SecretConnection},
-        unix::UnixConnection,
-    },
-    keyring::SecretKeyEncoding,
+use tmkms::connection::{
+    secret_connection::{self, SecretConnection},
+    unix::UnixConnection,
 };
 
 /// Integration tests for the KMS command-line interface
@@ -133,7 +125,7 @@ impl KmsProcess {
     /// Create a config file for a TCP KMS and return its path
     fn create_tcp_config(port: u16) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
-        let (pub_key, _) = test_key();
+        let pub_key = test_ed25519_keypair().public;
         let peer_id = secret_connection::PublicKey::from(pub_key).peer_id();
 
         writeln!(
@@ -195,14 +187,13 @@ impl KmsProcess {
         match self.socket {
             KmsSocket::TCP(ref sock) => {
                 // we use the same key for both sides:
-                let (_, signer) = test_key();
+                let identity_keypair = test_ed25519_keypair();
 
                 // Here we reply to the kms with a "remote" ephermal key, auth signature etc:
                 let socket_cp = sock.try_clone().unwrap();
-                let public_key = secret_connection::PublicKey::from(signer.public_key().unwrap());
 
                 KmsConnection::Tcp(
-                    SecretConnection::new(socket_cp, &public_key, &signer, false).unwrap(),
+                    SecretConnection::new(socket_cp, &identity_keypair, false).unwrap(),
                 )
             }
 
@@ -289,12 +280,9 @@ impl io::Read for ProtocolTester {
     }
 }
 
-/// Get the public key associated with the testing private key
-fn test_key() -> (ed25519::PublicKey, Ed25519Signer) {
-    let seed =
-        ed25519::Seed::decode_from_file(SIGNING_KEY_PATH, &SecretKeyEncoding::default()).unwrap();
-    let signer = Ed25519Signer::from(&seed);
-    (signer.public_key().unwrap(), signer)
+/// Get the Ed25519 signing keypair used by the tests
+fn test_ed25519_keypair() -> ed25519::Keypair {
+    tmkms::key_utils::load_base64_ed25519_key(SIGNING_KEY_PATH).unwrap()
 }
 
 /// Extract the actual length of an amino message
@@ -310,7 +298,7 @@ pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
 #[test]
 fn test_handle_and_sign_proposal() {
     let chain_id = "test_chain_id";
-    let (pub_key, _) = test_key();
+    let pub_key = test_ed25519_keypair().public;
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
     let t = TimeMsg {
@@ -353,18 +341,18 @@ fn test_handle_and_sign_proposal() {
         let prop: amino_types::proposal::Proposal = p_req
             .proposal
             .expect("proposal should be embedded but none was found");
-        let verifier = Ed25519Verifier::from(&pub_key);
-        let signature = ed25519::Signature::from_bytes(&prop.signature).unwrap();
+
+        let signature = ed25519::Signature::try_from(prop.signature.as_slice()).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
-        verifier.verify(msg, &signature).unwrap();
+        assert!(pub_key.verify(msg, &signature).is_ok());
     });
 }
 
 #[test]
 fn test_handle_and_sign_vote() {
     let chain_id = "test_chain_id";
-    let (pub_key, _) = test_key();
+    let pub_key = test_ed25519_keypair().public;
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
     let t = TimeMsg {
@@ -419,11 +407,10 @@ fn test_handle_and_sign_vote() {
         let sig: Vec<u8> = vote_msg.signature;
         assert_ne!(sig.len(), 0);
 
-        let verifier = Ed25519Verifier::from(&pub_key);
-        let signature = ed25519::Signature::from_bytes(&sig).unwrap();
+        let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
-        verifier.verify(msg, &signature).unwrap();
+        assert!(pub_key.verify(msg, &signature).is_ok());
     });
 }
 
@@ -431,7 +418,7 @@ fn test_handle_and_sign_vote() {
 #[should_panic]
 fn test_exceed_max_height() {
     let chain_id = "test_chain_id";
-    let (pub_key, _) = test_key();
+    let pub_key = test_ed25519_keypair().public;
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
     let t = TimeMsg {
@@ -486,11 +473,10 @@ fn test_exceed_max_height() {
         let sig: Vec<u8> = vote_msg.signature;
         assert_ne!(sig.len(), 0);
 
-        let verifier = Ed25519Verifier::from(&pub_key);
-        let signature = ed25519::Signature::from_bytes(&sig).unwrap();
+        let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
-        verifier.verify(msg, &signature).unwrap();
+        assert!(pub_key.verify(msg, &signature).is_ok());
     });
 }
 

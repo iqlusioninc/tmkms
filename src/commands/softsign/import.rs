@@ -1,8 +1,7 @@
 //! `tmkms softsign import` command
 
-use crate::{config::provider::softsign::KeyFormat, keyring::SecretKeyEncoding, prelude::*};
+use crate::{config::provider::softsign::KeyFormat, key_utils, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
-use signatory::{ed25519, encoding::Encode};
 use std::{path::PathBuf, process};
 use tendermint::{config::PrivValidatorKey, PrivateKey};
 
@@ -43,33 +42,29 @@ impl Runnable for ImportCommand {
             })
             .unwrap_or(KeyFormat::Json);
 
-        let seed = match format {
-            KeyFormat::Json => {
-                let private_key = PrivValidatorKey::load_json_file(input_path)
-                    .unwrap_or_else(|e| {
-                        status_err!("couldn't load {}: {}", input_path.display(), e);
-                        process::exit(1);
-                    })
-                    .priv_key;
+        if format != KeyFormat::Json {
+            status_err!("invalid format: {:?} (must be 'json')", format);
+            process::exit(1);
+        }
 
-                match private_key {
-                    PrivateKey::Ed25519(pk) => {
-                        // TODO(tarcieri): upgrade Signatory version
-                        ed25519::Seed::from_bytes(pk.to_seed().as_secret_slice()).unwrap()
-                    }
-                }
-            }
-            KeyFormat::Base64 => {
-                status_err!("invalid format: baes64 (must be 'json' or 'raw')");
-                process::exit(1);
-            }
-        };
-
-        seed.encode_to_file(output_path, &SecretKeyEncoding::default())
+        let private_key = PrivValidatorKey::load_json_file(input_path)
             .unwrap_or_else(|e| {
-                status_err!("couldn't write to {}: {}", output_path.display(), e);
+                status_err!("couldn't load {}: {}", input_path.display(), e);
                 process::exit(1);
-            });
+            })
+            .priv_key;
+
+        match private_key {
+            PrivateKey::Ed25519(pk) => {
+                key_utils::write_base64_secret(output_path, pk.secret.as_bytes()).unwrap_or_else(
+                    |e| {
+                        status_err!("{}", e);
+                        process::exit(1);
+                    },
+                );
+            }
+            _ => unreachable!("unsupported priv_validator.json algorithm"),
+        }
 
         info!("Imported Ed25519 private key to {}", output_path.display());
     }

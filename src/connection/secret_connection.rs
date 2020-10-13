@@ -8,31 +8,27 @@ mod public_key;
 pub use self::{amino_types::AuthSigMessage, kdf::Kdf, nonce::Nonce, public_key::PublicKey};
 use crate::{
     error::{Error, ErrorKind},
-    keyring::SecretKeyEncoding,
-    prelude::*,
+    key_utils,
 };
 use bytes::BufMut;
 use chacha20poly1305::{
     aead::{generic_array::GenericArray, AeadInPlace, NewAead},
     ChaCha20Poly1305,
 };
+use ed25519_dalek::{self as ed25519, Signer, Verifier, SECRET_KEY_LENGTH};
 use merlin::Transcript;
 use prost_amino::{encoding::encode_varint, Message};
-use signatory::{
-    ed25519,
-    encoding::Encode,
-    signature::{Signature, Signer, Verifier},
-};
-use signatory_dalek::Ed25519Verifier;
+use rand_core::{OsRng, RngCore};
 use std::{
     cmp,
-    convert::TryInto,
+    convert::{TryFrom, TryInto},
     io::{self, Read, Write},
     marker::{Send, Sync},
     path::Path,
 };
 use subtle::ConstantTimeEq;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
+use zeroize::Zeroizing;
 
 /// Size of the MAC tag
 pub const TAG_SIZE: usize = 16;
@@ -44,17 +40,9 @@ const TOTAL_FRAME_SIZE: usize = DATA_MAX_SIZE + DATA_LEN_SIZE;
 
 /// Generate a Secret Connection key at the given path
 pub fn generate_key(path: impl AsRef<Path>) -> Result<(), Error> {
-    ed25519::Seed::generate()
-        .encode_to_file(path.as_ref(), &SecretKeyEncoding::default())
-        .map_err(|_| {
-            format_err!(
-                ErrorKind::IoError,
-                "couldn't write: {}",
-                path.as_ref().display()
-            )
-        })?;
-
-    Ok(())
+    let mut secret_key = Zeroizing::new([0u8; SECRET_KEY_LENGTH]);
+    OsRng.fill_bytes(&mut *secret_key);
+    key_utils::write_base64_secret(path, &*secret_key)
 }
 
 /// Encrypted connection between peers in a Tendermint network
@@ -77,10 +65,11 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     /// Performs handshake and returns a new authenticated SecretConnection.
     pub fn new(
         mut handler: IoHandler,
-        local_pubkey: &PublicKey,
-        local_privkey: &dyn Signer<ed25519::Signature>,
+        local_privkey: &ed25519::Keypair,
         v0_33_handshake: bool,
     ) -> Result<SecretConnection<IoHandler>, Error> {
+        let local_pubkey = PublicKey::from(local_privkey);
+
         // Generate ephemeral keys for perfect forward secrecy.
         let (local_eph_pubkey, local_eph_privkey) = gen_eph_keys();
 
@@ -150,17 +139,17 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         };
 
         let remote_pubkey = ed25519::PublicKey::from_bytes(&auth_sig_msg.key)
-            .ok_or_else(|| ErrorKind::CryptoError)?;
+            .map_err(|_| ErrorKind::CryptoError)?;
 
-        let remote_sig = ed25519::Signature::from_bytes(auth_sig_msg.sig.as_slice())
+        let remote_sig = ed25519::Signature::try_from(auth_sig_msg.sig.as_slice())
             .map_err(|_| ErrorKind::CryptoError)?;
 
         if v0_33_handshake {
-            Ed25519Verifier::from(&remote_pubkey)
+            remote_pubkey
                 .verify(&sc_mac, &remote_sig)
                 .map_err(|_| ErrorKind::CryptoError)?;
         } else {
-            Ed25519Verifier::from(&remote_pubkey)
+            remote_pubkey
                 .verify(&kdf.challenge, &remote_sig)
                 .map_err(|_| ErrorKind::CryptoError)?;
         }
@@ -324,8 +313,7 @@ where
 
 /// Returns pubkey, private key
 fn gen_eph_keys() -> (EphemeralPublic, EphemeralSecret) {
-    let mut local_csprng = rand::thread_rng();
-    let local_privkey = EphemeralSecret::new(&mut local_csprng);
+    let local_privkey = EphemeralSecret::new(&mut OsRng);
     let local_pubkey = EphemeralPublic::from(&local_privkey);
     (local_pubkey, local_privkey)
 }
@@ -366,21 +354,21 @@ fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
     // of the pub key:
     remote_eph_pubkey_fixed.copy_from_slice(&buf[2..34]);
 
-    if is_blacklisted_point(&remote_eph_pubkey_fixed) {
+    if is_low_order_point(&remote_eph_pubkey_fixed) {
         Err(ErrorKind::InvalidKey.into())
     } else {
         Ok(EphemeralPublic::from(remote_eph_pubkey_fixed))
     }
 }
 
-/// Reject the blacklist of degenerate points listed on <https://cr.yp.to/ecdh.html>
+/// Reject low order points listed on <https://cr.yp.to/ecdh.html>
 ///
-/// These points contain low-order elements. Rejecting them is suggested in
-/// the "May the Fourth" paper under Section 5: Software Countermeasures
-/// (see "Rejecting Known Bad Points" subsection):
+/// These points contain low-order X25519 field elements. Rejecting them is
+/// suggested in the "May the Fourth" paper under Section 5:
+/// Software Countermeasures (see "Rejecting Known Bad Points" subsection):
 ///
 /// <https://eprint.iacr.org/2017/806.pdf>
-fn is_blacklisted_point(point: &[u8; 32]) -> bool {
+fn is_low_order_point(point: &[u8; 32]) -> bool {
     // Note: as these are public points and do not interact with secret-key
     // material in any way, this check does not need to be performed in
     // constant-time.

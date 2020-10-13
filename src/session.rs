@@ -38,7 +38,6 @@ impl Session {
                     &config.chain_id, &config.addr
                 );
 
-                let seed = config.load_secret_key()?;
                 let v0_33_handshake = match config.protocol_version {
                     TendermintVersion::V0_33 => true,
                     TendermintVersion::Legacy => false,
@@ -47,7 +46,7 @@ impl Session {
                 let conn = tcp::open_secret_connection(
                     host,
                     *port,
-                    &seed,
+                    &config.secret_key,
                     peer_id,
                     config.timeout,
                     v0_33_handshake,

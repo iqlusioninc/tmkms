@@ -1,17 +1,13 @@
 //! Generate a new key within the YubiHSM2
 
 use super::*;
-use crate::{config::provider::KeyType, prelude::*};
+use crate::{config::provider::KeyType, key_utils, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
 use chrono::{SecondsFormat, Utc};
 use std::{
-    fs::OpenOptions,
-    io::Write,
-    os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
     process,
 };
-use subtle_encoding::base64;
 use tendermint::PublicKey;
 
 /// The `yubihsm keys generate` subcommand
@@ -203,27 +199,12 @@ fn create_encrypted_backup(
             process::exit(1);
         });
 
-    let mut backup_file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .mode(0o600)
-        .open(backup_file_path)
-        .unwrap_or_else(|e| {
-            status_err!(
-                "couldn't create backup file: {} ({})",
-                backup_file_path.display(),
-                e
-            );
+    key_utils::write_base64_secret(backup_file_path, &wrapped_bytes.into_vec()).unwrap_or_else(
+        |e| {
+            status_err!("{}", e);
             process::exit(1);
-        });
-
-    backup_file
-        .write_all(&base64::encode(&wrapped_bytes.into_vec()))
-        .unwrap_or_else(|e| {
-            status_err!("error writing backup: {}", e);
-            process::exit(1);
-        });
+        },
+    );
 
     status_ok!(
         "Wrote",

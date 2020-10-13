@@ -1,13 +1,6 @@
 //! Validator configuration
 
-use crate::{
-    connection::secret_connection,
-    error::{Error, ErrorKind::*},
-    keyring::SecretKeyEncoding,
-    prelude::*,
-};
 use serde::{Deserialize, Serialize};
-use signatory::{ed25519, encoding::Decode};
 use std::path::PathBuf;
 use tendermint::{chain, net};
 
@@ -49,35 +42,6 @@ pub enum TendermintVersion {
     /// Tendermint v0.33+ SecretConnection Handshake
     #[serde(rename = "v0.33")]
     V0_33,
-}
-
-impl ValidatorConfig {
-    /// Load the configured secret key from disk
-    pub fn load_secret_key(&self) -> Result<ed25519::Seed, Error> {
-        let secret_key_path = self.secret_key.as_ref().ok_or_else(|| {
-            format_err!(
-                VerificationError,
-                "config error: no `secret_key` for validator {}",
-                &self.addr
-            )
-        })?;
-
-        if !secret_key_path.exists() {
-            secret_connection::generate_key(&secret_key_path)?;
-        }
-
-        ed25519::Seed::decode_from_file(secret_key_path, &SecretKeyEncoding::default()).map_err(
-            |e| {
-                format_err!(
-                    ConfigError,
-                    "error loading Secret Connection key from {}: {}",
-                    secret_key_path.display(),
-                    e
-                )
-                .into()
-            },
-        )
-    }
 }
 
 /// Default value for the `ValidatorConfig` reconnect field

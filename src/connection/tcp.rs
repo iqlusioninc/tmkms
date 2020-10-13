@@ -3,11 +3,10 @@
 use super::secret_connection::{PublicKey, SecretConnection};
 use crate::{
     error::{Error, ErrorKind::*},
+    key_utils,
     prelude::*,
 };
-use signatory::{ed25519, public_key::PublicKeyed};
-use signatory_dalek::Ed25519Signer;
-use std::{net::TcpStream, time::Duration};
+use std::{net::TcpStream, path::PathBuf, time::Duration};
 use subtle::ConstantTimeEq;
 use tendermint::node;
 
@@ -18,23 +17,29 @@ const DEFAULT_TIMEOUT: u16 = 10;
 pub fn open_secret_connection(
     host: &str,
     port: u16,
-    secret_key: &ed25519::Seed,
+    identity_key_path: &Option<PathBuf>,
     peer_id: &Option<node::Id>,
     timeout: Option<u16>,
     v0_33_handshake: bool,
 ) -> Result<SecretConnection<TcpStream>, Error> {
-    let signer = Ed25519Signer::from(secret_key);
-    let public_key = PublicKey::from(signer.public_key().map_err(|_| Error::from(InvalidKey))?);
+    let identity_key_path = identity_key_path.as_ref().ok_or_else(|| {
+        format_err!(
+            ConfigError,
+            "config error: no `secret_key` for validator: {}:{}",
+            host,
+            port
+        )
+    })?;
 
-    info!("KMS node ID: {}", &public_key);
+    let identity_key = key_utils::load_base64_ed25519_key(identity_key_path)?;
+    info!("KMS node ID: {}", PublicKey::from(&identity_key));
 
     let socket = TcpStream::connect(format!("{}:{}", host, port))?;
-
     let timeout = Duration::from_secs(timeout.unwrap_or(DEFAULT_TIMEOUT).into());
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = SecretConnection::new(socket, &public_key, &signer, v0_33_handshake)?;
+    let connection = SecretConnection::new(socket, &identity_key, v0_33_handshake)?;
     let actual_peer_id = connection.remote_pubkey().peer_id();
 
     // TODO(tarcieri): move this into `SecretConnection::new`

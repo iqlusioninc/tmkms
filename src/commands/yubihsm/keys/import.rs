@@ -171,7 +171,8 @@ impl ImportCommand {
             .priv_key;
 
         let seed = match private_key {
-            PrivateKey::Ed25519(pk) => pk.to_seed(),
+            PrivateKey::Ed25519(pk) => pk.secret,
+            _ => unreachable!(),
         };
 
         let label =
@@ -183,7 +184,7 @@ impl ImportCommand {
             DEFAULT_DOMAINS,
             DEFAULT_CAPABILITIES | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
             yubihsm::asymmetric::Algorithm::Ed25519,
-            seed.as_secret_slice(),
+            seed.as_bytes().as_ref(),
         ) {
             status_err!("couldn't import key #{}: {}", self.key_id.unwrap(), e);
             process::exit(1);
