@@ -335,9 +335,9 @@ impl TxSigner {
             amino_tx_hex.to_ascii_uppercase()
         );
 
-        let response = self.rpc_client.broadcast_tx_sync(amino_tx).await?;
+        let response = self.rpc_client.broadcast_tx_commit(amino_tx).await?;
 
-        if response.code.is_ok() {
+        if response.check_tx.code.is_ok() && response.deliver_tx.code.is_ok() {
             info!(
                 "[{}] successfully broadcast TX {} (hash: {})",
                 self.chain_id,
@@ -346,21 +346,28 @@ impl TxSigner {
             );
             Ok(())
         } else {
-            let msg = response
-                .log
-                .parse_json()
-                .ok()
-                .and_then(|obj| {
-                    obj.get("message")
-                        .and_then(|m| m.as_str().map(ToOwned::to_owned))
+            let msgs = [&response.check_tx, &response.deliver_tx]
+                .iter()
+                .map(|res| {
+                    dbg!(&res.log);
+                    res.log
+                        .parse_json()
+                        .ok()
+                        .and_then(|obj| {
+                            obj.get("message")
+                                .and_then(|m| m.as_str().map(ToOwned::to_owned))
+                        })
+                        .unwrap_or_default()
                 })
-                .unwrap_or_default();
+                .collect::<Vec<_>>();
 
             fail!(
                 ErrorKind::TendermintError,
-                "error broadcasting TX: {} (code={})",
-                msg,
-                response.code.value()
+                "error broadcasting TX! check_tx: {} (code={}), deliver_tx: {} (code={})",
+                &msgs[0],
+                response.check_tx.code.value(),
+                &msgs[1],
+                response.deliver_tx.code.value()
             );
         }
     }
