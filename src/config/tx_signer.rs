@@ -27,6 +27,10 @@ pub struct TxSignerConfig {
     /// This must match one of the keys in the keyring!
     pub account_address: Address,
 
+    /// Arbitrary context string to pass to transaction source
+    #[serde(default)]
+    pub context: String,
+
     /// Access control list (ACL) for what transactions can be signed
     pub acl: TxAcl,
 
