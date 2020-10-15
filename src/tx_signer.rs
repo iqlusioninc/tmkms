@@ -56,6 +56,9 @@ pub struct TxSigner {
 
     /// Sequence file
     seq_file: SequenceFile,
+
+    /// Was the last batch of transactions broadcast successful?
+    last_tx_ok: bool,
 }
 
 impl TxSigner {
@@ -90,6 +93,7 @@ impl TxSigner {
             source,
             rpc_client: tendermint_rpc,
             seq_file,
+            last_tx_ok: false,
         })
     }
 
@@ -131,7 +135,7 @@ impl TxSigner {
             next_block = self.next_block_after(current_block);
 
             // Request batch of transactions from source
-            let tx_reqs = match self.source.request().await {
+            let tx_reqs = match self.source.request(self.last_tx_ok).await {
                 Ok(req) => req,
                 Err(e) => {
                     error!(
@@ -145,27 +149,23 @@ impl TxSigner {
                 }
             };
 
+            self.last_tx_ok = true;
+
             // Process batch of transactions
             for req in tx_reqs.into_iter() {
                 // Sign transaction
-                let signed_tx = match self.sign_tx(req) {
-                    Ok(tx) => tx,
+                match self.sign_tx(req) {
+                    Ok(tx) => {
+                        if let Err(e) = self.broadcast_tx(tx).await {
+                            error!("[{}] {}", &self.chain_id, e);
+                            self.last_tx_ok = false;
+                        }
+                    }
                     Err(e) => {
                         error!("[{}] error signing transaction: {}", &self.chain_id, e);
-                        continue;
+                        self.last_tx_ok = false;
                     }
                 };
-
-                // Broadcast transaction to Tendermint P2P network via RPC
-                if let Err(e) = self.broadcast_tx(signed_tx).await {
-                    error!("[{}] {}", &self.chain_id, e);
-                    continue;
-                }
-
-                // Increment value in state file
-                if let Err(e) = self.seq_file.increment() {
-                    status_err!("couldn't persist sequence file: {}", e);
-                }
             }
         }
     }
@@ -337,23 +337,36 @@ impl TxSigner {
 
         let response = self.rpc_client.broadcast_tx_commit(amino_tx).await?;
 
-        if response.check_tx.code.is_ok() && response.deliver_tx.code.is_ok() {
-            info!(
-                "[{}] successfully broadcast TX {} (hash: {})",
-                self.chain_id,
-                self.seq_file.sequence(),
-                response.hash
-            );
-            Ok(())
-        } else {
+        if response.check_tx.code.is_err() {
             fail!(
                 ErrorKind::TendermintError,
-                "error broadcasting TX! check_tx: {} (code={}), deliver_tx: {} (code={})",
+                "TX broadcast failed: {} (CheckTx code={})",
                 response.check_tx.log,
                 response.check_tx.code.value(),
-                response.deliver_tx.log,
-                response.deliver_tx.code.value()
             );
         }
+
+        // If CheckTx succeeds the sequence number always needs to be
+        // incremented, even if DeliverTx subsequently fails
+        self.seq_file.increment()?;
+
+        if response.deliver_tx.code.is_err() {
+            fail!(
+                ErrorKind::TendermintError,
+                "TX broadcast failed: {} (DeliverTx code={}, hash={})",
+                response.deliver_tx.log,
+                response.deliver_tx.code.value(),
+                response.hash
+            );
+        }
+
+        info!(
+            "[{}] successfully broadcast TX {} (hash={})",
+            self.chain_id,
+            self.seq_file.sequence(),
+            response.hash
+        );
+
+        Ok(())
     }
 }

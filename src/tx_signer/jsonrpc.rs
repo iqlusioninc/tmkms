@@ -29,7 +29,8 @@ impl Client {
     }
 
     /// Request transactions to be signed from the transaction service
-    pub async fn request(&self) -> Result<Vec<TxSigningRequest>, Error> {
+    pub async fn request(&self, _last_tx_ok: bool) -> Result<Vec<TxSigningRequest>, Error> {
+        // TODO(tarcieri): incorporate `last_tx_ok` into request
         let mut request = hyper::Request::post(&self.uri).body(hyper::Body::empty())?;
 
         {
