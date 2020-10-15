@@ -4,10 +4,10 @@
 //! meet a prescribed policy, signs them.
 
 pub mod jsonrpc;
-pub mod request;
 pub mod sequence_file;
+pub mod tx_request;
 
-pub use request::TxSigningRequest;
+pub use tx_request::TxSigningRequest;
 
 use crate::{
     chain,
@@ -20,6 +20,7 @@ use sequence_file::SequenceFile;
 use std::{collections::BTreeSet as Set, process};
 use stdtx::{StdSignature, StdTx};
 use subtle_encoding::hex;
+use tendermint_rpc::endpoint::{broadcast::tx_commit, status};
 use tokio::time;
 
 /// Frequency at which to retry after failures
@@ -41,6 +42,9 @@ pub struct TxSigner {
     /// Account address
     address: stdtx::Address,
 
+    /// Arbitrary context string to pass to transaction source
+    context: String,
+
     /// Access Control List for authorized transaaction types to sign
     acl: TxAcl,
 
@@ -57,8 +61,8 @@ pub struct TxSigner {
     /// Sequence file
     seq_file: SequenceFile,
 
-    /// Was the last batch of transactions broadcast successful?
-    last_tx_ok: bool,
+    /// RPC result from broadcasting the last transaction
+    last_tx_response: Option<tx_commit::Response>,
 }
 
 impl TxSigner {
@@ -88,12 +92,13 @@ impl TxSigner {
             chain_id: config.chain_id,
             tx_builder,
             address: config.account_address,
+            context: config.context.clone(),
             acl: config.acl.clone(),
             poll_interval: config.poll_interval.clone(),
             source,
             rpc_client: tendermint_rpc,
             seq_file,
-            last_tx_ok: false,
+            last_tx_response: None,
         })
     }
 
@@ -102,8 +107,10 @@ impl TxSigner {
         // Fetch the block height via RPC and use that to synchronize the
         // block interval to the block height count
         let mut next_block = loop {
-            match self.get_block_height().await {
-                Ok(height) => break self.next_block_after(height),
+            match self.rpc_client.status().await {
+                Ok(status) => {
+                    break self.next_block_after(status.sync_info.latest_block_height.value())
+                }
                 Err(e) => {
                     warn!(
                         "[{}] error getting initial block height: {}",
@@ -120,8 +127,8 @@ impl TxSigner {
                 &self.chain_id, next_block
             );
 
-            let current_block = match self.wait_until_block_height(next_block).await {
-                Ok(height) => height,
+            let status = match self.wait_until_block_height(next_block).await {
+                Ok(status) => status,
                 Err(e) => {
                     error!(
                         "[{}] couldn't get current block height via RPC: {}",
@@ -132,52 +139,21 @@ impl TxSigner {
                 }
             };
 
-            next_block = self.next_block_after(current_block);
+            let current_block_height = status.sync_info.latest_block_height.value();
+            next_block = self.next_block_after(current_block_height);
 
-            // Request batch of transactions from source
-            let tx_reqs = match self.source.request(self.last_tx_ok).await {
-                Ok(req) => req,
-                Err(e) => {
-                    error!(
-                        "[{}] couldn't fetch TXes from `{}`: {}",
-                        &self.chain_id,
-                        self.source.uri(),
-                        e
-                    );
-                    time::delay_for(RETRY_DELAY).await;
-                    continue;
-                }
-            };
-
-            self.last_tx_ok = true;
-
-            // Process batch of transactions
-            for req in tx_reqs.into_iter() {
-                // Sign transaction
-                match self.sign_tx(req) {
-                    Ok(tx) => {
-                        if let Err(e) = self.broadcast_tx(tx).await {
-                            error!("[{}] {}", &self.chain_id, e);
-                            self.last_tx_ok = false;
-                        }
-                    }
-                    Err(e) => {
-                        error!("[{}] error signing transaction: {}", &self.chain_id, e);
-                        self.last_tx_ok = false;
-                    }
-                };
+            match self.request_and_sign_tx(status).await {
+                Ok(resp) => self.last_tx_response = resp,
+                Err(e) => error!("[{}] {} - {}", &self.chain_id, self.source.uri(), e),
             }
         }
     }
 
-    /// Get the current block height for this chain
-    async fn get_block_height(&mut self) -> Result<u64, Error> {
-        let response = self.rpc_client.status().await?;
-        Ok(response.sync_info.latest_block_height.value())
-    }
-
     /// Wait until the chain is at the given block height
-    async fn wait_until_block_height(&mut self, target_height: u64) -> Result<u64, Error> {
+    async fn wait_until_block_height(
+        &mut self,
+        target_height: u64,
+    ) -> Result<status::Response, Error> {
         let (block_interval, min_secs) = match self.poll_interval {
             PollInterval::Block { blocks, min_secs } => (blocks, min_secs),
         };
@@ -185,7 +161,9 @@ impl TxSigner {
         let min_deadline = time::Instant::now() + time::Duration::from_secs(min_secs);
 
         loop {
-            let current_height = self.get_block_height().await?;
+            let status = self.rpc_client.status().await?;
+            let current_height = status.sync_info.latest_block_height.value();
+
             debug!(
                 "[{}] current block height is: {}",
                 &self.chain_id, current_height
@@ -202,15 +180,15 @@ impl TxSigner {
                     time::delay_until(min_deadline).await;
                 }
 
-                return Ok(current_height);
+                return Ok(status);
             } else if target_height.checked_sub(current_height).unwrap() > block_interval {
                 warn!(
                     "block wait sanity check failed: current={} target={} interval={}",
                     current_height, target_height, block_interval
                 );
 
-                // Hopefully returning the current height will sync us back up if this ever happens
-                return Ok(current_height);
+                // Hopefully returning the current status will sync us back up if this ever happens
+                return Ok(status);
             }
 
             time::delay_for(RPC_POLL_INTERVAL).await
@@ -229,6 +207,28 @@ impl TxSigner {
             .unwrap()
             .checked_add(block_interval)
             .unwrap()
+    }
+
+    /// Request a transaction to be signed from the transaction source
+    async fn request_and_sign_tx(
+        &mut self,
+        status: status::Response,
+    ) -> Result<Option<tx_commit::Response>, Error> {
+        let params = jsonrpc::Request {
+            network: self.chain_id,
+            context: self.context.clone(),
+            status,
+            last_tx_response: self.last_tx_response.take(),
+        };
+
+        let tx_req = match self.source.request(params).await? {
+            Some(req) => req,
+            None => return Ok(None),
+        };
+
+        let tx = self.sign_tx(tx_req)?;
+        let tx_resp = self.broadcast_tx(tx).await?;
+        Ok(Some(tx_resp))
     }
 
     /// Sign the given transaction signing request
@@ -321,7 +321,7 @@ impl TxSigner {
     }
 
     /// Broadcast signed transaction to the Tendermint P2P network via RPC
-    async fn broadcast_tx(&mut self, tx: StdTx) -> Result<(), Error> {
+    async fn broadcast_tx(&mut self, tx: StdTx) -> Result<tx_commit::Response, Error> {
         let amino_tx = tendermint::abci::Transaction::new(
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
@@ -367,6 +367,6 @@ impl TxSigner {
             response.hash
         );
 
-        Ok(())
+        Ok(response)
     }
 }

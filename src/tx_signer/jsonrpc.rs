@@ -1,14 +1,16 @@
 //! Support for fetching transaction signing requests via a simple JSONRPC
 //! protocol.
 
-use super::request::TxSigningRequest;
+use super::tx_request::TxSigningRequest;
 use crate::{
     error::{Error, ErrorKind},
     prelude::*,
 };
 use bytes::Buf;
 use hyper::http::{header, Uri};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use tendermint::chain;
+use tendermint_rpc::endpoint::{broadcast::tx_commit, status};
 
 /// Transaction builder JSONRPC client.
 #[derive(Clone, Debug)]
@@ -29,9 +31,9 @@ impl Client {
     }
 
     /// Request transactions to be signed from the transaction service
-    pub async fn request(&self, _last_tx_ok: bool) -> Result<Vec<TxSigningRequest>, Error> {
-        // TODO(tarcieri): incorporate `last_tx_ok` into request
-        let mut request = hyper::Request::post(&self.uri).body(hyper::Body::empty())?;
+    pub async fn request(&self, params: Request) -> Result<Option<TxSigningRequest>, Error> {
+        let body = hyper::Body::from(params);
+        let mut request = hyper::Request::post(&self.uri).body(body)?;
 
         {
             let headers = request.headers_mut();
@@ -60,6 +62,28 @@ impl Client {
     }
 }
 
+/// JSONRPC requests to the transaction builder service
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Request {
+    /// Chain ID
+    pub network: chain::Id,
+
+    /// Arbitrary context string to pass to transaction source
+    pub context: String,
+
+    /// Network status
+    pub status: status::Response,
+
+    /// Response from last signed TX (if available)
+    pub last_tx_response: Option<tx_commit::Response>,
+}
+
+impl From<Request> for hyper::Body {
+    fn from(req: Request) -> hyper::Body {
+        hyper::Body::from(serde_json::to_string(&req).expect("JSON serialization error"))
+    }
+}
+
 /// JSONRPC responses from the transaction builder service
 #[derive(Clone, Debug, Deserialize)]
 pub struct Response {
@@ -69,9 +93,9 @@ pub struct Response {
     /// Optional response message
     pub msg: Option<String>,
 
-    /// Transaction signing requests
+    /// Transaction signing request
     #[serde(default)]
-    pub tx: Vec<TxSigningRequest>,
+    pub tx: Option<TxSigningRequest>,
 }
 
 /// JSONRPC response status
