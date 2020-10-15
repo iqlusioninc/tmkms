@@ -217,7 +217,7 @@ impl TxSigner {
         let params = jsonrpc::Request {
             network: self.chain_id,
             context: self.context.clone(),
-            status,
+            status: status.sync_info,
             last_tx_response: self.last_tx_response.take(),
         };
 
