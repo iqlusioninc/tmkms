@@ -346,27 +346,12 @@ impl TxSigner {
             );
             Ok(())
         } else {
-            let msgs = [&response.check_tx, &response.deliver_tx]
-                .iter()
-                .map(|res| {
-                    dbg!(&res.log);
-                    res.log
-                        .parse_json()
-                        .ok()
-                        .and_then(|obj| {
-                            obj.get("message")
-                                .and_then(|m| m.as_str().map(ToOwned::to_owned))
-                        })
-                        .unwrap_or_default()
-                })
-                .collect::<Vec<_>>();
-
             fail!(
                 ErrorKind::TendermintError,
                 "error broadcasting TX! check_tx: {} (code={}), deliver_tx: {} (code={})",
-                &msgs[0],
+                response.check_tx.log,
                 response.check_tx.code.value(),
-                &msgs[1],
+                response.deliver_tx.log,
                 response.deliver_tx.code.value()
             );
         }
