@@ -69,6 +69,7 @@ pub struct Request {
     pub network: chain::Id,
 
     /// Arbitrary context string to pass to transaction source
+    #[serde(default)]
     pub context: String,
 
     /// Network status
