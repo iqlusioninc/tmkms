@@ -73,7 +73,7 @@ pub struct Request {
     pub context: String,
 
     /// Network status
-    pub status: status::Response,
+    pub status: status::SyncInfo,
 
     /// Response from last signed TX (if available)
     pub last_tx_response: Option<tx_commit::Response>,
