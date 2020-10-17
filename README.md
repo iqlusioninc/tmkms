@@ -117,7 +117,7 @@ If successful, this will produce a `tmkms` executable located at
 
 ### Installing with the `cargo install` command
 
-With Rust (1.41+) installed, you can install tmkms with the following:
+With Rust (1.44+) installed, you can install tmkms with the following:
 
 ```
 cargo install tmkms --features=yubihsm
@@ -230,7 +230,7 @@ limitations under the License.
 [build-link]: https://github.com/iqlusioninc/tmkms/actions
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/iqlusioninc/tmkms/blob/develop/LICENSE
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.44+-blue.svg
 
 [//]: # (general links)
 

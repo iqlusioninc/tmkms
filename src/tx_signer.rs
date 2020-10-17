@@ -4,11 +4,14 @@
 //! meet a prescribed policy, signs them.
 
 pub mod jsonrpc;
+pub mod last_tx;
 pub mod sequence_file;
+pub mod sign_msg;
 pub mod tx_request;
 
 pub use tx_request::TxSigningRequest;
 
+use self::{last_tx::LastTx, sign_msg::SignMsg};
 use crate::{
     chain,
     config::tx_signer::{PollInterval, TxAcl, TxSignerConfig, TxSource},
@@ -17,10 +20,10 @@ use crate::{
 };
 use abscissa_tokio::tokio;
 use sequence_file::SequenceFile;
-use std::{collections::BTreeSet as Set, process};
+use std::process;
 use stdtx::{StdSignature, StdTx};
 use subtle_encoding::hex;
-use tendermint_rpc::endpoint::{broadcast::tx_commit, status};
+use tendermint_rpc::endpoint::status;
 use tokio::time;
 
 /// Frequency at which to retry after failures
@@ -61,8 +64,8 @@ pub struct TxSigner {
     /// Sequence file
     seq_file: SequenceFile,
 
-    /// RPC result from broadcasting the last transaction
-    last_tx_response: Option<tx_commit::Response>,
+    /// State of the last broadcasted transaction
+    last_tx: LastTx,
 }
 
 impl TxSigner {
@@ -98,7 +101,7 @@ impl TxSigner {
             source,
             rpc_client: tendermint_rpc,
             seq_file,
-            last_tx_response: None,
+            last_tx: LastTx::default(),
         })
     }
 
@@ -142,9 +145,8 @@ impl TxSigner {
             let current_block_height = status.sync_info.latest_block_height.value();
             next_block = self.next_block_after(current_block_height);
 
-            match self.request_and_sign_tx(status).await {
-                Ok(resp) => self.last_tx_response = resp,
-                Err(e) => error!("[{}] {} - {}", &self.chain_id, self.source.uri(), e),
+            if let Err(e) = self.request_and_sign_tx(status).await {
+                error!("[{}] {} - {}", &self.chain_id, self.source.uri(), e);
             }
         }
     }
@@ -210,95 +212,34 @@ impl TxSigner {
     }
 
     /// Request a transaction to be signed from the transaction source
-    async fn request_and_sign_tx(
-        &mut self,
-        status: status::Response,
-    ) -> Result<Option<tx_commit::Response>, Error> {
+    async fn request_and_sign_tx(&mut self, status: status::Response) -> Result<(), Error> {
         let params = jsonrpc::Request {
             network: self.chain_id,
             context: self.context.clone(),
             status: status.sync_info,
-            last_tx_response: self.last_tx_response.take(),
+            last_tx_response: Option::from(&self.last_tx),
         };
 
         let tx_req = match self.source.request(params).await? {
             Some(req) => req,
-            None => return Ok(None),
+            None => return Ok(()),
         };
 
-        let tx = self.sign_tx(tx_req)?;
-        let tx_resp = self.broadcast_tx(tx).await?;
-        Ok(Some(tx_resp))
-    }
-
-    /// Sign the given transaction signing request
-    fn sign_tx(&self, req: TxSigningRequest) -> Result<StdTx, Error> {
-        if self.chain_id.as_str() != req.chain_id {
+        if self.chain_id.as_str() != tx_req.chain_id {
             fail!(
                 ErrorKind::ChainIdError,
                 "expected `{}`, got `{}`",
                 self.chain_id,
-                req.chain_id
+                tx_req.chain_id
             );
         }
 
-        // TODO(tarcieri): check fee
-        // if req.fee != ...
+        let seq = self.seq_file.sequence();
+        let sign_msg = SignMsg::new(tx_req, &self.tx_builder, seq)?;
+        let tx = self.sign_tx(&sign_msg)?;
 
-        let mut msgs = vec![];
-        let mut msg_types = Set::new();
-
-        for msg_value in req.msgs {
-            let msg = stdtx::Msg::from_json_value(self.tx_builder.schema(), msg_value)?;
-            msg_types.insert(msg.type_name().clone());
-            msgs.push(msg);
-        }
-
-        // Ensure message types are authorized in the ACL
-        for msg_type in &msg_types {
-            if !self.acl.msg_type.contains(&msg_type) {
-                fail!(
-                    ErrorKind::AccessError,
-                    "unauthorized request to sign `{}` message",
-                    msg_type
-                );
-            }
-        }
-
-        let sign_msg = self.tx_builder.create_sign_msg(
-            self.seq_file.sequence(),
-            &req.fee,
-            &req.memo,
-            msgs.as_slice(),
-        );
-
-        debug!("[{}] acquiring chain registry", &self.chain_id);
-
-        let registry = chain::REGISTRY.get();
-
-        debug!(
-            "[{}] acquiring read-only shared lock on chain",
-            &self.chain_id
-        );
-
-        let chain = registry.get_chain(&self.chain_id).unwrap_or_else(|| {
-            panic!("chain '{}' missing from registry!", &self.chain_id);
-        });
-
-        debug!("[{}] performing signature", &self.chain_id);
-
-        let account_id = tendermint::account::Id::new(self.address.0);
-
-        let mut signature =
-            StdSignature::from(chain.keyring.sign_ecdsa(account_id, sign_msg.as_bytes())?);
-
-        signature.pub_key = chain
-            .keyring
-            .get_account_pubkey(account_id)
-            .expect("missing account key")
-            .to_bytes();
-
-        let msg_type_info = msg_types
+        let msg_type_info = sign_msg
+            .msg_types()
             .iter()
             .map(|ty| ty.to_string())
             .collect::<Vec<_>>()
@@ -313,15 +254,43 @@ impl TxSigner {
             self.chain_id,
             self.seq_file.sequence(),
             address,
-            msgs.len(),
+            sign_msg.msgs().len(),
             msg_type_info,
         );
 
-        Ok(StdTx::new(&msgs, req.fee, vec![signature], req.memo))
+        self.broadcast_tx(tx).await
+    }
+
+    fn sign_tx(&self, sign_msg: &SignMsg) -> Result<StdTx, Error> {
+        sign_msg.authorize(&self.acl)?;
+
+        let registry = chain::REGISTRY.get();
+
+        let chain = registry.get_chain(&self.chain_id).unwrap_or_else(|| {
+            panic!("chain '{}' missing from registry!", &self.chain_id);
+        });
+
+        debug!("[{}] performing signature", &self.chain_id);
+
+        let account_id = tendermint::account::Id::new(self.address.0);
+
+        let mut signature = StdSignature::from(
+            chain
+                .keyring
+                .sign_ecdsa(account_id, sign_msg.sign_bytes())?,
+        );
+
+        signature.pub_key = chain
+            .keyring
+            .get_account_pubkey(account_id)
+            .expect("missing account key")
+            .to_bytes();
+
+        Ok(sign_msg.to_stdtx(signature))
     }
 
     /// Broadcast signed transaction to the Tendermint P2P network via RPC
-    async fn broadcast_tx(&mut self, tx: StdTx) -> Result<tx_commit::Response, Error> {
+    async fn broadcast_tx(&mut self, tx: StdTx) -> Result<(), Error> {
         let amino_tx = tendermint::abci::Transaction::new(
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
@@ -335,7 +304,16 @@ impl TxSigner {
             amino_tx_hex.to_ascii_uppercase()
         );
 
-        let response = self.rpc_client.broadcast_tx_commit(amino_tx).await?;
+        let response = match self.rpc_client.broadcast_tx_commit(amino_tx).await {
+            Ok(resp) => {
+                self.last_tx = LastTx::Response(resp.clone());
+                resp
+            }
+            Err(e) => {
+                self.last_tx = LastTx::Error(e.clone());
+                return Err(e.into());
+            }
+        };
 
         if response.check_tx.code.is_err() {
             fail!(
@@ -367,6 +345,6 @@ impl TxSigner {
             response.hash
         );
 
-        Ok(response)
+        Ok(())
     }
 }
