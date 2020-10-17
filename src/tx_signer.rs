@@ -235,61 +235,28 @@ impl TxSigner {
         }
 
         let seq = self.seq_file.sequence();
-        let sign_msg = SignMsg::new(tx_req, &self.tx_builder, seq)?;
-        let tx = self.sign_tx(&sign_msg)?;
-        self.broadcast_tx(tx, seq).await
-    }
+        let sign_msg = SignMsg::new(&tx_req, &self.tx_builder, seq)?;
 
-    fn sign_tx(&self, sign_msg: &SignMsg) -> Result<StdTx, Error> {
-        sign_msg.authorize(&self.acl)?;
+        if let Err(e) = self.broadcast_tx(sign_msg, seq).await {
+            error!("[{}] {} - {}", &self.chain_id, self.source.uri(), e);
 
-        let registry = chain::REGISTRY.get();
+            // If the last transaction errored, speculatively try the next
+            // sequence number, as the previous transaction may have been
+            // successfully broadcast but we never got a response.
+            if !self.last_tx.is_response() {
+                let seq = seq.checked_add(1).unwrap();
+                let sign_msg = SignMsg::new(&tx_req, &self.tx_builder, seq)?;
+                self.broadcast_tx(sign_msg, seq).await?
+            }
+        }
 
-        let chain = registry.get_chain(&self.chain_id).unwrap_or_else(|| {
-            panic!("chain '{}' missing from registry!", &self.chain_id);
-        });
-
-        debug!("[{}] performing signature", &self.chain_id);
-
-        let account_id = tendermint::account::Id::new(self.address.0);
-
-        let mut signature = StdSignature::from(
-            chain
-                .keyring
-                .sign_ecdsa(account_id, sign_msg.sign_bytes())?,
-        );
-
-        signature.pub_key = chain
-            .keyring
-            .get_account_pubkey(account_id)
-            .expect("missing account key")
-            .to_bytes();
-
-        let msg_type_info = sign_msg
-            .msg_types()
-            .iter()
-            .map(|ty| ty.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let address = self
-            .address
-            .to_bech32(self.tx_builder.schema().acc_prefix());
-
-        info!(
-            "[{}] signed TX {} for {} ({} msgs total; types: {})",
-            self.chain_id,
-            self.seq_file.sequence(),
-            address,
-            sign_msg.msgs().len(),
-            msg_type_info,
-        );
-
-        Ok(sign_msg.to_stdtx(signature))
+        Ok(())
     }
 
     /// Broadcast signed transaction to the Tendermint P2P network via RPC
-    async fn broadcast_tx(&mut self, tx: StdTx, sequence: u64) -> Result<(), Error> {
+    async fn broadcast_tx(&mut self, sign_msg: SignMsg, sequence: u64) -> Result<(), Error> {
+        let tx = self.sign_tx(&sign_msg)?;
+
         let amino_tx = tendermint::abci::Transaction::new(
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
@@ -345,5 +312,53 @@ impl TxSigner {
         );
 
         Ok(())
+    }
+
+    fn sign_tx(&self, sign_msg: &SignMsg) -> Result<StdTx, Error> {
+        sign_msg.authorize(&self.acl)?;
+
+        let registry = chain::REGISTRY.get();
+
+        let chain = registry.get_chain(&self.chain_id).unwrap_or_else(|| {
+            panic!("chain '{}' missing from registry!", &self.chain_id);
+        });
+
+        debug!("[{}] performing signature", &self.chain_id);
+
+        let account_id = tendermint::account::Id::new(self.address.0);
+
+        let mut signature = StdSignature::from(
+            chain
+                .keyring
+                .sign_ecdsa(account_id, sign_msg.sign_bytes())?,
+        );
+
+        signature.pub_key = chain
+            .keyring
+            .get_account_pubkey(account_id)
+            .expect("missing account key")
+            .to_bytes();
+
+        let msg_type_info = sign_msg
+            .msg_types()
+            .iter()
+            .map(|ty| ty.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let address = self
+            .address
+            .to_bech32(self.tx_builder.schema().acc_prefix());
+
+        info!(
+            "[{}] signed TX {} for {} ({} msgs total; types: {})",
+            self.chain_id,
+            self.seq_file.sequence(),
+            address,
+            sign_msg.msgs().len(),
+            msg_type_info,
+        );
+
+        Ok(sign_msg.to_stdtx(signature))
     }
 }

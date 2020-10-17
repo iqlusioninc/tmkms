@@ -31,7 +31,7 @@ pub struct SignMsg {
 impl SignMsg {
     /// Create a new [`SignMsg`] from a [`TxSigningRequest`]
     pub fn new(
-        req: TxSigningRequest,
+        req: &TxSigningRequest,
         tx_builder: &stdtx::Builder,
         sequence: u64,
     ) -> Result<Self, Error> {
@@ -48,7 +48,7 @@ impl SignMsg {
 
         Ok(Self {
             fee: req.fee.clone(),
-            memo: req.memo,
+            memo: req.memo.clone(),
             msgs,
             msg_types,
             repr,
