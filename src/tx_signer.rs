@@ -237,28 +237,7 @@ impl TxSigner {
         let seq = self.seq_file.sequence();
         let sign_msg = SignMsg::new(tx_req, &self.tx_builder, seq)?;
         let tx = self.sign_tx(&sign_msg)?;
-
-        let msg_type_info = sign_msg
-            .msg_types()
-            .iter()
-            .map(|ty| ty.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let address = self
-            .address
-            .to_bech32(self.tx_builder.schema().acc_prefix());
-
-        info!(
-            "[{}] signed TX {} for {} ({} msgs total; types: {})",
-            self.chain_id,
-            self.seq_file.sequence(),
-            address,
-            sign_msg.msgs().len(),
-            msg_type_info,
-        );
-
-        self.broadcast_tx(tx).await
+        self.broadcast_tx(tx, seq).await
     }
 
     fn sign_tx(&self, sign_msg: &SignMsg) -> Result<StdTx, Error> {
@@ -286,11 +265,31 @@ impl TxSigner {
             .expect("missing account key")
             .to_bytes();
 
+        let msg_type_info = sign_msg
+            .msg_types()
+            .iter()
+            .map(|ty| ty.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let address = self
+            .address
+            .to_bech32(self.tx_builder.schema().acc_prefix());
+
+        info!(
+            "[{}] signed TX {} for {} ({} msgs total; types: {})",
+            self.chain_id,
+            self.seq_file.sequence(),
+            address,
+            sign_msg.msgs().len(),
+            msg_type_info,
+        );
+
         Ok(sign_msg.to_stdtx(signature))
     }
 
     /// Broadcast signed transaction to the Tendermint P2P network via RPC
-    async fn broadcast_tx(&mut self, tx: StdTx) -> Result<(), Error> {
+    async fn broadcast_tx(&mut self, tx: StdTx, sequence: u64) -> Result<(), Error> {
         let amino_tx = tendermint::abci::Transaction::new(
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
@@ -326,7 +325,7 @@ impl TxSigner {
 
         // If CheckTx succeeds the sequence number always needs to be
         // incremented, even if DeliverTx subsequently fails
-        self.seq_file.increment()?;
+        self.seq_file.persist(sequence.checked_add(1).unwrap())?;
 
         if response.deliver_tx.code.is_err() {
             fail!(

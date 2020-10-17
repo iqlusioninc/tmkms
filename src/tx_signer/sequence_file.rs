@@ -61,8 +61,8 @@ impl SequenceFile {
     }
 
     /// Increment the sequence value and persist it to disk
-    pub fn increment(&mut self) -> Result<u64, Error> {
-        self.state.sequence = self.state.sequence.checked_add(1).unwrap();
+    pub fn persist(&mut self, new_value: u64) -> Result<u64, Error> {
+        self.state.sequence = new_value;
 
         // TODO(tarcieri): rollback if we can't persist?
         self.sync_to_disk()?;
