@@ -14,13 +14,13 @@ edition     = "2018"
 abscissa_core = "0.5"
 abscissa_tokio = { version = "0.5", optional = true }
 bytes = "0.5"
-chacha20poly1305 = "0.5"
+chacha20poly1305 = "0.7"
 chrono = "0.4"
 ed25519-dalek = "1"
 getrandom = "0.1"
 gumdrop = "0.7"
 hkd32 = { version = "0.4", default-features = false, features = ["mnemonic"] }
-hkdf = "0.9"
+hkdf = "0.10.0-alpha.0"
 hyper = { version = "0.13", optional = true }
 k256 = { version = "0.5", features = ["ecdsa", "sha256"] }
 merlin = "2"
@@ -43,7 +43,7 @@ tendermint-rpc = { version = "0.16.0", optional = true, features = ["client"] }
 thiserror = "1"
 wait-timeout = "0.2"
 x25519-dalek = "1.1"
-yubihsm = { version = "=0.35.0-rc", features = ["secp256k1", "setup", "usb"], optional = true }
+yubihsm = { version = "0.35", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 
 [dev-dependencies]
