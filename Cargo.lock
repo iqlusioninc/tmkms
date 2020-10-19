@@ -429,16 +429,6 @@ dependencies = [
 
 [[package]]
 name = "crypto-mac"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b584a330336237c1eecd3e94266efb216c56ed91225d634cb2991c5f3fd1aeab"
-dependencies = [
- "generic-array 0.14.4",
- "subtle",
-]
-
-[[package]]
-name = "crypto-mac"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58bcd97a54c7ca5ce2f6eb16f6bede5b0ab5f0055fedc17d2f0b4466e21671ca"
@@ -926,13 +916,13 @@ dependencies = [
 
 [[package]]
 name = "hkd32"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0124735b175a890d1fb749bad117f2d6474ea5c20dfdfdc3a93ab8c10c192d36"
+checksum = "b68c4bfcead3bb33ccdc3e531879c7ddc44c952f44373f92d54485185335fda7"
 dependencies = [
- "getrandom",
- "hmac 0.8.1",
- "lazy_static",
+ "hmac 0.10.1",
+ "once_cell",
+ "rand_core",
  "sha2",
  "zeroize",
 ]
@@ -945,16 +935,6 @@ checksum = "62bfd183fa80c10d8a5337934bafdd94567a8b843cd0f20fef3284a1ad0defc0"
 dependencies = [
  "digest 0.9.0",
  "hmac 0.10.1",
-]
-
-[[package]]
-name = "hmac"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "126888268dcc288495a26bf004b38c5fdbb31682f992c84ceb046a1f0fe38840"
-dependencies = [
- "crypto-mac 0.8.0",
- "digest 0.9.0",
 ]
 
 [[package]]
