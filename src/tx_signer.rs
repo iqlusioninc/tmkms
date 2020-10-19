@@ -237,14 +237,26 @@ impl TxSigner {
         let seq = self.seq_file.sequence();
         let sign_msg = SignMsg::new(&tx_req, &self.tx_builder, seq)?;
 
+        // If no transaction broadcasted successfully before, retry with a
+        // higher sequence number to see if we're out-of-sync
+        // TODO(tarcieri): handle these errors by querying sequence number via RPC
+        let retry_on_failure = !self.last_tx.is_response();
+
         if let Err(e) = self.broadcast_tx(sign_msg, seq).await {
             error!("[{}] {} - {}", &self.chain_id, self.source.uri(), e);
 
             // If the last transaction errored, speculatively try the next
             // sequence number, as the previous transaction may have been
             // successfully broadcast but we never got a response.
-            if !self.last_tx.is_response() {
+            if retry_on_failure {
                 let seq = seq.checked_add(1).unwrap();
+                warn!(
+                    "[{}] {} - retrying transaction at sequence {}",
+                    &self.chain_id,
+                    self.source.uri(),
+                    seq
+                );
+
                 let sign_msg = SignMsg::new(&tx_req, &self.tx_builder, seq)?;
                 self.broadcast_tx(sign_msg, seq).await?
             }
