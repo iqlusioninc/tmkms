@@ -1,9 +1,9 @@
 //! Tendermint Key Management System
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
 
-#[cfg(not(any(feature = "softsign", feature = "yubihsm", feature = "ledgertm")))]
+#[cfg(not(any(feature = "softsign", feature = "yubihsm", feature = "ledger")))]
 compile_error!(
     "please enable one of the following backends with cargo's --features argument: \
      yubihsm, ledgertm, softsign (e.g. --features=yubihsm)"

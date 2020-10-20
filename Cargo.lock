@@ -1773,32 +1773,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "signatory"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "674dfa3a5b97b62e039b9e9d94f23887c6b474a7294f272a10327d65af2c8001"
-dependencies = [
- "ecdsa 0.8.5",
- "ed25519",
- "getrandom",
- "signature",
- "subtle-encoding",
- "zeroize",
-]
-
-[[package]]
-name = "signatory-ledger-tm"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ecb58903611cba0d53430835782d57c26f2a90f67072d3214ca530428472000"
-dependencies = [
- "byteorder",
- "ledger",
- "signatory",
- "thiserror",
-]
-
-[[package]]
 name = "signature"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2080,6 +2054,7 @@ version = "0.9.0-rc6"
 dependencies = [
  "abscissa_core",
  "abscissa_tokio",
+ "byteorder",
  "bytes",
  "chacha20poly1305",
  "chrono",
@@ -2090,6 +2065,7 @@ dependencies = [
  "hkdf",
  "hyper",
  "k256 0.5.9",
+ "ledger",
  "merlin",
  "once_cell",
  "prost-amino",
@@ -2100,8 +2076,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "signatory",
- "signatory-ledger-tm",
+ "signature",
  "stdtx",
  "subtle",
  "subtle-encoding",

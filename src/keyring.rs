@@ -184,7 +184,7 @@ pub fn load_config(registry: &mut chain::Registry, config: &ProviderConfig) -> R
     #[cfg(feature = "yubihsm")]
     providers::yubihsm::init(registry, &config.yubihsm)?;
 
-    #[cfg(feature = "ledgertm")]
+    #[cfg(feature = "ledger")]
     providers::ledgertm::init(registry, &config.ledgertm)?;
 
     Ok(())

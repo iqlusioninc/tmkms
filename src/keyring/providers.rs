@@ -1,6 +1,6 @@
 //! Signature providers (i.e. backends/plugins)
 
-#[cfg(feature = "ledgertm")]
+#[cfg(feature = "ledger")]
 pub mod ledgertm;
 
 #[cfg(feature = "softsign")]
@@ -19,7 +19,7 @@ pub enum SigningProvider {
     Yubihsm,
 
     /// Ledger + Tendermint application
-    #[cfg(feature = "ledgertm")]
+    #[cfg(feature = "ledger")]
     LedgerTm,
 
     /// Software signer (not intended for production use)
@@ -33,7 +33,7 @@ impl Display for SigningProvider {
             #[cfg(feature = "yubihsm")]
             SigningProvider::Yubihsm => write!(f, "yubihsm"),
 
-            #[cfg(feature = "ledgertm")]
+            #[cfg(feature = "ledger")]
             SigningProvider::LedgerTm => write!(f, "ledgertm"),
 
             #[cfg(feature = "softsign")]

@@ -1,10 +1,10 @@
 //! `tmkms softsign keygen` subcommand
 
-use crate::{key_utils, keyring::SecretKeyEncoding, prelude::*};
+use crate::{key_utils, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
+use ed25519_dalek as ed25519;
 use k256::ecdsa;
 use rand_core::OsRng;
-use signatory::{ed25519, encoding::Encode};
 use std::{path::PathBuf, process};
 
 /// Default type of key to generate
@@ -71,12 +71,12 @@ fn generate_secp256k1_key(output_path: &PathBuf) {
 
 /// Randomly generate a Base64-encoded Ed25519 key and store it at the given path
 fn generate_ed25519_key(output_path: &PathBuf) {
-    let seed = ed25519::Seed::generate();
-    seed.encode_to_file(output_path, &SecretKeyEncoding::default())
-        .unwrap_or_else(|e| {
-            status_err!("couldn't write to `{}`: {}", output_path.display(), e);
-            process::exit(1);
-        });
+    let keypair = ed25519::Keypair::generate(&mut OsRng);
+
+    key_utils::write_base64_secret(output_path, keypair.secret.as_ref()).unwrap_or_else(|e| {
+        status_err!("{}", e);
+        process::exit(1);
+    });
 
     status_ok!(
         "Generated",

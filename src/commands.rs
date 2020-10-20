@@ -1,7 +1,7 @@
 //! Subcommands of the `tmkms` command-line application
 
 pub mod init;
-#[cfg(feature = "ledgertm")]
+#[cfg(feature = "ledger")]
 pub mod ledger;
 #[cfg(feature = "softsign")]
 pub mod softsign;
@@ -10,7 +10,7 @@ pub mod version;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
-#[cfg(feature = "ledgertm")]
+#[cfg(feature = "ledger")]
 pub use self::ledger::LedgerCommand;
 #[cfg(feature = "softsign")]
 pub use self::softsign::SoftsignCommand;
@@ -47,8 +47,8 @@ pub enum KmsCommand {
     #[options(help = "subcommands for YubiHSM2")]
     Yubihsm(YubihsmCommand),
 
-    /// `ledgertm` subcommand
-    #[cfg(feature = "ledgertm")]
+    /// `ledger` subcommand
+    #[cfg(feature = "ledger")]
     #[options(help = "subcommands for Ledger")]
     Ledger(LedgerCommand),
 
@@ -78,7 +78,7 @@ impl Configurable<KmsConfig> for KmsCommand {
             KmsCommand::Start(start) => start.config.as_ref(),
             #[cfg(feature = "yubihsm")]
             KmsCommand::Yubihsm(yubihsm) => yubihsm.config_path(),
-            #[cfg(feature = "ledgertm")]
+            #[cfg(feature = "ledger")]
             KmsCommand::Ledger(ledger) => ledger.config_path(),
             _ => return None,
         };
