@@ -85,8 +85,8 @@ transactions to be signed, then submits them to a Tendermint Node for broadcast:
 
 ## Transaction JSON format
 
-The KMS is configured to periodically poll a specified HTTP endpoint of a
-Transaction Microservice you provide (NOTE: [HTTPS support] forthcoming!)
+The KMS is configured to periodically poll a specified HTTP/HTTPS endpoint of
+a Transaction Microservice you provide.
 
 The KMS will send an **HTTP POST** to the configured HTTP endpoint. It expects
 to receive a batch of [Amino JSON]-encoded transactions to be signed.
@@ -98,27 +98,25 @@ Below is an example of the (tentative!) JSON format:
 ```json
 {
   "status": "ok",
-  "tx": [
-    {
-      "chain_id": "columbus-3",
-      "fee": {
-        "amount": [],
-        "gas": "200000"
-      },
-      "memo": "oracle vote",
-      "msgs": [
-        {
-          "type": "oracle/MsgExchangeRatePrevote",
-          "value": {
-            "denom": "ukrw",
-            "feeder": "terra1t9et8wjeh8d0ewf4lldchterxsmhpcgg5auy47",
-            "hash": "14bc5a27dda9af35872bf768d12d0d976cabc52b",
-            "validator": "terravaloper1grgelyng2v6v3t8z87wu3sxgt9m5s03x2mfyu7"
-          }
+  "tx": {
+    "chain_id": "columbus-3",
+    "fee": {
+      "amount": [],
+      "gas": "200000"
+    },
+    "memo": "oracle vote",
+    "msgs": [
+      {
+        "type": "oracle/MsgExchangeRatePrevote",
+        "value": {
+          "denom": "ukrw",
+          "feeder": "terra1t9et8wjeh8d0ewf4lldchterxsmhpcgg5auy47",
+          "hash": "14bc5a27dda9af35872bf768d12d0d976cabc52b",
+          "validator": "terravaloper1grgelyng2v6v3t8z87wu3sxgt9m5s03x2mfyu7"
         }
-      ]
-    }
-  ]
+      }
+    ]
+  }
 }
 ```
 
@@ -470,7 +468,6 @@ interacting with and make sure it achieved the desired outcome.
 [secp256k1]: https://en.bitcoin.it/wiki/Secp256k1
 [ECDSA]: https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
 [Amino JSON]: https://docs.tendermint.com/master/spec/blockchain/encoding.html#json
-[HTTPS support]: https://github.com/iqlusioninc/tmkms/issues/107
 [`tmkms.toml`]: https://github.com/iqlusioninc/tmkms/blob/develop/tmkms.toml.example
 [Cosmos Send Tokens]: https://hub.cosmos.network/master/resources/gaiacli.html#send-tokens
 [Terra Oracle]: https://docs.terra.money/dev/spec-oracle.html#message-types

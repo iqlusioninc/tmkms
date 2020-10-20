@@ -22,6 +22,7 @@ gumdrop = "0.7"
 hkd32 = { version = "0.5", default-features = false, features = ["mnemonic"] }
 hkdf = "0.10.0-alpha.0"
 hyper = { version = "0.13", optional = true }
+hyper-rustls = { version = "0.21", optional = true }
 k256 = { version = "0.5", features = ["ecdsa", "sha256"] }
 ledger = { version = "0.2", optional = true }
 merlin = "2"
@@ -53,7 +54,7 @@ rand = "0.7"
 
 [features]
 softsign = []
-tx-signer = ["abscissa_tokio", "hyper", "stdtx", "tendermint-rpc"]
+tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc"]
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 
