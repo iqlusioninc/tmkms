@@ -2050,7 +2050,7 @@ checksum = "238ce071d267c5710f9d31451efec16c5ee22de34df17cc05e56cbc92e967117"
 
 [[package]]
 name = "tmkms"
-version = "0.9.0-rc6"
+version = "0.9.0-rc7"
 dependencies = [
  "abscissa_core",
  "abscissa_tokio",
