@@ -7,7 +7,11 @@ use crate::{
     prelude::*,
 };
 use bytes::Buf;
-use hyper::http::{header, Uri};
+use hyper::{
+    http::{header, Uri},
+    Body,
+};
+use hyper_rustls::HttpsConnector;
 use serde::{Deserialize, Serialize};
 use tendermint::chain;
 use tendermint_rpc::endpoint::{broadcast::tx_commit, status};
@@ -32,22 +36,12 @@ impl Client {
 
     /// Request transactions to be signed from the transaction service
     pub async fn request(&self, params: Request) -> Result<Option<TxSigningRequest>, Error> {
-        let body = hyper::Body::from(params);
-        let mut request = hyper::Request::post(&self.uri).body(body)?;
+        let mut request = hyper::Request::post(&self.uri).body(Body::from(params))?;
+        self.add_headers(&mut request);
 
-        {
-            let headers = request.headers_mut();
-            headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
-            headers.insert(
-                header::USER_AGENT,
-                format!("tmkms/{}", env!("CARGO_PKG_VERSION"))
-                    .parse()
-                    .unwrap(),
-            );
-        }
-
-        let http_client = hyper::Client::builder().build_http();
-        let response = http_client.request(request).await?;
+        let builder = hyper::Client::builder();
+        let connector = HttpsConnector::new();
+        let response = builder.build(connector).request(request).await?;
         let response_body = hyper::body::aggregate(response.into_body()).await?;
         let response_json = serde_json::from_slice::<Response>(response_body.bytes())?;
 
@@ -59,6 +53,18 @@ impl Client {
                 response_json.msg.unwrap_or_default()
             ),
         }
+    }
+
+    /// Add headers to a request
+    fn add_headers(&self, request: &mut hyper::Request<Body>) {
+        let headers = request.headers_mut();
+        headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
+        headers.insert(
+            header::USER_AGENT,
+            format!("tmkms/{}", env!("CARGO_PKG_VERSION"))
+                .parse()
+                .unwrap(),
+        );
     }
 }
 
@@ -79,8 +85,8 @@ pub struct Request {
     pub last_tx_response: Option<tx_commit::Response>,
 }
 
-impl From<Request> for hyper::Body {
-    fn from(req: Request) -> hyper::Body {
+impl From<Request> for Body {
+    fn from(req: Request) -> Body {
         hyper::Body::from(serde_json::to_string(&req).expect("JSON serialization error"))
     }
 }
