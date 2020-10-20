@@ -1,13 +1,12 @@
 //! Ed25519 signing keys
 
-pub use signatory::ed25519::{PublicKey, Seed, Signature, PUBLIC_KEY_SIZE};
+pub use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature};
 
 use crate::{
     error::{Error, ErrorKind::*},
     keyring::SigningProvider,
     prelude::*,
 };
-use signatory::signature;
 use std::sync::Arc;
 use tendermint::TendermintKey;
 

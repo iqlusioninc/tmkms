@@ -1,5 +1,10 @@
 //! Ledger Tendermint signer
 
+mod client;
+mod error;
+mod signer;
+
+use self::signer::Ed25519LedgerTmAppSigner;
 use crate::{
     chain,
     config::provider::ledgertm::LedgerTendermintConfig,
@@ -10,7 +15,6 @@ use crate::{
     },
     prelude::*,
 };
-use signatory_ledger_tm::Ed25519LedgerTmAppSigner;
 use tendermint::{PublicKey, TendermintKey};
 
 /// Create Ledger Tendermint signer object from the given configuration

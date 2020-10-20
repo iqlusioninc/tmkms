@@ -1,13 +1,14 @@
 //! Import keys either from encrypted backups or existing plaintext keys
 
 use super::*;
-use crate::{keyring::SecretKeyEncoding, prelude::*};
+use crate::prelude::*;
 use abscissa_core::{Command, Options, Runnable};
-use signatory::{ed25519, encoding::Decode};
+use ed25519_dalek as ed25519;
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;
 use tendermint::{config::PrivValidatorKey, PrivateKey, PublicKey};
 use yubihsm::object;
+use zeroize::Zeroizing;
 
 /// The `yubihsm keys import` subcommand
 #[derive(Command, Debug, Default, Options)]
@@ -210,13 +211,16 @@ impl ImportCommand {
         });
 
         // TODO(tarcieri): constant-time string trimming
-        let base64_trimmed = base64_data.trim_end();
-
-        let seed = ed25519::Seed::decode_from_str(base64_trimmed, &SecretKeyEncoding::default())
-            .unwrap_or_else(|e| {
-                status_err!("can't decode key: {}", e);
+        let key_bytes =
+            Zeroizing::new(base64::decode(base64_data.trim_end()).unwrap_or_else(|e| {
+                status_err!("can't decode Ed25519 key: {}", e);
                 process::exit(1);
-            });
+            }));
+
+        let secret = ed25519::SecretKey::from_bytes(&*key_bytes).unwrap_or_else(|e| {
+            status_err!("invalid Ed25519 key: {}", e);
+            process::exit(1);
+        });
 
         let label =
             yubihsm::object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
@@ -227,7 +231,7 @@ impl ImportCommand {
             DEFAULT_DOMAINS,
             DEFAULT_CAPABILITIES | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
             yubihsm::asymmetric::Algorithm::Ed25519,
-            seed.as_secret_slice(),
+            &secret.as_bytes()[..],
         ) {
             status_err!("couldn't import key #{}: {}", self.key_id.unwrap(), e);
             process::exit(1);

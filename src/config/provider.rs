@@ -1,13 +1,13 @@
 //! Cryptographic service providers: signing backends
 
-#[cfg(feature = "ledgertm")]
+#[cfg(feature = "ledger")]
 pub mod ledgertm;
 #[cfg(feature = "softsign")]
 pub mod softsign;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
-#[cfg(feature = "ledgertm")]
+#[cfg(feature = "ledger")]
 use self::ledgertm::LedgerTendermintConfig;
 #[cfg(feature = "softsign")]
 use self::softsign::SoftsignConfig;
@@ -32,7 +32,7 @@ pub struct ProviderConfig {
     pub yubihsm: Vec<YubihsmConfig>,
 
     /// Map of ledger-tm labels to their configurations
-    #[cfg(feature = "ledgertm")]
+    #[cfg(feature = "ledger")]
     #[serde(default)]
     pub ledgertm: Vec<LedgerTendermintConfig>,
 }

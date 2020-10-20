@@ -45,7 +45,7 @@ The following signing backend providers are presently supported:
 #### Hardware Security Modules (recommended)
 
 - [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2] for more info)
-- [Ledger] (gated under the `ledgertm` cargo feature)
+- [Ledger] (gated under the `ledger` cargo feature)
 
 #### Software-Only (not recommended)
 
@@ -110,7 +110,7 @@ $ git clone https://github.com/iqlusioninc/tmkms.git && cd tmkms
 $ cargo build --release --features=yubihsm
 ```
 
-Alternatively, substitute `--features=ledgertm` to enable Ledger support.
+Alternatively, substitute `--features=ledger` to enable Ledger support.
 
 If successful, this will produce a `tmkms` executable located at
 `./target/release/tmkms`
@@ -129,7 +129,7 @@ Or to install a specific version (recommended):
 cargo install tmkms --features=yubihsm --version=0.4.0
 ```
 
-Alternatively, substitute `--features=ledgertm` to enable Ledger support.
+Alternatively, substitute `--features=ledger` to enable Ledger support.
 
 ## Configuration: `tmkms init`
 

@@ -86,8 +86,8 @@ jobs:
       - run: cargo build --no-default-features --features softsign --release
       - run: cargo build --features=yubihsm --release
       - run: cargo build --features=yubihsm-server --release
-      - run: cargo build --features=ledgertm --release
-      - run: cargo build --features=yubihsm-server,ledgertm,softsign --release
+      - run: cargo build --features=ledger --release
+      - run: cargo build --features=yubihsm-server,ledger,softsign --release
 
   test:
     name: Test Suite

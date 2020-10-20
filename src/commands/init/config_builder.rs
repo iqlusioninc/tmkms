@@ -75,7 +75,7 @@ impl ConfigBuilder {
         #[cfg(feature = "yubihsm")]
         self.add_yubihsm_provider_config();
 
-        #[cfg(feature = "ledgertm")]
+        #[cfg(feature = "ledger")]
         self.add_ledgertm_provider_config();
 
         #[cfg(feature = "softsign")]
@@ -149,7 +149,7 @@ impl ConfigBuilder {
     }
 
     /// Add `[[provdier.ledgertm]]` configuration
-    #[cfg(feature = "ledgertm")]
+    #[cfg(feature = "ledger")]
     fn add_ledgertm_provider_config(&mut self) {
         self.add_str("### Ledger Provider Configuration\n\n");
         self.add_template_with_chain_id(include_str!("templates/keyring/ledgertm.toml"));

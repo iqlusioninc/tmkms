@@ -7,7 +7,6 @@ use crate::{
     keyring::SigningProvider,
     prelude::*,
 };
-use signatory::signature;
 use std::sync::Arc;
 use tendermint::TendermintKey;
 
