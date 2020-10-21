@@ -19,7 +19,6 @@ use chacha20poly1305::{
 };
 use ed25519_dalek::{self as ed25519, Signer, Verifier, SECRET_KEY_LENGTH};
 use merlin::Transcript;
-use prost_amino::Message;
 use rand_core::{OsRng, RngCore};
 use std::{
     cmp,
@@ -51,6 +50,7 @@ pub fn generate_key(path: impl AsRef<Path>) -> Result<(), Error> {
 /// Encrypted connection between peers in a Tendermint network
 pub struct SecretConnection<IoHandler: Read + Write + Send + Sync> {
     io_handler: IoHandler,
+    protocol_version: Version,
     recv_nonce: Nonce,
     send_nonce: Nonce,
     recv_cipher: ChaCha20Poly1305,
@@ -116,6 +116,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // Construct SecretConnection.
         let mut sc = SecretConnection {
             io_handler,
+            protocol_version,
             recv_buffer: vec![],
             recv_nonce: Nonce::default(),
             send_nonce: Nonce::default(),
@@ -137,9 +138,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
 
         // Share (in secret) each other's pubkey & challenge signature
         let auth_sig_msg = match local_pubkey {
-            PublicKey::Ed25519(ref pk) => {
-                share_auth_signature(&mut sc, pk.as_bytes(), local_signature)?
-            }
+            PublicKey::Ed25519(ref pk) => share_auth_signature(&mut sc, pk, &local_signature)?,
         };
 
         let remote_pubkey = ed25519::PublicKey::from_bytes(&auth_sig_msg.key)
@@ -365,22 +364,18 @@ fn sign_challenge(
 // this can also fail while writing / sending
 fn share_auth_signature<IoHandler: Read + Write + Send + Sync>(
     sc: &mut SecretConnection<IoHandler>,
-    pubkey: &[u8; 32],
-    signature: ed25519::Signature,
+    pubkey: &ed25519::PublicKey,
+    local_signature: &ed25519::Signature,
 ) -> Result<AuthSigMessage, Error> {
-    let amsg = AuthSigMessage {
-        key: pubkey.to_vec(),
-        sig: signature.as_ref().to_vec(),
-    };
-    let mut buf: Vec<u8> = vec![];
-    amsg.encode_length_delimited(&mut buf)?;
+    let buf = sc
+        .protocol_version
+        .encode_auth_signature(pubkey, &local_signature);
+
     sc.write_all(&buf)?;
 
-    let mut rbuf = vec![0; 106]; // 100 = 32 + 64 + (amino overhead = 2 fields + 2 lengths + 4 prefix bytes + total length)
-    sc.read_exact(&mut rbuf)?;
-
-    // TODO: proper error handling:
-    Ok(AuthSigMessage::decode_length_delimited(rbuf.as_ref())?)
+    let mut buf = vec![0; sc.protocol_version.auth_sig_msg_response_len()];
+    sc.read_exact(&mut buf)?;
+    sc.protocol_version.decode_auth_signature(&buf)
 }
 
 #[cfg(tests)]
