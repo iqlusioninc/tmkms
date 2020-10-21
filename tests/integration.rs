@@ -141,6 +141,7 @@ impl KmsProcess {
             max_height = "500000"
             reconnect = false
             secret_key = "tests/support/secret_connection.key"
+            protocol_version = "legacy"
 
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
@@ -168,7 +169,7 @@ impl KmsProcess {
             addr = "unix://{}"
             chain_id = "test_chain_id"
             max_height = "500000"
-
+            protocol_version = "legacy"
 
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
@@ -193,7 +194,12 @@ impl KmsProcess {
                 let socket_cp = sock.try_clone().unwrap();
 
                 KmsConnection::Tcp(
-                    SecretConnection::new(socket_cp, &identity_keypair, false).unwrap(),
+                    SecretConnection::new(
+                        socket_cp,
+                        &identity_keypair,
+                        secret_connection::Version::Legacy,
+                    )
+                    .unwrap(),
                 )
             }
 

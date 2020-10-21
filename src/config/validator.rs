@@ -1,11 +1,12 @@
 //! Validator configuration
 
+use crate::connection::secret_connection;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tendermint::{chain, net};
 
 /// Validator configuration
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ValidatorConfig {
     /// Address of the validator (`tcp://` or `unix://`)
@@ -27,29 +28,11 @@ pub struct ValidatorConfig {
     /// Height at which to stop signing
     pub max_height: Option<tendermint::block::Height>,
 
-    /// Use Tendermint v0.33 handshake
-    #[serde(default = "protocol_default")]
-    pub protocol_version: TendermintVersion,
-}
-
-/// Tendermint secure connection protocol version
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub enum TendermintVersion {
-    /// Legacy V1 SecretConnection Handshake
-    #[serde(rename = "legacy")]
-    Legacy,
-
-    /// Tendermint v0.33+ SecretConnection Handshake
-    #[serde(rename = "v0.33")]
-    V0_33,
+    /// Version of Secret Connection protocol to use when connecting
+    pub protocol_version: secret_connection::Version,
 }
 
 /// Default value for the `ValidatorConfig` reconnect field
 fn reconnect_default() -> bool {
     true
-}
-
-/// Default value for the `ValidatorConfig` reconnect field
-fn protocol_default() -> TendermintVersion {
-    TendermintVersion::Legacy
 }

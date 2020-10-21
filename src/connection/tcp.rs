@@ -1,6 +1,6 @@
 //! TCP socket connection to a validator
 
-use super::secret_connection::{PublicKey, SecretConnection};
+use super::secret_connection::{self, PublicKey, SecretConnection};
 use crate::{
     error::{Error, ErrorKind::*},
     key_utils,
@@ -20,7 +20,7 @@ pub fn open_secret_connection(
     identity_key_path: &Option<PathBuf>,
     peer_id: &Option<node::Id>,
     timeout: Option<u16>,
-    v0_33_handshake: bool,
+    protocol_version: secret_connection::Version,
 ) -> Result<SecretConnection<TcpStream>, Error> {
     let identity_key_path = identity_key_path.as_ref().ok_or_else(|| {
         format_err!(
@@ -39,7 +39,7 @@ pub fn open_secret_connection(
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = SecretConnection::new(socket, &identity_key, v0_33_handshake)?;
+    let connection = SecretConnection::new(socket, &identity_key, protocol_version)?;
     let actual_peer_id = connection.remote_pubkey().peer_id();
 
     // TODO(tarcieri): move this into `SecretConnection::new`

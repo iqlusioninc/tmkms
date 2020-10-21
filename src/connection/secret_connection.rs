@@ -3,21 +3,23 @@
 mod amino_types;
 mod kdf;
 mod nonce;
+mod protocol;
 mod public_key;
 
-pub use self::{amino_types::AuthSigMessage, kdf::Kdf, nonce::Nonce, public_key::PublicKey};
+pub use self::{
+    amino_types::AuthSigMessage, kdf::Kdf, nonce::Nonce, protocol::Version, public_key::PublicKey,
+};
 use crate::{
     error::{Error, ErrorKind},
     key_utils,
 };
-use bytes::BufMut;
 use chacha20poly1305::{
     aead::{generic_array::GenericArray, AeadInPlace, NewAead},
     ChaCha20Poly1305,
 };
 use ed25519_dalek::{self as ed25519, Signer, Verifier, SECRET_KEY_LENGTH};
 use merlin::Transcript;
-use prost_amino::{encoding::encode_varint, Message};
+use prost_amino::Message;
 use rand_core::{OsRng, RngCore};
 use std::{
     cmp,
@@ -25,6 +27,7 @@ use std::{
     io::{self, Read, Write},
     marker::{Send, Sync},
     path::Path,
+    slice,
 };
 use subtle::ConstantTimeEq;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
@@ -64,9 +67,9 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
 
     /// Performs handshake and returns a new authenticated SecretConnection.
     pub fn new(
-        mut handler: IoHandler,
+        mut io_handler: IoHandler,
         local_privkey: &ed25519::Keypair,
-        v0_33_handshake: bool,
+        protocol_version: Version,
     ) -> Result<SecretConnection<IoHandler>, Error> {
         let local_pubkey = PublicKey::from(local_privkey);
 
@@ -76,7 +79,8 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // Write local ephemeral pubkey and receive one too.
         // NOTE: every 32-byte string is accepted as a Curve25519 public key
         // (see DJB's Curve25519 paper: http://cr.yp.to/ecdh/curve25519-20060209.pdf)
-        let remote_eph_pubkey = share_eph_pubkey(&mut handler, &local_eph_pubkey)?;
+        let remote_eph_pubkey =
+            share_eph_pubkey(&mut io_handler, &local_eph_pubkey, protocol_version)?;
 
         // Compute common shared secret.
         let shared_secret = EphemeralSecret::diffie_hellman(local_eph_privkey, &remote_eph_pubkey);
@@ -111,7 +115,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
 
         // Construct SecretConnection.
         let mut sc = SecretConnection {
-            io_handler: handler,
+            io_handler,
             recv_buffer: vec![],
             recv_nonce: Nonce::default(),
             send_nonce: Nonce::default(),
@@ -125,7 +129,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
 
         // Sign the challenge bytes for authentication.
-        let local_signature = if v0_33_handshake {
+        let local_signature = if protocol_version.has_transcript() {
             sign_challenge(&sc_mac, local_privkey)?
         } else {
             sign_challenge(&kdf.challenge, local_privkey)?
@@ -144,7 +148,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         let remote_sig = ed25519::Signature::try_from(auth_sig_msg.sig.as_slice())
             .map_err(|_| ErrorKind::CryptoError)?;
 
-        if v0_33_handshake {
+        if protocol_version.has_transcript() {
             remote_pubkey
                 .verify(&sc_mac, &remote_sig)
                 .map_err(|_| ErrorKind::CryptoError)?;
@@ -322,93 +326,20 @@ fn gen_eph_keys() -> (EphemeralPublic, EphemeralSecret) {
 fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
     handler: &mut IoHandler,
     local_eph_pubkey: &EphemeralPublic,
+    protocol_version: Version,
 ) -> Result<EphemeralPublic, Error> {
     // Send our pubkey and receive theirs in tandem.
     // TODO(ismail): on the go side this is done in parallel, here we do send and receive after
     // each other. thread::spawn would require a static lifetime.
     // Should still work though.
+    handler.write_all(&protocol_version.encode_initial_handshake(&local_eph_pubkey))?;
 
-    let mut buf = vec![0; 0];
-    let local_eph_pubkey_vec = local_eph_pubkey.as_bytes();
-    // Note: this is not regular protobuf encoding but raw length prefixed amino encoding;
-    // amino prefixes with the total length, and the raw bytes array's length, too:
-    encode_varint((local_eph_pubkey_vec.len() + 1) as u64, &mut buf); // 33
-    encode_varint(local_eph_pubkey_vec.len() as u64, &mut buf); // 32
-    buf.put_slice(local_eph_pubkey_vec); // raw bytes
+    let mut response_len = 0u8;
+    handler.read_exact(slice::from_mut(&mut response_len))?;
 
-    // TODO(ismail): we probably do *not* need the double length delimiting here or in tendermint)
-    // this is the sending part of:
-    // https://github.com/tendermint/tendermint/blob/013b9cef642f875634c614019ab13b17570778ad/p2p/conn/secret_connection.go#L208-L238
-    handler.write_all(&buf)?;
-
-    let mut buf = vec![0; 34];
+    let mut buf = vec![0; response_len as usize];
     handler.read_exact(&mut buf)?;
-
-    // this is the receiving part of:
-    // https://github.com/tendermint/tendermint/blob/013b9cef642f875634c614019ab13b17570778ad/p2p/conn/secret_connection.go#L208-L238
-    let mut remote_eph_pubkey_fixed: [u8; 32] = Default::default();
-    if buf[0] != 33 || buf[1] != 32 {
-        return Err(ErrorKind::ProtocolError.into());
-    }
-    // after total length (33) and byte length (32), we expect the raw bytes
-    // of the pub key:
-    remote_eph_pubkey_fixed.copy_from_slice(&buf[2..34]);
-
-    if is_low_order_point(&remote_eph_pubkey_fixed) {
-        Err(ErrorKind::InvalidKey.into())
-    } else {
-        Ok(EphemeralPublic::from(remote_eph_pubkey_fixed))
-    }
-}
-
-/// Reject low order points listed on <https://cr.yp.to/ecdh.html>
-///
-/// These points contain low-order X25519 field elements. Rejecting them is
-/// suggested in the "May the Fourth" paper under Section 5:
-/// Software Countermeasures (see "Rejecting Known Bad Points" subsection):
-///
-/// <https://eprint.iacr.org/2017/806.pdf>
-fn is_low_order_point(point: &[u8; 32]) -> bool {
-    // Note: as these are public points and do not interact with secret-key
-    // material in any way, this check does not need to be performed in
-    // constant-time.
-    match point {
-        // 0 (order 4)
-        &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00] => {
-            true
-        }
-
-        // 1 (order 1)
-        [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00] => {
-            true
-        }
-
-        // 325606250916557431795983626356110631294008115727848805560023387167927233504 (order 8)
-        &[0xe0, 0xeb, 0x7a, 0x7c, 0x3b, 0x41, 0xb8, 0xae, 0x16, 0x56, 0xe3, 0xfa, 0xf1, 0x9f, 0xc4, 0x6a, 0xda, 0x09, 0x8d, 0xeb, 0x9c, 0x32, 0xb1, 0xfd, 0x86, 0x62, 0x05, 0x16, 0x5f, 0x49, 0xb8, 0x00] => {
-            true
-        }
-
-        // 39382357235489614581723060781553021112529911719440698176882885853963445705823 (order 8)
-        &[0x5f, 0x9c, 0x95, 0xbc, 0xa3, 0x50, 0x8c, 0x24, 0xb1, 0xd0, 0xb1, 0x55, 0x9c, 0x83, 0xef, 0x5b, 0x04, 0x44, 0x5c, 0xc4, 0x58, 0x1c, 0x8e, 0x86, 0xd8, 0x22, 0x4e, 0xdd, 0xd0, 0x9f, 0x11, 0x57] => {
-            true
-        }
-
-        // p - 1 (order 2)
-        [0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f] => {
-            true
-        }
-
-        // p (order 4) */
-        [0xed, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f] => {
-            true
-        }
-
-        // p + 1 (order 1)
-        [0xee, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f] => {
-            true
-        }
-        _ => false,
-    }
+    protocol_version.decode_initial_handshake(&buf)
 }
 
 /// Return is of the form lo, hi
