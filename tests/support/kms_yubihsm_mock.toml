@@ -12,6 +12,7 @@ addr = "tcp://f88883b673fc69d7869cab098de3bafc2ff76eb8@127.0.0.1:23456"
 chain_id = "test_chain_id"
 reconnect = false
 secret_key = "tests/seccon.key"
+protocol_version = "legacy"
 
 [[providers.yubihsm]]
 adapter = { type = "usb" }

@@ -22,6 +22,7 @@ addr = "VALIDATOR_ADDR"
 chain_id = "CHAIN_ID"
 reconnect = true # true is the default
 secret_key = "SECRET_KEY"
+protocol_version = "legacy"
 
 [[providers.softsign]]
 chain_ids = ["CHAIN_ID"]
