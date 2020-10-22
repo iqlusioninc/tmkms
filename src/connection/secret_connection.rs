@@ -3,6 +3,7 @@
 mod amino_types;
 mod kdf;
 mod nonce;
+mod proto_types;
 mod protocol;
 mod public_key;
 
@@ -141,8 +142,14 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             PublicKey::Ed25519(ref pk) => share_auth_signature(&mut sc, pk, &local_signature)?,
         };
 
-        let remote_pubkey = ed25519::PublicKey::from_bytes(&auth_sig_msg.key)
-            .map_err(|_| ErrorKind::CryptoError)?;
+        let remote_pubkey = auth_sig_msg
+            .pub_key
+            .and_then(|pk| match pk.sum? {
+                proto_types::public_key::Sum::Ed25519(ref bytes) => {
+                    ed25519::PublicKey::from_bytes(bytes).ok()
+                }
+            })
+            .ok_or(ErrorKind::CryptoError)?;
 
         let remote_sig = ed25519::Signature::try_from(auth_sig_msg.sig.as_slice())
             .map_err(|_| ErrorKind::CryptoError)?;
@@ -366,7 +373,7 @@ fn share_auth_signature<IoHandler: Read + Write + Send + Sync>(
     sc: &mut SecretConnection<IoHandler>,
     pubkey: &ed25519::PublicKey,
     local_signature: &ed25519::Signature,
-) -> Result<AuthSigMessage, Error> {
+) -> Result<proto_types::AuthSigMessage, Error> {
     let buf = sc
         .protocol_version
         .encode_auth_signature(pubkey, &local_signature);

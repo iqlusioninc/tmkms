@@ -7,7 +7,7 @@ use prost_amino_derive::Message;
 pub struct AuthSigMessage {
     /// Public key
     #[prost_amino(bytes, tag = "1", amino_name = "tendermint/PubKeyEd25519")]
-    pub key: Vec<u8>,
+    pub pub_key: Vec<u8>,
 
     /// Signature
     #[prost_amino(bytes, tag = "2")]
