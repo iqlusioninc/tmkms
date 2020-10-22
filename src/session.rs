@@ -138,17 +138,7 @@ impl Session {
         request.validate()?;
         self.check_max_height(&mut request)?;
 
-        debug!(
-            "[{}@{}] acquiring chain registry",
-            &self.config.chain_id, &self.config.addr
-        );
-
         let registry = chain::REGISTRY.get();
-
-        debug!(
-            "[{}@{}] acquiring read-only shared lock on chain",
-            &self.config.chain_id, &self.config.addr
-        );
 
         let chain = registry
             .get_chain(&self.config.chain_id)
@@ -163,11 +153,6 @@ impl Session {
 
         let mut to_sign = vec![];
         request.sign_bytes(self.config.chain_id, &mut to_sign)?;
-
-        debug!(
-            "[{}@{}] performing signature",
-            &self.config.chain_id, &self.config.addr
-        );
 
         let started_at = Instant::now();
 
@@ -214,17 +199,7 @@ impl Session {
     {
         let (msg_type, request_state) = parse_request(request)?;
 
-        debug!(
-            "[{}@{}] acquiring read-write exclusive lock on chain",
-            &self.config.chain_id, &self.config.addr
-        );
-
         let mut chain_state = chain.state.lock().unwrap();
-
-        debug!(
-            "[{}@{}] updating consensus state to: {:?}",
-            &self.config.chain_id, &self.config.addr, &request_state
-        );
 
         match chain_state.update_consensus_state(request_state.clone()) {
             Ok(()) => Ok(None),
@@ -251,17 +226,7 @@ impl Session {
 
     /// Get the public key for (the only) public key in the keyring
     fn get_public_key(&mut self, _request: &PubKeyRequest) -> Result<Response, Error> {
-        debug!(
-            "[{}@{}] acquiring chain registry (for public key)",
-            &self.config.chain_id, &self.config.addr
-        );
-
         let registry = chain::REGISTRY.get();
-
-        debug!(
-            "[{}@{}] acquiring read-only shared lock on chain",
-            &self.config.chain_id, &self.config.addr
-        );
 
         let chain = registry
             .get_chain(&self.config.chain_id)
