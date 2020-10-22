@@ -4,6 +4,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.9.0 (2020-10-22)
+
+This release is compatible with [tendermint v0.33] or older.
+
+It's primarily a maintenance release containing dependency upgrades as well as
+a small number of breaking changes.
+
+While it contains preliminary work to support newer versions (e.g. Stargate),
+this work is in a partial/incomplete state and it is *NOT* yet compatible.
+We intend to have full Stargate (Tendermint v0.34) support in the *next*
+release (v0.10).
+
+Notable breaking changes:
+
+- The `ledgertm` cargo feature has been renamed to `ledger`
+- The `protocol_version` field of `[[validator]]` is now mandatory.
+  Please set it to `legacy` if it was omitted before.
+- The JSONRPC format used by `tx-signer` has changed. Please see `README.txsigner.md`.
+
+### Added
+- HTTPS support ([#188])
+- `tx-signer`: JSONRPC request params ([#170])
+
+### Changed
+- Rename `ledgertm` Cargo feature to `ledger` ([#186])
+- Vendor the `signatory-ledger-tm` crate into the tmkms app ([#186])
+- Bump dependencies ([#104], [#115], [#121], [#122], [#183], [#184]
+- `tx-signer`: logging improvements ([#146], [#152], [#154], [#167], [#177])
+- `tx-signer`: use `broadcast_tx_commit` instead of `broadcast_tx_sync` ([#165])
+- `tx-signer`: include signer's public key in transaction ([#148])
+
+### Fixed
+- `tx-signer`: error and sequence number handling ([#181], [#178], [#168])
+- Bogus secret connection identity key handling - non-security-critical bug ([#164])
+
+[#188]: https://github.com/iqlusioninc/tmkms/pull/188
+[#181]: https://github.com/iqlusioninc/tmkms/pull/181
+[#186]: https://github.com/iqlusioninc/tmkms/pull/186
+[#186]: https://github.com/iqlusioninc/tmkms/pull/186
+[#184]: https://github.com/iqlusioninc/tmkms/pull/184
+[#183]: https://github.com/iqlusioninc/tmkms/pull/183
+[#178]: https://github.com/iqlusioninc/tmkms/pull/178
+[#177]: https://github.com/iqlusioninc/tmkms/pull/177
+[#170]: https://github.com/iqlusioninc/tmkms/pull/170
+[#168]: https://github.com/iqlusioninc/tmkms/pull/168
+[#167]: https://github.com/iqlusioninc/tmkms/pull/167
+[#165]: https://github.com/iqlusioninc/tmkms/pull/165
+[#164]: https://github.com/iqlusioninc/tmkms/pull/164
+[#154]: https://github.com/iqlusioninc/tmkms/pull/154
+[#152]: https://github.com/iqlusioninc/tmkms/pull/152
+[#148]: https://github.com/iqlusioninc/tmkms/pull/148
+[#146]: https://github.com/iqlusioninc/tmkms/pull/146
+[#122]: https://github.com/iqlusioninc/tmkms/pull/122
+[#121]: https://github.com/iqlusioninc/tmkms/pull/121
+[#115]: https://github.com/iqlusioninc/tmkms/pull/115
+[#104]: https://github.com/iqlusioninc/tmkms/pull/104
+
 ## 0.8.0 (2020-07-02)
 
 This release adds initial support for [tendermint v0.33].
