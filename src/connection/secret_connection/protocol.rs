@@ -1,12 +1,13 @@
 //! Secret Connection Protocol: message framing and versioning
 
-use super::amino_types::AuthSigMessage;
+use super::{amino_types, proto_types};
 use crate::{
     error::{Error, ErrorKind},
     prelude::*,
 };
 use ed25519_dalek as ed25519;
-use prost_amino::Message;
+use prost::Message as _;
+use prost_amino::Message as _;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use x25519_dalek::PublicKey as EphemeralPublic;
@@ -47,14 +48,14 @@ impl Version {
 
     /// Encode the initial handshake message (i.e. first one sent by both peers)
     pub(super) fn encode_initial_handshake(self, eph_pubkey: &EphemeralPublic) -> Vec<u8> {
-        let mut buf = Vec::new();
-
         if self.is_protobuf() {
             // Equivalent Go implementation:
             // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L307-L312
             // TODO(tarcieri): proper protobuf framing
+            let mut buf = Vec::new();
             buf.extend_from_slice(&[0x22, 0x0a, 0x20]);
             buf.extend_from_slice(eph_pubkey.as_bytes());
+            buf
         } else {
             // Legacy Amino encoded handshake message
             // Equivalent Go implementation:
@@ -62,12 +63,12 @@ impl Version {
             //
             // Note: this is not regular protobuf encoding but raw length prefixed amino encoding;
             // amino prefixes with the total length, and the raw bytes array's length, too:
+            let mut buf = Vec::new();
             buf.push(PUBLIC_KEY_SIZE as u8 + 1);
             buf.push(PUBLIC_KEY_SIZE as u8);
             buf.extend_from_slice(eph_pubkey.as_bytes());
+            buf
         }
-
-        buf
     }
 
     /// Decode the initial handshake message
@@ -112,29 +113,37 @@ impl Version {
     /// Encode signature which authenticates the handshake
     pub(super) fn encode_auth_signature(
         self,
-        pubkey: &ed25519::PublicKey,
+        pub_key: &ed25519::PublicKey,
         signature: &ed25519::Signature,
     ) -> Vec<u8> {
         if self.is_protobuf() {
-            let mut buf = Vec::new();
-            buf.extend_from_slice(&[102, 10, 34, 10, 32]);
-            buf.extend_from_slice(pubkey.as_ref());
-            buf.extend_from_slice(&[18, 64]);
-            buf.extend_from_slice(signature.as_ref());
-            buf
-        } else {
-            // TODO(tarcieri): proper protobuf message
-            // Legacy Amino encoded `AuthSigMessage`
-            let amsg = AuthSigMessage {
-                key: pubkey.as_ref().to_vec(),
+            // Protobuf `AuthSigMessage`
+            let pub_key = proto_types::PublicKey {
+                sum: Some(proto_types::public_key::Sum::Ed25519(
+                    pub_key.as_ref().to_vec(),
+                )),
+            };
+
+            let msg = proto_types::AuthSigMessage {
+                pub_key: Some(pub_key),
                 sig: signature.as_ref().to_vec(),
             };
 
             let mut buf = Vec::new();
+            msg.encode_length_delimited(&mut buf)
+                .expect("couldn't encode AuthSigMessage proto");
+            buf
+        } else {
+            // TODO(tarcieri): proper protobuf message
+            // Legacy Amino encoded `AuthSigMessage`
+            let msg = amino_types::AuthSigMessage {
+                pub_key: pub_key.as_ref().to_vec(),
+                sig: signature.as_ref().to_vec(),
+            };
 
-            amsg.encode_length_delimited(&mut buf)
+            let mut buf = Vec::new();
+            msg.encode_length_delimited(&mut buf)
                 .expect("encode_auth_signature failed");
-
             buf
         }
     }
@@ -151,27 +160,32 @@ impl Version {
     }
 
     /// Decode signature message which authenticates the handshake
-    pub(super) fn decode_auth_signature(self, bytes: &[u8]) -> Result<AuthSigMessage, Error> {
+    pub(super) fn decode_auth_signature(
+        self,
+        bytes: &[u8],
+    ) -> Result<proto_types::AuthSigMessage, Error> {
         if self.is_protobuf() {
             // Parse Protobuf-encoded `AuthSigMessage`
-            // TODO(tarcieri): proper protobuf framing
-            if bytes.len() != 103
-                || bytes[..5] != [102, 10, 34, 10, 32]
-                || bytes[37..39] != [18, 64]
-            {
-                fail!(
+            proto_types::AuthSigMessage::decode_length_delimited(bytes).map_err(|e| {
+                format_err!(
                     ErrorKind::ProtocolError,
-                    "malformed handshake message (protocol version mismatch?)"
-                );
-            }
-
-            Ok(AuthSigMessage {
-                key: bytes[5..37].into(),
-                sig: bytes[39..].into(),
+                    "malformed handshake message (protocol version mismatch?): {}",
+                    e
+                )
+                .into()
             })
         } else {
             // Legacy Amino encoded `AuthSigMessage`
-            Ok(AuthSigMessage::decode_length_delimited(bytes)?)
+            let amino_msg = amino_types::AuthSigMessage::decode_length_delimited(bytes)?;
+
+            let pub_key = proto_types::PublicKey {
+                sum: Some(proto_types::public_key::Sum::Ed25519(amino_msg.pub_key)),
+            };
+
+            Ok(proto_types::AuthSigMessage {
+                pub_key: Some(pub_key),
+                sig: amino_msg.sig,
+            })
         }
     }
 }

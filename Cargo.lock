@@ -142,6 +142,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1fd36ffbb1fb7c834eac128ea8d0e310c5aeb635548f9d58861e1308d46e71c"
+
+[[package]]
 name = "arc-swap"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1123,6 +1129,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1520,6 +1535,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce49aefe0a6144a45de32927c77bd2859a5f7677b55f220ae5b744e87389c212"
+dependencies = [
+ "bytes",
+ "prost-derive",
+]
+
+[[package]]
 name = "prost-amino"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1536,10 +1561,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7bbb97577964b9ff334506e319a7628af460f59a6be1da592b5bdccb6a78e921"
 dependencies = [
  "failure",
- "itertools",
+ "itertools 0.7.11",
  "proc-macro2",
  "quote",
  "sha2",
+ "syn",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "537aa19b95acde10a12fec4301466386f757403de4cd4e5b4fa78fb5ecb18f72"
+dependencies = [
+ "anyhow",
+ "itertools 0.8.2",
+ "proc-macro2",
+ "quote",
  "syn",
 ]
 
@@ -2227,8 +2265,10 @@ dependencies = [
  "ledger",
  "merlin",
  "once_cell",
+ "prost",
  "prost-amino",
  "prost-amino-derive",
+ "prost-derive",
  "rand",
  "rand_core",
  "rpassword",
