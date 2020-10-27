@@ -8,7 +8,6 @@ use crate::{
     prelude::*,
     rpc::{Request, Response, TendermintRequest},
 };
-use prost_amino::Message;
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use tendermint::{
     amino_types::{PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType},
@@ -97,7 +96,7 @@ impl Session {
 
     /// Handle an incoming request from the validator
     fn handle_request(&mut self) -> Result<bool, Error> {
-        let request = Request::read(&mut self.connection)?;
+        let request = Request::read(&mut self.connection, self.config.protocol_version)?;
         debug!(
             "[{}@{}] received request: {:?}",
             &self.config.chain_id, &self.config.addr, &request
@@ -116,16 +115,8 @@ impl Session {
             &self.config.chain_id, &self.config.addr, &response
         );
 
-        let mut buf = vec![];
-
-        match response {
-            Response::SignedProposal(sp) => sp.encode(&mut buf)?,
-            Response::SignedVote(sv) => sv.encode(&mut buf)?,
-            Response::Ping(ping) => ping.encode(&mut buf)?,
-            Response::PublicKey(pk) => pk.encode(&mut buf)?,
-        }
-
-        self.connection.write_all(&buf)?;
+        let response_bytes = response.encode(self.config.protocol_version)?;
+        self.connection.write_all(&response_bytes)?;
 
         Ok(true)
     }

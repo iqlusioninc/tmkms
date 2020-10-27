@@ -1,4 +1,4 @@
-//! Secret Connection Protobuf Types
+//! Secret Connection Protobuf Types (tendermint.p2p.conn)
 //!
 //! Generated from:
 //! <https://github.com/tendermint/tendermint/blob/730e165/proto/tendermint/p2p/conn.proto>
