@@ -19,6 +19,7 @@ pub mod error;
 pub mod key_utils;
 pub mod keyring;
 pub mod prelude;
+pub mod proto_types;
 pub mod rpc;
 pub mod session;
 

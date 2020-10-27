@@ -34,12 +34,12 @@ pub enum Version {
 
 impl Version {
     /// Does this version of Secret Connection use a transcript hash
-    pub(super) fn has_transcript(self) -> bool {
+    pub fn has_transcript(self) -> bool {
         self != Version::Legacy
     }
 
     /// Are messages encoded using Protocol Buffers?
-    pub(super) fn is_protobuf(self) -> bool {
+    pub fn is_protobuf(self) -> bool {
         match self {
             Version::V0_34 => true,
             Version::V0_33 | Version::Legacy => false,
@@ -47,7 +47,7 @@ impl Version {
     }
 
     /// Encode the initial handshake message (i.e. first one sent by both peers)
-    pub(super) fn encode_initial_handshake(self, eph_pubkey: &EphemeralPublic) -> Vec<u8> {
+    pub fn encode_initial_handshake(self, eph_pubkey: &EphemeralPublic) -> Vec<u8> {
         if self.is_protobuf() {
             // Equivalent Go implementation:
             // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L307-L312
@@ -72,7 +72,7 @@ impl Version {
     }
 
     /// Decode the initial handshake message
-    pub(super) fn decode_initial_handshake(self, bytes: &[u8]) -> Result<EphemeralPublic, Error> {
+    pub fn decode_initial_handshake(self, bytes: &[u8]) -> Result<EphemeralPublic, Error> {
         let eph_pubkey = if self.is_protobuf() {
             // Equivalent Go implementation:
             // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L315-L323
@@ -111,7 +111,7 @@ impl Version {
     }
 
     /// Encode signature which authenticates the handshake
-    pub(super) fn encode_auth_signature(
+    pub fn encode_auth_signature(
         self,
         pub_key: &ed25519::PublicKey,
         signature: &ed25519::Signature,
@@ -149,7 +149,7 @@ impl Version {
     }
 
     /// Get the length of the auth message response for this protocol version
-    pub(super) fn auth_sig_msg_response_len(self) -> usize {
+    pub fn auth_sig_msg_response_len(self) -> usize {
         if self.is_protobuf() {
             // 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
             103
@@ -160,10 +160,7 @@ impl Version {
     }
 
     /// Decode signature message which authenticates the handshake
-    pub(super) fn decode_auth_signature(
-        self,
-        bytes: &[u8],
-    ) -> Result<proto_types::AuthSigMessage, Error> {
+    pub fn decode_auth_signature(self, bytes: &[u8]) -> Result<proto_types::AuthSigMessage, Error> {
         if self.is_protobuf() {
             // Parse Protobuf-encoded `AuthSigMessage`
             proto_types::AuthSigMessage::decode_length_delimited(bytes).map_err(|e| {
