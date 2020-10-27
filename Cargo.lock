@@ -971,9 +971,9 @@ dependencies = [
 
 [[package]]
 name = "hkdf"
-version = "0.10.0-alpha.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62bfd183fa80c10d8a5337934bafdd94567a8b843cd0f20fef3284a1ad0defc0"
+checksum = "51ab2f639c231793c5f6114bdb9bbe50a7dbbfcd7c7c6bd8475dec2d991e964f"
 dependencies = [
  "digest 0.9.0",
  "hmac 0.10.1",
