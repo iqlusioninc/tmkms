@@ -1166,9 +1166,9 @@ dependencies = [
 
 [[package]]
 name = "k256"
-version = "0.5.9"
+version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2967b7caf19e57f5d01ac0893551b0aaae1a8e2e2b2a28996e12c9c51b3b486"
+checksum = "3934640b1efbc660af5889d041854b6985d403771dc4d5fee984e13e8f82f313"
 dependencies = [
  "cfg-if 1.0.0",
  "ecdsa 0.8.5",
@@ -2032,7 +2032,7 @@ checksum = "470756684957fd9ed5060c00641a610e6ab7fae4194f0582e8611c5f6a2cb45b"
 dependencies = [
  "anomaly",
  "ecdsa 0.8.5",
- "k256 0.5.9",
+ "k256 0.5.10",
  "prost-amino",
  "prost-amino-derive",
  "rust_decimal",
@@ -2261,7 +2261,7 @@ dependencies = [
  "hkdf",
  "hyper",
  "hyper-rustls",
- "k256 0.5.9",
+ "k256 0.5.10",
  "ledger",
  "merlin",
  "once_cell",
@@ -2738,7 +2738,7 @@ dependencies = [
  "ed25519-dalek",
  "harp",
  "hmac 0.10.1",
- "k256 0.5.9",
+ "k256 0.5.10",
  "log",
  "p256",
  "p384",
