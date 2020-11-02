@@ -39,6 +39,13 @@ pub use self::{
 
 use crate::rpc;
 use sha2::{Digest, Sha256};
+use tendermint::{chain, error::Error};
+
+/// Parse `chain::Id` from a type
+pub trait ParseChainId {
+    /// Parse `chain::Id`, or return an `Error` if parsing failed
+    fn parse_chain_id(&self) -> Result<chain::Id, Error>;
+}
 
 /// Tendermint requests
 pub trait TendermintRequest: SignableMsg {

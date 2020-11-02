@@ -1,9 +1,10 @@
 use super::validate::{self, ConsensusMessage, Error::*};
+use crate::prelude::*;
 use prost_amino_derive::Message;
+use std::convert::TryInto;
 use tendermint::{
     block::{self, parts},
-    error::Error,
-    hash,
+    error::{self, Error},
     hash::{Hash, SHA256_HASH_SIZE},
 };
 use tendermint_proto as proto;
@@ -22,24 +23,40 @@ impl BlockId {
     }
 }
 
+/// Parse an Amino-encoded SHA-256 hash
+fn parse_sha256_hash(bytes: &[u8]) -> Result<Hash, Error> {
+    bytes.try_into().map(Hash::Sha256).map_err(|_| {
+        format_err!(
+            error::Kind::Parse,
+            "malformed hash: {}-bytes (expected 32)",
+            bytes.len()
+        )
+        .into()
+    })
+}
+
+/// Parse `block::Id` from a type
+pub trait ParseId {
+    /// Parse `block::Id`, or return an `Error` if parsing failed
+    fn parse_block_id(&self) -> Result<block::Id, Error>;
+}
+
 impl block::ParseId for BlockId {
     fn parse_block_id(&self) -> Result<block::Id, Error> {
-        let hash = Hash::new(hash::Algorithm::Sha256, &self.hash)?;
-        let parts_header = self
-            .parts_header
-            .as_ref()
-            .and_then(PartsSetHeader::parse_parts_header);
-        Ok(block::Id::new(hash, parts_header))
+        let hash = parse_sha256_hash(&self.hash)?;
+        let parts = match &self.parts_header {
+            Some(p) => p.parse_parts_header()?,
+            None => fail!(error::Kind::Parse, "missing block ID parts header"),
+        };
+        Ok(block::Id { hash, parts })
     }
 }
 
 impl From<&block::Id> for BlockId {
     fn from(bid: &block::Id) -> Self {
         let bid_hash = bid.hash.as_bytes();
-        BlockId::new(
-            bid_hash.to_vec(),
-            bid.parts.as_ref().map(PartsSetHeader::from),
-        )
+
+        BlockId::new(bid_hash.to_vec(), Some(bid.parts.into()))
     }
 }
 
@@ -89,14 +106,14 @@ pub struct CanonicalBlockId {
     pub parts_header: Option<CanonicalPartSetHeader>,
 }
 
-impl block::ParseId for CanonicalBlockId {
+impl ParseId for CanonicalBlockId {
     fn parse_block_id(&self) -> Result<block::Id, Error> {
-        let hash = Hash::new(hash::Algorithm::Sha256, &self.hash)?;
-        let parts_header = self
-            .parts_header
-            .as_ref()
-            .and_then(CanonicalPartSetHeader::parse_parts_header);
-        Ok(block::Id::new(hash, parts_header))
+        let hash = parse_sha256_hash(&self.hash)?;
+        let parts = match &self.parts_header {
+            Some(p) => p.parse_parts_header()?,
+            None => fail!(error::Kind::Parse, "missing block ID parts header"),
+        };
+        Ok(block::Id { hash, parts })
     }
 }
 
@@ -121,10 +138,11 @@ impl From<&parts::Header> for PartsSetHeader {
 }
 
 impl PartsSetHeader {
-    fn parse_parts_header(&self) -> Option<block::parts::Header> {
-        Hash::new(hash::Algorithm::Sha256, &self.hash)
-            .map(|hash| block::parts::Header::new(self.total as u64, hash))
-            .ok()
+    fn parse_parts_header(&self) -> Result<block::parts::Header, Error> {
+        Ok(block::parts::Header::new(
+            self.total as u32,
+            parse_sha256_hash(&self.hash)?,
+        ))
     }
 }
 
@@ -141,6 +159,15 @@ impl ConsensusMessage for PartsSetHeader {
     }
 }
 
+impl From<block::parts::Header> for PartsSetHeader {
+    fn from(header: block::parts::Header) -> PartsSetHeader {
+        PartsSetHeader {
+            total: header.total as i64,
+            hash: header.hash.into(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Message)]
 pub struct CanonicalPartSetHeader {
     #[prost_amino(bytes, tag = "1")]
@@ -150,9 +177,10 @@ pub struct CanonicalPartSetHeader {
 }
 
 impl CanonicalPartSetHeader {
-    fn parse_parts_header(&self) -> Option<block::parts::Header> {
-        Hash::new(hash::Algorithm::Sha256, &self.hash)
-            .map(|hash| block::parts::Header::new(self.total as u64, hash))
-            .ok()
+    fn parse_parts_header(&self) -> Result<block::parts::Header, Error> {
+        Ok(block::parts::Header::new(
+            self.total as u32,
+            parse_sha256_hash(&self.hash)?,
+        ))
     }
 }

@@ -59,7 +59,7 @@ pub struct TxSigner {
     source: jsonrpc::Client,
 
     /// Tendermint RPC client
-    rpc_client: tendermint_rpc::Client,
+    rpc_client: tendermint_rpc::HttpClient,
 
     /// Sequence file
     seq_file: SequenceFile,
@@ -87,7 +87,7 @@ impl TxSigner {
             TxSource::JsonRpc { uri } => jsonrpc::Client::new(uri.clone()),
         };
 
-        let tendermint_rpc = tendermint_rpc::Client::new(config.rpc.addr.clone());
+        let tendermint_rpc = tendermint_rpc::HttpClient::new(config.rpc.addr.clone());
 
         let seq_file = SequenceFile::open(&config.seq_file)?;
 
