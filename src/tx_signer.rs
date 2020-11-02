@@ -23,7 +23,7 @@ use sequence_file::SequenceFile;
 use std::process;
 use stdtx::amino;
 use subtle_encoding::hex;
-use tendermint_rpc::endpoint::status;
+use tendermint_rpc::{endpoint::status, Client};
 use tokio::time;
 
 /// Frequency at which to retry after failures
@@ -59,7 +59,7 @@ pub struct TxSigner {
     source: jsonrpc::Client,
 
     /// Tendermint RPC client
-    rpc_client: tendermint_rpc::Client,
+    rpc_client: tendermint_rpc::HttpClient,
 
     /// Sequence file
     seq_file: SequenceFile,
@@ -87,12 +87,12 @@ impl TxSigner {
             TxSource::JsonRpc { uri } => jsonrpc::Client::new(uri.clone()),
         };
 
-        let tendermint_rpc = tendermint_rpc::Client::new(config.rpc.addr.clone());
+        let tendermint_rpc = tendermint_rpc::HttpClient::new(config.rpc.addr.clone())?;
 
         let seq_file = SequenceFile::open(&config.seq_file)?;
 
         Ok(Self {
-            chain_id: config.chain_id,
+            chain_id: config.chain_id.clone(),
             tx_builder,
             address: config.account_address,
             context: config.context.clone(),
@@ -214,7 +214,7 @@ impl TxSigner {
     /// Request a transaction to be signed from the transaction source
     async fn request_and_sign_tx(&mut self, status: status::Response) -> Result<(), Error> {
         let params = jsonrpc::Request {
-            network: self.chain_id,
+            network: self.chain_id.clone(),
             context: self.context.clone(),
             status: status.sync_info,
             last_tx_response: Option::from(&self.last_tx),
@@ -290,7 +290,7 @@ impl TxSigner {
     async fn broadcast_tx(&mut self, sign_msg: SignMsg, sequence: u64) -> Result<(), Error> {
         let tx = self.sign_tx(&sign_msg)?;
 
-        let amino_tx = tendermint::abci::Transaction::new(
+        let amino_tx = tendermint::abci::Transaction::from(
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
 
@@ -370,7 +370,8 @@ impl TxSigner {
             .keyring
             .get_account_pubkey(account_id)
             .expect("missing account key")
-            .to_bytes();
+            .as_bytes()
+            .into();
 
         let msg_type_info = sign_msg
             .msg_types()

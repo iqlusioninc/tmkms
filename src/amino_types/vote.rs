@@ -5,7 +5,7 @@ use super::{
     signature::SignableMsg,
     time::TimeMsg,
     validate::{self, ConsensusMessage, Error::*},
-    PartsSetHeader, SignedMsgType, TendermintRequest,
+    ParseChainId, SignedMsgType, TendermintRequest,
 };
 use crate::{config::validator::ProtocolVersion, rpc};
 use bytes::BufMut;
@@ -60,16 +60,16 @@ impl Vote {
 impl From<&vote::Vote> for Vote {
     fn from(vote: &vote::Vote) -> Self {
         Vote {
-            vote_type: vote.vote_type.to_u32(),
-            height: vote.height.value() as i64, // TODO potential overflow :-/
-            round: vote.round as i64,
+            vote_type: i32::from(vote.vote_type) as u32,
+            height: vote.height.value() as i64,
+            round: vote.round.value() as i64,
             block_id: vote.block_id.as_ref().map(|block_id| BlockId {
                 hash: block_id.hash.as_bytes().to_vec(),
-                parts_header: block_id.parts.as_ref().map(PartsSetHeader::from),
+                parts_header: Some(block_id.part_set_header.into()),
             }),
-            timestamp: Some(TimeMsg::from(vote.timestamp)),
+            timestamp: vote.timestamp.map(Into::into),
             validator_address: vote.validator_address.as_bytes().to_vec(),
-            validator_index: vote.validator_index as i64, // TODO potential overflow :-/
+            validator_index: vote.validator_index.value() as i64,
             signature: vote.signature.as_bytes().to_vec(),
         }
     }
@@ -134,7 +134,7 @@ impl TendermintRequest for SignVoteRequest {
     }
 }
 
-impl chain::ParseId for CanonicalVote {
+impl ParseChainId for CanonicalVote {
     fn parse_chain_id(&self) -> Result<chain::Id, Error> {
         self.chain_id.parse()
     }
@@ -244,7 +244,7 @@ impl SignableMsg for SignVoteRequest {
                     Ok(h) => h,
                     Err(_err) => return None, // TODO(tarcieri): return an error?
                 },
-                round: v.round,
+                round: block::Round::from(v.round as u16),
                 step: 6,
                 block_id: {
                     match v.block_id {

@@ -80,7 +80,10 @@ fn load_chain_formatters() -> Map<chain::Id, keyring::Format> {
     let mut map = Map::new();
 
     for chain in &cfg.chain {
-        if map.insert(chain.id, chain.key_format.clone()).is_some() {
+        if map
+            .insert(chain.id.clone(), chain.key_format.clone())
+            .is_some()
+        {
             status_err!("duplicate chain config for '{}'", chain.id);
             process::exit(1);
         }
