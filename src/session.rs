@@ -1,18 +1,18 @@
 //! A session with a validator node
 
 use crate::{
+    amino_types::{
+        PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType, TendermintRequest,
+    },
     chain::{self, state::StateErrorKind, Chain},
     config::ValidatorConfig,
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
-    rpc::{Request, Response, TendermintRequest},
+    rpc::{Request, Response},
 };
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
-use tendermint::{
-    amino_types::{PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType},
-    consensus, net,
-};
+use tendermint::{consensus, net};
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -126,7 +126,10 @@ impl Session {
     where
         R: TendermintRequest + Debug,
     {
-        request.validate()?;
+        request
+            .validate()
+            .map_err(|e| format_err!(SigningError, "failed to validate request: {}", e))?;
+
         self.check_max_height(&mut request)?;
 
         let registry = chain::REGISTRY.get();

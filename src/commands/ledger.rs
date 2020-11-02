@@ -1,12 +1,15 @@
 //! `tmkms ledger` CLI (sub)commands
 
-use crate::{chain, prelude::*};
+use crate::{
+    amino_types::{
+        vote::{SignVoteRequest, Vote},
+        SignableMsg, SignedMsgType,
+    },
+    chain,
+    prelude::*,
+};
 use abscissa_core::{Command, Options, Runnable};
 use std::{path::PathBuf, process};
-use tendermint::amino_types::{
-    vote::{SignVoteRequest, Vote},
-    SignableMsg, SignedMsgType,
-};
 
 /// `ledger` subcommand
 #[derive(Command, Debug, Options, Runnable)]

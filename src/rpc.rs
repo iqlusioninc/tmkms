@@ -4,28 +4,16 @@
 #![allow(missing_docs)]
 
 use crate::{
+    amino_types,
     connection::secret_connection::{Version, DATA_MAX_SIZE},
     error::{Error, ErrorKind},
     prelude::*,
     proto_types,
 };
 use bytes::Bytes;
-use once_cell::sync::Lazy;
 use prost::Message as _;
 use prost_amino::{encoding::decode_varint, Message as _};
-use sha2::{Digest, Sha256};
 use std::io::Read;
-use tendermint::amino_types::{
-    self, PING_AMINO_NAME, PROPOSAL_AMINO_NAME, PUBKEY_AMINO_NAME, VOTE_AMINO_NAME,
-};
-
-// pre-compute registered types prefix (this is probably sth. our amino library should
-// provide instead)
-
-static VOTE_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(VOTE_AMINO_NAME));
-static PROPOSAL_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(PROPOSAL_AMINO_NAME));
-static PUBKEY_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(PUBKEY_AMINO_NAME));
-static PING_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(PING_AMINO_NAME));
 
 /// RPC requests to the KMS
 #[derive(Debug)]
@@ -56,7 +44,7 @@ impl Request {
             match msg {
                 Some(proto_types::message::Sum::SignVoteRequest(req)) => {
                     Ok(Request::SignVote(amino_types::SignVoteRequest {
-                        vote: req.vote.map(|vote| amino_types::vote::Vote {
+                        vote: req.vote.map(|vote| amino_types::Vote {
                             vote_type: vote.msg_type as u32,
                             height: vote.height,
                             round: vote.round as i64,
@@ -73,43 +61,41 @@ impl Request {
                 }
                 Some(proto_types::message::Sum::SignProposalRequest(req)) => {
                     Ok(Request::SignProposal(amino_types::SignProposalRequest {
-                        proposal: req
-                            .proposal
-                            .map(|proposal| amino_types::proposal::Proposal {
-                                msg_type: proposal.msg_type as u32,
-                                height: proposal.height,
-                                round: proposal.round as i64,
-                                pol_round: proposal.pol_round as i64,
-                                block_id: proposal.block_id.map(Into::into),
-                                timestamp: proposal.timestamp.map(|ts| amino_types::TimeMsg {
-                                    seconds: ts.seconds,
-                                    nanos: ts.nanos,
-                                }),
-                                signature: proposal.signature,
+                        proposal: req.proposal.map(|proposal| amino_types::Proposal {
+                            msg_type: proposal.msg_type as u32,
+                            height: proposal.height,
+                            round: proposal.round as i64,
+                            pol_round: proposal.pol_round as i64,
+                            block_id: proposal.block_id.map(Into::into),
+                            timestamp: proposal.timestamp.map(|ts| amino_types::TimeMsg {
+                                seconds: ts.seconds,
+                                nanos: ts.nanos,
                             }),
+                            signature: proposal.signature,
+                        }),
                     }))
                 }
-                Some(proto_types::message::Sum::PubKeyRequest(_)) => Ok(Request::ShowPublicKey(
-                    amino_types::ed25519::PubKeyRequest {},
-                )),
+                Some(proto_types::message::Sum::PubKeyRequest(_)) => {
+                    Ok(Request::ShowPublicKey(amino_types::PubKeyRequest {}))
+                }
                 Some(proto_types::message::Sum::PingRequest(_)) => {
-                    Ok(Request::ReplyPing(amino_types::ping::PingRequest {}))
+                    Ok(Request::ReplyPing(amino_types::PingRequest {}))
                 }
                 _ => fail!(ErrorKind::ProtocolError, "invalid RPC message: {:?}", msg),
             }
         } else {
             let amino_prefix = parse_amino_prefix(&msg)?;
 
-            if amino_prefix == *VOTE_PREFIX {
+            if amino_prefix == *amino_types::vote::AMINO_PREFIX {
                 let req = amino_types::SignVoteRequest::decode(msg.as_ref())?;
                 Ok(Request::SignVote(req))
-            } else if amino_prefix == *PROPOSAL_PREFIX {
+            } else if amino_prefix == *amino_types::proposal::AMINO_PREFIX {
                 let req = amino_types::SignProposalRequest::decode(msg.as_ref())?;
                 Ok(Request::SignProposal(req))
-            } else if amino_prefix == *PUBKEY_PREFIX {
+            } else if amino_prefix == *amino_types::ed25519::AMINO_PREFIX {
                 let req = amino_types::PubKeyRequest::decode(msg.as_ref())?;
                 Ok(Request::ShowPublicKey(req))
-            } else if amino_prefix == *PING_PREFIX {
+            } else if amino_prefix == *amino_types::ping::AMINO_PREFIX {
                 let req = amino_types::PingRequest::decode(msg.as_ref())?;
                 Ok(Request::ReplyPing(req))
             } else {
@@ -205,72 +191,6 @@ impl Response {
     }
 }
 
-pub trait TendermintRequest: amino_types::SignableMsg {
-    fn build_response(self, error: Option<amino_types::RemoteError>) -> Response;
-}
-
-impl TendermintRequest for amino_types::SignVoteRequest {
-    fn build_response(self, error: Option<amino_types::RemoteError>) -> Response {
-        let response = if let Some(e) = error {
-            amino_types::SignedVoteResponse {
-                vote: None,
-                err: Some(e),
-            }
-        } else {
-            amino_types::SignedVoteResponse {
-                vote: self.vote,
-                err: None,
-            }
-        };
-
-        Response::SignedVote(response)
-    }
-}
-
-impl TendermintRequest for amino_types::SignProposalRequest {
-    fn build_response(self, error: Option<amino_types::RemoteError>) -> Response {
-        let response = if let Some(e) = error {
-            amino_types::SignedProposalResponse {
-                proposal: None,
-                err: Some(e),
-            }
-        } else {
-            amino_types::SignedProposalResponse {
-                proposal: self.proposal,
-                err: None,
-            }
-        };
-
-        Response::SignedProposal(response)
-    }
-}
-
-impl From<proto_types::BlockId> for amino_types::BlockId {
-    fn from(block_id: proto_types::BlockId) -> amino_types::BlockId {
-        amino_types::BlockId::new(
-            block_id.hash,
-            block_id
-                .part_set_header
-                .map(|psh| amino_types::PartsSetHeader {
-                    total: psh.total as i64,
-                    hash: psh.hash,
-                }),
-        )
-    }
-}
-
-impl From<amino_types::BlockId> for proto_types::BlockId {
-    fn from(block_id: amino_types::BlockId) -> proto_types::BlockId {
-        proto_types::BlockId {
-            hash: block_id.hash,
-            part_set_header: block_id.parts_header.map(|psh| proto_types::PartSetHeader {
-                total: psh.total as u32,
-                hash: psh.hash,
-            }),
-        }
-    }
-}
-
 /// Read a message from a Secret Connection
 // TODO(tarcieri): extract this into Secret Connection
 fn read_msg(conn: &mut impl Read) -> Result<Vec<u8>, Error> {
@@ -293,20 +213,4 @@ fn parse_amino_prefix(packet: &[u8]) -> Result<Vec<u8>, Error> {
     }
 
     Ok(amino_buf[..4].into())
-}
-
-/// Compute Amino prefix
-fn compute_prefix(name: &str) -> Vec<u8> {
-    let mut sh = Sha256::default();
-    sh.update(name.as_bytes());
-    let output = sh.finalize();
-
-    output
-        .iter()
-        .filter(|&x| *x != 0x00)
-        .skip(3)
-        .filter(|&x| *x != 0x00)
-        .cloned()
-        .take(4)
-        .collect()
 }
