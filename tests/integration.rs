@@ -14,7 +14,7 @@ use std::{
     process::{Child, Command},
 };
 use tempfile::NamedTempFile;
-use tendermint::amino_types::{self, *};
+use tmkms::amino_types::{self, *};
 use tmkms::connection::{
     secret_connection::{self, SecretConnection},
     unix::UnixConnection,

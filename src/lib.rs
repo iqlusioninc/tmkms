@@ -9,6 +9,7 @@ compile_error!(
      yubihsm, ledgertm, softsign (e.g. --features=yubihsm)"
 );
 
+pub mod amino_types;
 pub mod application;
 pub mod chain;
 pub mod client;
