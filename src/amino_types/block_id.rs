@@ -1,5 +1,4 @@
 use super::validate::{self, ConsensusMessage, Error::*};
-use crate::proto_types;
 use prost_amino_derive::Message;
 use tendermint::{
     block::{self, parts},
@@ -7,6 +6,7 @@ use tendermint::{
     hash,
     hash::{Hash, SHA256_HASH_SIZE},
 };
+use tendermint_proto as proto;
 
 #[derive(Clone, PartialEq, Message)]
 pub struct BlockId {
@@ -43,8 +43,8 @@ impl From<&block::Id> for BlockId {
     }
 }
 
-impl From<proto_types::BlockId> for BlockId {
-    fn from(block_id: proto_types::BlockId) -> BlockId {
+impl From<proto::types::BlockId> for BlockId {
+    fn from(block_id: proto::types::BlockId) -> BlockId {
         BlockId::new(
             block_id.hash,
             block_id.part_set_header.map(|psh| PartsSetHeader {
@@ -55,14 +55,16 @@ impl From<proto_types::BlockId> for BlockId {
     }
 }
 
-impl From<BlockId> for proto_types::BlockId {
-    fn from(block_id: BlockId) -> proto_types::BlockId {
-        proto_types::BlockId {
+impl From<BlockId> for proto::types::BlockId {
+    fn from(block_id: BlockId) -> proto::types::BlockId {
+        proto::types::BlockId {
             hash: block_id.hash,
-            part_set_header: block_id.parts_header.map(|psh| proto_types::PartSetHeader {
-                total: psh.total as u32,
-                hash: psh.hash,
-            }),
+            part_set_header: block_id
+                .parts_header
+                .map(|psh| proto::types::PartSetHeader {
+                    total: psh.total as u32,
+                    hash: psh.hash,
+                }),
         }
     }
 }

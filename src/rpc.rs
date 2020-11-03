@@ -8,12 +8,12 @@ use crate::{
     connection::secret_connection::{Version, DATA_MAX_SIZE},
     error::{Error, ErrorKind},
     prelude::*,
-    proto_types,
 };
 use bytes::Bytes;
 use prost::Message as _;
 use prost_amino::{encoding::decode_varint, Message as _};
 use std::io::Read;
+use tendermint_proto as proto;
 
 /// RPC requests to the KMS
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl Request {
 
         if protocol_version.is_protobuf() {
             // Parse Protobuf-encoded request message
-            let msg = proto_types::Message::decode_length_delimited(msg.as_ref())
+            let msg = proto::privval::Message::decode_length_delimited(msg.as_ref())
                 .map_err(|e| {
                     format_err!(ErrorKind::ProtocolError, "malformed message packet: {}", e)
                 })?
@@ -42,10 +42,10 @@ impl Request {
 
             // TODO(tarcieri): transition natively to protobuf types
             match msg {
-                Some(proto_types::message::Sum::SignVoteRequest(req)) => {
+                Some(proto::privval::message::Sum::SignVoteRequest(req)) => {
                     Ok(Request::SignVote(amino_types::SignVoteRequest {
                         vote: req.vote.map(|vote| amino_types::Vote {
-                            vote_type: vote.msg_type as u32,
+                            vote_type: vote.r#type as u32,
                             height: vote.height,
                             round: vote.round as i64,
                             block_id: vote.block_id.map(Into::into),
@@ -59,10 +59,10 @@ impl Request {
                         }),
                     }))
                 }
-                Some(proto_types::message::Sum::SignProposalRequest(req)) => {
+                Some(proto::privval::message::Sum::SignProposalRequest(req)) => {
                     Ok(Request::SignProposal(amino_types::SignProposalRequest {
                         proposal: req.proposal.map(|proposal| amino_types::Proposal {
-                            msg_type: proposal.msg_type as u32,
+                            msg_type: proposal.r#type as u32,
                             height: proposal.height,
                             round: proposal.round as i64,
                             pol_round: proposal.pol_round as i64,
@@ -75,10 +75,10 @@ impl Request {
                         }),
                     }))
                 }
-                Some(proto_types::message::Sum::PubKeyRequest(_)) => {
+                Some(proto::privval::message::Sum::PubKeyRequest(_)) => {
                     Ok(Request::ShowPublicKey(amino_types::PubKeyRequest {}))
                 }
-                Some(proto_types::message::Sum::PingRequest(_)) => {
+                Some(proto::privval::message::Sum::PingRequest(_)) => {
                     Ok(Request::ReplyPing(amino_types::PingRequest {}))
                 }
                 _ => fail!(ErrorKind::ProtocolError, "invalid RPC message: {:?}", msg),
@@ -122,37 +122,31 @@ impl Response {
             let mut buf = Vec::new();
 
             let msg = match self {
-                Response::SignedVote(resp) => {
-                    proto_types::message::Sum::SignedVoteResponse(proto_types::SignedVoteResponse {
-                        vote: resp.vote.map(|vote| proto_types::Vote {
-                            msg_type: vote.vote_type as i32,
+                Response::SignedVote(resp) => proto::privval::message::Sum::SignedVoteResponse(
+                    proto::privval::SignedVoteResponse {
+                        vote: resp.vote.map(|vote| proto::types::Vote {
+                            r#type: vote.vote_type as i32,
                             height: vote.height,
                             round: vote.round as i32,
                             block_id: vote.block_id.map(Into::into),
-                            timestamp: vote.timestamp.map(|ts| proto_types::Timestamp {
-                                seconds: ts.seconds,
-                                nanos: ts.nanos,
-                            }),
+                            timestamp: vote.timestamp.map(Into::into),
                             validator_address: vote.validator_address,
                             validator_index: vote.validator_index as i32,
                             signature: vote.signature,
                         }),
                         error: None,
-                    })
-                }
+                    },
+                ),
                 Response::SignedProposal(resp) => {
-                    proto_types::message::Sum::SignedProposalResponse(
-                        proto_types::SignedProposalResponse {
-                            proposal: resp.proposal.map(|proposal| proto_types::Proposal {
-                                msg_type: proposal.msg_type as i32,
+                    proto::privval::message::Sum::SignedProposalResponse(
+                        proto::privval::SignedProposalResponse {
+                            proposal: resp.proposal.map(|proposal| proto::types::Proposal {
+                                r#type: proposal.msg_type as i32,
                                 height: proposal.height,
                                 round: proposal.round as i32,
                                 pol_round: proposal.pol_round as i32,
                                 block_id: proposal.block_id.map(Into::into),
-                                timestamp: proposal.timestamp.map(|ts| proto_types::Timestamp {
-                                    seconds: ts.seconds,
-                                    nanos: ts.nanos,
-                                }),
+                                timestamp: proposal.timestamp.map(Into::into),
                                 signature: proposal.signature,
                             }),
                             error: None,
@@ -160,21 +154,21 @@ impl Response {
                     )
                 }
                 Response::Ping(_) => {
-                    proto_types::message::Sum::PingResponse(proto_types::PingResponse {})
+                    proto::privval::message::Sum::PingResponse(proto::privval::PingResponse {})
                 }
                 Response::PublicKey(pk) => {
-                    let pk = proto_types::PublicKey {
-                        sum: Some(proto_types::public_key::Sum::Ed25519(pk.pub_key_ed25519)),
+                    let pk = proto::crypto::PublicKey {
+                        sum: Some(proto::crypto::public_key::Sum::Ed25519(pk.pub_key_ed25519)),
                     };
 
-                    proto_types::message::Sum::PubKeyResponse(proto_types::PubKeyResponse {
+                    proto::privval::message::Sum::PubKeyResponse(proto::privval::PubKeyResponse {
                         pub_key: Some(pk),
                         error: None,
                     })
                 }
             };
 
-            proto_types::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
+            proto::privval::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
             Ok(buf)
         } else {
             let mut buf = Vec::new();
