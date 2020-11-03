@@ -46,3 +46,21 @@ impl From<TimeMsg> for SystemTime {
         }
     }
 }
+
+impl From<TimeMsg> for prost_types::Timestamp {
+    fn from(ts: TimeMsg) -> prost_types::Timestamp {
+        prost_types::Timestamp {
+            seconds: ts.seconds,
+            nanos: ts.nanos,
+        }
+    }
+}
+
+impl From<prost_types::Timestamp> for TimeMsg {
+    fn from(ts: prost_types::Timestamp) -> TimeMsg {
+        TimeMsg {
+            seconds: ts.seconds,
+            nanos: ts.nanos,
+        }
+    }
+}

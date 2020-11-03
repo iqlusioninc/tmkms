@@ -1,6 +1,6 @@
 //! Secret Connection Protocol: message framing and versioning
 
-use super::{amino_types, proto_types};
+use super::amino_types;
 use crate::{
     error::{Error, ErrorKind},
     prelude::*,
@@ -10,6 +10,7 @@ use prost::Message as _;
 use prost_amino::Message as _;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
+use tendermint_proto as proto;
 use x25519_dalek::PublicKey as EphemeralPublic;
 
 /// Size of an X25519 or Ed25519 public key
@@ -118,13 +119,13 @@ impl Version {
     ) -> Vec<u8> {
         if self.is_protobuf() {
             // Protobuf `AuthSigMessage`
-            let pub_key = proto_types::PublicKey {
-                sum: Some(proto_types::public_key::Sum::Ed25519(
+            let pub_key = proto::crypto::PublicKey {
+                sum: Some(proto::crypto::public_key::Sum::Ed25519(
                     pub_key.as_ref().to_vec(),
                 )),
             };
 
-            let msg = proto_types::AuthSigMessage {
+            let msg = proto::p2p::AuthSigMessage {
                 pub_key: Some(pub_key),
                 sig: signature.as_ref().to_vec(),
             };
@@ -160,10 +161,10 @@ impl Version {
     }
 
     /// Decode signature message which authenticates the handshake
-    pub fn decode_auth_signature(self, bytes: &[u8]) -> Result<proto_types::AuthSigMessage, Error> {
+    pub fn decode_auth_signature(self, bytes: &[u8]) -> Result<proto::p2p::AuthSigMessage, Error> {
         if self.is_protobuf() {
             // Parse Protobuf-encoded `AuthSigMessage`
-            proto_types::AuthSigMessage::decode_length_delimited(bytes).map_err(|e| {
+            proto::p2p::AuthSigMessage::decode_length_delimited(bytes).map_err(|e| {
                 format_err!(
                     ErrorKind::ProtocolError,
                     "malformed handshake message (protocol version mismatch?): {}",
@@ -175,11 +176,11 @@ impl Version {
             // Legacy Amino encoded `AuthSigMessage`
             let amino_msg = amino_types::AuthSigMessage::decode_length_delimited(bytes)?;
 
-            let pub_key = proto_types::PublicKey {
-                sum: Some(proto_types::public_key::Sum::Ed25519(amino_msg.pub_key)),
+            let pub_key = proto::crypto::PublicKey {
+                sum: Some(proto::crypto::public_key::Sum::Ed25519(amino_msg.pub_key)),
             };
 
-            Ok(proto_types::AuthSigMessage {
+            Ok(proto::p2p::AuthSigMessage {
                 pub_key: Some(pub_key),
                 sig: amino_msg.sig,
             })

@@ -3,7 +3,6 @@
 mod amino_types;
 mod kdf;
 mod nonce;
-pub(crate) mod proto_types;
 mod protocol;
 mod public_key;
 
@@ -30,6 +29,7 @@ use std::{
     slice,
 };
 use subtle::ConstantTimeEq;
+use tendermint_proto as proto;
 use x25519_dalek::{EphemeralSecret, PublicKey as EphemeralPublic};
 use zeroize::Zeroizing;
 
@@ -147,7 +147,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         let remote_pubkey = auth_sig_msg
             .pub_key
             .and_then(|pk| match pk.sum? {
-                proto_types::public_key::Sum::Ed25519(ref bytes) => {
+                proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
                     ed25519::PublicKey::from_bytes(bytes).ok()
                 }
             })
@@ -375,7 +375,7 @@ fn share_auth_signature<IoHandler: Read + Write + Send + Sync>(
     sc: &mut SecretConnection<IoHandler>,
     pubkey: &ed25519::PublicKey,
     local_signature: &ed25519::Signature,
-) -> Result<proto_types::AuthSigMessage, Error> {
+) -> Result<proto::p2p::AuthSigMessage, Error> {
     let buf = sc
         .protocol_version
         .encode_auth_signature(pubkey, &local_signature);
