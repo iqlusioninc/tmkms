@@ -1116,7 +1116,7 @@ dependencies = [
  "hidapi",
  "lazy_static",
  "libc",
- "nix",
+ "nix 0.13.1",
  "quick-error",
 ]
 
@@ -1263,6 +1263,19 @@ name = "nix"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4dbdc256eaac2e3bd236d93ad999d3479ef775c863dbda3068c4006a92eec51b"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cfg-if 0.1.10",
+ "libc",
+ "void",
+]
+
+[[package]]
+name = "nix"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50e4785f2c3b7589a0d0c1dd60285e1188adac4006e8abd6dd578e1567027363"
 dependencies = [
  "bitflags",
  "cc",
@@ -2214,6 +2227,7 @@ dependencies = [
  "k256",
  "ledger",
  "merlin",
+ "nix 0.17.0",
  "once_cell",
  "prost",
  "prost-amino",
@@ -2234,6 +2248,7 @@ dependencies = [
  "tendermint-proto",
  "tendermint-rpc",
  "thiserror",
+ "vsock",
  "wait-timeout",
  "x25519-dalek",
  "yubihsm",
@@ -2471,6 +2486,16 @@ name = "void"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
+
+[[package]]
+name = "vsock"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dba063357047c0f2216c7c653879ea4e5e198d0c3cde7efa37ebfd9039b48491"
+dependencies = [
+ "libc",
+ "nix 0.17.0",
+]
 
 [[package]]
 name = "wait-timeout"

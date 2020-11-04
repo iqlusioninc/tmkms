@@ -3,6 +3,8 @@
 pub mod secret_connection;
 pub mod tcp;
 pub mod unix;
+#[cfg(feature = "nitro-enclave")]
+pub mod vsock;
 
 use self::{secret_connection::SecretConnection, unix::UnixConnection};
 use std::io;
