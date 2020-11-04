@@ -22,7 +22,7 @@ const DEFAULT_TIMEOUT: u16 = 10;
 /// Open a VM socket connection encrypted with SecretConnection
 pub fn open_secret_connection(
     cid: u32,
-    port: u16,
+    port: u32,
     identity_key_path: &Option<PathBuf>,
     peer_id: &Option<node::Id>,
     timeout: Option<u16>,
