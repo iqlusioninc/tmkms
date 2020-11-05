@@ -14,7 +14,7 @@ use nix::sys::socket::SockAddr;
 use std::{path::PathBuf, time::Duration};
 use subtle::ConstantTimeEq;
 use tendermint::node;
-use vsock::{VsockListener, VsockStream};
+use vsock::VsockStream;
 
 /// Default timeout in seconds
 const DEFAULT_TIMEOUT: u16 = 10;
