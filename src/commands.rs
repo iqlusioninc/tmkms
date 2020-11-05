@@ -15,7 +15,7 @@ pub mod yubihsm;
 #[cfg(feature = "ledger")]
 pub use self::ledger::LedgerCommand;
 #[cfg(feature = "nitro-enclave")]
-pub use self::nitro::StartNitroCommand;
+pub use self::nitro::NitroCommand;
 #[cfg(feature = "softsign")]
 pub use self::softsign::SoftsignCommand;
 #[cfg(feature = "yubihsm")]
@@ -44,8 +44,8 @@ pub enum KmsCommand {
 
     /// `startnitro` subcommand
     #[cfg(feature = "nitro-enclave")]
-    #[options(help = "start the KMS application inside Nitro Enclave")]
-    StartNitro(StartNitroCommand),
+    #[options(help = "starting the KMS in Nitro Enclave or pushing config to it")]
+    Nitro(NitroCommand),
 
     /// `version` subcommand
     #[options(help = "display version information")]
