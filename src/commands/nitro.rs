@@ -2,7 +2,7 @@
 
 use crate::{chain, client::Client, prelude::*};
 use abscissa_core::{Command, Options};
-use std::{path::PathBuf, process};
+use std::process;
 
 /// The `start-nitro` command
 #[derive(Command, Debug, Options)]

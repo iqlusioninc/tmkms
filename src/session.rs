@@ -1,18 +1,26 @@
 //! A session with a validator node
 
+#[cfg(feature = "nitro-enclave")]
+use crate::connection::vsock;
+#[cfg(not(feature = "nitro-enclave"))]
+use crate::connection::{tcp, unix::UnixConnection};
 use crate::{
     amino_types::{
         PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType, TendermintRequest,
     },
     chain::{self, state::StateErrorKind, Chain},
     config::ValidatorConfig,
-    connection::{tcp, unix::UnixConnection, Connection},
+    connection::Connection,
     error::{Error, ErrorKind::*},
     prelude::*,
     rpc::{Request, Response},
 };
-use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
-use tendermint::{consensus, net};
+#[cfg(not(feature = "nitro-enclave"))]
+use std::os::unix::net::UnixStream;
+use std::{fmt::Debug, time::Instant};
+use tendermint::consensus;
+#[cfg(not(feature = "nitro-enclave"))]
+use tendermint::net;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -24,7 +32,37 @@ pub struct Session {
 }
 
 impl Session {
+    /// Open a session using the given validator configuration in Nitro Enclave
+    #[cfg(feature = "nitro-enclave")]
+    pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
+        let connection: Box<dyn Connection> = {
+            debug!(
+                "[{}@{}] connecting to validator...",
+                &config.chain_id, &config.addr
+            );
+            let crate::config::validator::VsockAddr(cid, port) = config.addr;
+            let conn = vsock::open_secret_connection(
+                cid,
+                port,
+                &config.secret_key,
+                // FIXME: peer_id
+                &None,
+                config.timeout,
+                config.protocol_version,
+            )?;
+
+            info!(
+                "[{}@vsock({}:{})] connected to validator successfully",
+                &config.chain_id, cid, port
+            );
+
+            Box::new(conn)
+        };
+        Ok(Self { config, connection })
+    }
+
     /// Open a session using the given validator configuration
+    #[cfg(not(feature = "nitro-enclave"))]
     pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
         let connection: Box<dyn Connection> = match &config.addr {
             net::Address::Tcp {

@@ -3,13 +3,16 @@
 use crate::connection::secret_connection;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tendermint::{chain, net};
+use tendermint::chain;
+#[cfg(not(feature = "nitro-enclave"))]
+use tendermint::net;
 
 /// Validator configuration
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ValidatorConfig {
     /// Address of the validator (`tcp://` or `unix://`)
+    #[cfg(not(feature = "nitro-enclave"))]
     pub addr: net::Address,
 
     /// Chain ID of the Tendermint network this validator is part of
@@ -30,6 +33,10 @@ pub struct ValidatorConfig {
 
     /// Version of Secret Connection protocol to use when connecting
     pub protocol_version: ProtocolVersion,
+
+    /// For nitro enclave connection (ignore Tendermint addr, as it's proxy-ed via vsock)
+    #[cfg(feature = "nitro-enclave")]
+    pub addr: VsockAddr,
 }
 
 /// Protocol version (based on the Tendermint version)
@@ -63,6 +70,19 @@ impl From<ProtocolVersion> for secret_connection::Version {
             ProtocolVersion::V0_33 => secret_connection::Version::V0_33,
             ProtocolVersion::Legacy => secret_connection::Version::Legacy,
         }
+    }
+}
+
+#[cfg(feature = "nitro-enclave")]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+/// VM socket address (context id + port)
+pub struct VsockAddr(pub u32, pub u32);
+
+#[cfg(feature = "nitro-enclave")]
+impl std::fmt::Display for VsockAddr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "vsock (cid:{}, port: {})", self.0, self.1)
     }
 }
 
