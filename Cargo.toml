@@ -58,6 +58,7 @@ byteorder = "1"
 rand = "0.7"
 
 [features]
+default = ["softsign", "nitro-enclave"]
 softsign = []
 tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc"]
 yubihsm-mock = ["yubihsm/mockhsm"]

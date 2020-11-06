@@ -82,6 +82,8 @@ pub struct VsockAddr {
     pub cid: u32,
     /// vsock port
     pub port: u32,
+    /// secret connection -- disabled if proxied to unix
+    pub secret_connection: bool,
 }
 
 #[cfg(feature = "nitro-enclave")]

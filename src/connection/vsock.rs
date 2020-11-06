@@ -10,11 +10,11 @@ use crate::{
     key_utils,
     prelude::*,
 };
-use nix::sys::socket::SockAddr;
+pub use nix::sys::socket::SockAddr;
 use std::{path::PathBuf, time::Duration};
 use subtle::ConstantTimeEq;
 use tendermint::node;
-use vsock::VsockStream;
+pub use vsock::VsockStream;
 
 /// Default timeout in seconds
 const DEFAULT_TIMEOUT: u16 = 10;

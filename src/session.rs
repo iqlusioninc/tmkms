@@ -1,9 +1,10 @@
 //! A session with a validator node
 
+#[cfg(not(feature = "nitro-enclave"))]
+use crate::connection::tcp;
+use crate::connection::unix::UnixConnection;
 #[cfg(feature = "nitro-enclave")]
 use crate::connection::vsock;
-#[cfg(not(feature = "nitro-enclave"))]
-use crate::connection::{tcp, unix::UnixConnection};
 use crate::{
     amino_types::{
         PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType, TendermintRequest,
@@ -40,23 +41,43 @@ impl Session {
                 "[{}@{}] connecting to validator...",
                 &config.chain_id, &config.addr
             );
-            let crate::config::validator::VsockAddr { cid, port } = config.addr;
-            let conn = vsock::open_secret_connection(
+            let crate::config::validator::VsockAddr {
                 cid,
                 port,
-                &config.secret_key,
-                // FIXME: peer_id
-                &None,
-                config.timeout,
-                config.protocol_version,
-            )?;
+                secret_connection,
+            } = config.addr;
+            if secret_connection {
+                let conn = vsock::open_secret_connection(
+                    cid,
+                    port,
+                    &config.secret_key,
+                    // FIXME: peer_id
+                    &None,
+                    config.timeout,
+                    config.protocol_version,
+                )?;
+                info!(
+                    "[{}@vsock({}:{})] connected (secret) to validator successfully",
+                    &config.chain_id, cid, port
+                );
 
-            info!(
-                "[{}@vsock({}:{})] connected to validator successfully",
-                &config.chain_id, cid, port
-            );
+                Box::new(conn)
+            } else {
+                debug!(
+                    "{}: Connecting to socket at {}...",
+                    &config.chain_id, &config.addr
+                );
 
-            Box::new(conn)
+                let addr = vsock::SockAddr::new_vsock(cid, port);
+                let socket = vsock::VsockStream::connect(&addr)?;
+                let conn = UnixConnection::new(socket);
+                info!(
+                    "[{}@vsock({}:{})] connected (non-secret) to validator successfully",
+                    &config.chain_id, cid, port
+                );
+
+                Box::new(conn)
+            }
         };
         Ok(Self { config, connection })
     }
