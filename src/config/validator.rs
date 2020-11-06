@@ -77,12 +77,17 @@ impl From<ProtocolVersion> for secret_connection::Version {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 /// VM socket address (context id + port)
-pub struct VsockAddr(pub u32, pub u32);
+pub struct VsockAddr {
+    /// enclave vsock context id
+    pub cid: u32,
+    /// vsock port
+    pub port: u32,
+}
 
 #[cfg(feature = "nitro-enclave")]
 impl std::fmt::Display for VsockAddr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "vsock (cid:{}, port: {})", self.0, self.1)
+        write!(f, "vsock (cid:{}, port: {})", self.cid, self.port)
     }
 }
 

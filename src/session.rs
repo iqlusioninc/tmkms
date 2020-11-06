@@ -40,7 +40,7 @@ impl Session {
                 "[{}@{}] connecting to validator...",
                 &config.chain_id, &config.addr
             );
-            let crate::config::validator::VsockAddr(cid, port) = config.addr;
+            let crate::config::validator::VsockAddr { cid, port } = config.addr;
             let conn = vsock::open_secret_connection(
                 cid,
                 port,

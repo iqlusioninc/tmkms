@@ -119,7 +119,8 @@ impl Runnable for StartCommand {
 impl StartCommand {
     fn load_init_config_from_network(&self) -> Result<(), String> {
         let mut config = app_writer();
-        let mut config_raw = String::with_capacity(8096);
+        const MAX_LEN: usize = 8096;
+        let mut config_raw = vec![0u8; MAX_LEN];
         const VMADDR_CID_ANY: u32 = 0xFFFFFFFF;
         let addr = SockAddr::new_vsock(VMADDR_CID_ANY, self.config_push_port.unwrap_or(5050));
         let listener =
@@ -129,14 +130,25 @@ impl StartCommand {
             .accept()
             .map_err(|err| format!("Connection failed: {:?}", err))?;
         info!("got connection on {:?}", addr);
-        let n = stream
-            .read_to_string(&mut config_raw)
-            .map_err(|err| format!("Reading config failed: {:?}", err))?;
-        if n == 0 {
+        let mut total = 0;
+
+        while let Ok(n) = stream.read(&mut config_raw[total..]) {
+            if n == 0 || n + total > MAX_LEN {
+                break;
+            }
+            total += n;
+        }
+
+        if total == 0 {
             return Err("No config read".to_owned());
         }
-        let kms_config = KmsConfig::load_toml(config_raw)
-            .map_err(|err| format!("Parsing config failed: {:?}", err))?;
+        config_raw.resize(total, 0);
+        info!("config read");
+        let config_str = String::from_utf8(config_raw)
+            .map_err(|err| format!("Parsing raw config failed: {:?}", err))?;
+        let kms_config = KmsConfig::load_toml(config_str)
+            .map_err(|err| format!("Parsing config failed: {}", err))?;
+        info!("config parsed");
         config
             .after_config(kms_config)
             .map_err(|err| format!("Setting config failed: {:?}", err))
