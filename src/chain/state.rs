@@ -28,6 +28,25 @@ pub struct State {
 
 impl State {
     /// Load the state from the given path
+    #[cfg(feature = "nitro-enclave")]
+    pub fn load_state<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        // FIXME: load from S3
+        let mut consensus_state = consensus::State::default();
+
+        consensus_state.height = 0.into();
+
+        let initial_state = Self {
+            consensus_state,
+            state_file_path: path.as_ref().to_owned(),
+        };
+        Ok(initial_state)
+    }
+
+    /// Load the state from the given path
+    #[cfg(not(feature = "nitro-enclave"))]
     pub fn load_state<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
