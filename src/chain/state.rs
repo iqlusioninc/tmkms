@@ -7,13 +7,12 @@ mod error;
 pub mod hook;
 
 pub use self::error::{StateError, StateErrorKind};
-
-use crate::{
-    error::{Error, ErrorKind::*},
-    prelude::*,
-};
+#[cfg(not(feature = "nitro-enclave"))]
+use crate::error::ErrorKind::*;
+use crate::{error::Error, prelude::*};
+#[cfg(not(feature = "nitro-enclave"))]
+use std::fs;
 use std::{
-    fs,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
@@ -180,6 +179,7 @@ impl State {
     }
 
     /// Write the initial state to the given path on disk
+    #[cfg(not(feature = "nitro-enclave"))]
     fn write_initial_state(path: &Path) -> Result<Self, Error> {
         let mut consensus_state = consensus::State::default();
 
