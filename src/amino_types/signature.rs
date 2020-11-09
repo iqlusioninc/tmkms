@@ -1,4 +1,5 @@
 use super::validate;
+use crate::config::validator::ProtocolVersion;
 use bytes::BufMut;
 use ed25519_dalek as ed25519;
 use prost_amino::{DecodeError, EncodeError};
@@ -10,6 +11,7 @@ pub trait SignableMsg {
     fn sign_bytes<B: BufMut>(
         &self,
         chain_id: chain::Id,
+        version: ProtocolVersion,
         sign_bytes: &mut B,
     ) -> Result<bool, EncodeError>;
 

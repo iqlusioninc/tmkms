@@ -6,6 +6,7 @@ use crate::{
         SignableMsg, SignedMsgType,
     },
     chain,
+    config::validator::ProtocolVersion,
     prelude::*,
 };
 use abscissa_core::{Command, Options, Runnable};
@@ -64,7 +65,11 @@ impl Runnable for InitCommand {
         let sign_vote_req = SignVoteRequest { vote: Some(vote) };
         let mut to_sign = vec![];
         sign_vote_req
-            .sign_bytes(config.validator[0].chain_id, &mut to_sign)
+            .sign_bytes(
+                config.validator[0].chain_id,
+                ProtocolVersion::Legacy,
+                &mut to_sign,
+            )
             .unwrap();
 
         let _sig = chain.keyring.sign_ed25519(None, &to_sign).unwrap();

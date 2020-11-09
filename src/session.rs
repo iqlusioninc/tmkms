@@ -43,7 +43,7 @@ impl Session {
                     &config.secret_key,
                     peer_id,
                     config.timeout,
-                    config.protocol_version,
+                    config.protocol_version.into(),
                 )?;
 
                 info!(
@@ -146,7 +146,11 @@ impl Session {
         }
 
         let mut to_sign = vec![];
-        request.sign_bytes(self.config.chain_id, &mut to_sign)?;
+        request.sign_bytes(
+            self.config.chain_id,
+            self.config.protocol_version,
+            &mut to_sign,
+        )?;
 
         let started_at = Instant::now();
 
