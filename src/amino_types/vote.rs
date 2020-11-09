@@ -7,10 +7,11 @@ use super::{
     validate::{self, ConsensusMessage, Error::*},
     PartsSetHeader, SignedMsgType, TendermintRequest,
 };
-use crate::rpc;
+use crate::{config::validator::ProtocolVersion, rpc};
 use bytes::BufMut;
 use ed25519_dalek as ed25519;
 use once_cell::sync::Lazy;
+use prost::Message as _;
 use prost_amino::{error::EncodeError, Message};
 use prost_amino_derive::Message;
 use std::convert::TryFrom;
@@ -20,6 +21,7 @@ use tendermint::{
     error::Error,
     vote,
 };
+use tendermint_proto::types as proto_types;
 
 const VALIDATOR_ADDR_SIZE: usize = 20;
 
@@ -176,18 +178,51 @@ impl CanonicalVote {
 }
 
 impl SignableMsg for SignVoteRequest {
-    fn sign_bytes<B>(&self, chain_id: chain::Id, sign_bytes: &mut B) -> Result<bool, EncodeError>
+    fn sign_bytes<B>(
+        &self,
+        chain_id: chain::Id,
+        protocol_version: ProtocolVersion,
+        sign_bytes: &mut B,
+    ) -> Result<bool, EncodeError>
     where
         B: BufMut,
     {
         let mut svr = self.clone();
+
         if let Some(ref mut vo) = svr.vote {
             vo.signature = vec![];
         }
-        let vote = svr.vote.unwrap();
-        let cv = CanonicalVote::new(vote, chain_id.as_str());
 
-        cv.encode_length_delimited(sign_bytes)?;
+        let vote = svr.vote.unwrap();
+
+        if protocol_version.is_protobuf() {
+            let block_id = match vote.block_id.as_ref() {
+                Some(x) if x.hash.is_empty() => None,
+                Some(x) => Some(proto_types::CanonicalBlockId {
+                    hash: x.hash.clone(),
+                    part_set_header: x.parts_header.as_ref().map(|y| {
+                        proto_types::CanonicalPartSetHeader {
+                            total: y.total as u32,
+                            hash: y.hash.clone(),
+                        }
+                    }),
+                }),
+                None => None,
+            };
+
+            let cv = proto_types::CanonicalVote {
+                r#type: vote.vote_type as i32,
+                height: vote.height,
+                round: vote.round as i64,
+                block_id,
+                timestamp: vote.timestamp.map(Into::into),
+                chain_id: chain_id.to_string(),
+            };
+            cv.encode_length_delimited(sign_bytes).unwrap();
+        } else {
+            let cv = CanonicalVote::new(vote, chain_id.as_str());
+            cv.encode_length_delimited(sign_bytes)?;
+        }
 
         Ok(true)
     }

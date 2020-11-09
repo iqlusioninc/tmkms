@@ -5,7 +5,8 @@
 
 use crate::{
     amino_types,
-    connection::secret_connection::{Version, DATA_MAX_SIZE},
+    config::validator::ProtocolVersion,
+    connection::secret_connection::DATA_MAX_SIZE,
     error::{Error, ErrorKind},
     prelude::*,
 };
@@ -29,7 +30,7 @@ pub enum Request {
 
 impl Request {
     /// Read a request from the given readable
-    pub fn read(conn: &mut impl Read, protocol_version: Version) -> Result<Self, Error> {
+    pub fn read(conn: &mut impl Read, protocol_version: ProtocolVersion) -> Result<Self, Error> {
         let msg = read_msg(conn)?;
 
         if protocol_version.is_protobuf() {
@@ -117,7 +118,7 @@ pub enum Response {
 
 impl Response {
     /// Encode response to bytes
-    pub fn encode(self, protocol_version: Version) -> Result<Vec<u8>, Error> {
+    pub fn encode(self, protocol_version: ProtocolVersion) -> Result<Vec<u8>, Error> {
         if protocol_version.is_protobuf() {
             let mut buf = Vec::new();
 

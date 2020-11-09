@@ -29,7 +29,41 @@ pub struct ValidatorConfig {
     pub max_height: Option<tendermint::block::Height>,
 
     /// Version of Secret Connection protocol to use when connecting
-    pub protocol_version: secret_connection::Version,
+    pub protocol_version: ProtocolVersion,
+}
+
+/// Protocol version (based on the Tendermint version)
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[allow(non_camel_case_types)]
+pub enum ProtocolVersion {
+    /// Tendermint v0.34
+    #[serde(rename = "v0.34")]
+    V0_34,
+
+    /// Tendermint v0.33
+    #[serde(rename = "v0.33")]
+    V0_33,
+
+    /// Pre-Tendermint v0.33
+    #[serde(rename = "legacy")]
+    Legacy,
+}
+
+impl ProtocolVersion {
+    /// Are messages encoded using Protocol Buffers?
+    pub fn is_protobuf(self) -> bool {
+        !matches!(self, ProtocolVersion::V0_33 | ProtocolVersion::Legacy)
+    }
+}
+
+impl From<ProtocolVersion> for secret_connection::Version {
+    fn from(version: ProtocolVersion) -> secret_connection::Version {
+        match version {
+            ProtocolVersion::V0_34 => secret_connection::Version::V0_34,
+            ProtocolVersion::V0_33 => secret_connection::Version::V0_33,
+            ProtocolVersion::Legacy => secret_connection::Version::Legacy,
+        }
+    }
 }
 
 /// Default value for the `ValidatorConfig` reconnect field

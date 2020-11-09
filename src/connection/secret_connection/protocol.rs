@@ -8,7 +8,6 @@ use crate::{
 use ed25519_dalek as ed25519;
 use prost::Message as _;
 use prost_amino::Message as _;
-use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use tendermint_proto as proto;
 use x25519_dalek::PublicKey as EphemeralPublic;
@@ -17,19 +16,16 @@ use x25519_dalek::PublicKey as EphemeralPublic;
 const PUBLIC_KEY_SIZE: usize = 32;
 
 /// Protocol version (based on the Tendermint version)
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[allow(non_camel_case_types)]
 pub enum Version {
     /// Tendermint v0.34
-    #[serde(rename = "v0.34")]
     V0_34,
 
     /// Tendermint v0.33
-    #[serde(rename = "v0.33")]
     V0_33,
 
     /// Pre-Tendermint v0.33
-    #[serde(rename = "legacy")]
     Legacy,
 }
 
