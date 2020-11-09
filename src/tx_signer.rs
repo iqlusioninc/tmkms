@@ -248,8 +248,10 @@ impl TxSigner {
             // If the last transaction errored, speculatively try the next
             // sequence number, as the previous transaction may have been
             // successfully broadcast but we never got a response.
+            // TODO(tarcieri): replace this by resynchronizing the sequence number
             if retry_on_failure {
                 let seq = seq.checked_add(1).unwrap();
+
                 warn!(
                     "[{}] {} - retrying transaction at sequence {}",
                     &self.chain_id,
@@ -258,7 +260,26 @@ impl TxSigner {
                 );
 
                 let sign_msg = SignMsg::new(&tx_req, &self.tx_builder, seq)?;
-                self.broadcast_tx(sign_msg, seq).await?
+                if let Err(e) = self.broadcast_tx(sign_msg, seq).await {
+                    error!("[{}] {} - {}", &self.chain_id, self.source.uri(), e);
+
+                    // Try a third time for good measure
+                    // If we wanted to generalize this, it could use a loop,
+                    // but instead of that it'd be better to implement
+                    // self-healing by consulting the sequence from the chain
+                    // itself once we can use e.g. gRPC to do to that.
+                    let seq = seq.checked_add(1).unwrap();
+
+                    warn!(
+                        "[{}] {} - retrying transaction at sequence {}",
+                        &self.chain_id,
+                        self.source.uri(),
+                        seq
+                    );
+
+                    let sign_msg = SignMsg::new(&tx_req, &self.tx_builder, seq)?;
+                    self.broadcast_tx(sign_msg, seq).await?;
+                }
             }
         }
 
