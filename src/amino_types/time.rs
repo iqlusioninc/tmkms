@@ -7,6 +7,7 @@ use tendermint::{
     error::Error,
     time::{ParseTimestamp, Time},
 };
+use tendermint_proto as proto;
 
 #[derive(Clone, PartialEq, Message)]
 pub struct TimeMsg {
@@ -47,17 +48,17 @@ impl From<TimeMsg> for SystemTime {
     }
 }
 
-impl From<TimeMsg> for prost_types::Timestamp {
-    fn from(ts: TimeMsg) -> prost_types::Timestamp {
-        prost_types::Timestamp {
+impl From<TimeMsg> for proto::google::protobuf::Timestamp {
+    fn from(ts: TimeMsg) -> proto::google::protobuf::Timestamp {
+        proto::google::protobuf::Timestamp {
             seconds: ts.seconds,
             nanos: ts.nanos,
         }
     }
 }
 
-impl From<prost_types::Timestamp> for TimeMsg {
-    fn from(ts: prost_types::Timestamp) -> TimeMsg {
+impl From<proto::google::protobuf::Timestamp> for TimeMsg {
+    fn from(ts: proto::google::protobuf::Timestamp) -> TimeMsg {
         TimeMsg {
             seconds: ts.seconds,
             nanos: ts.nanos,

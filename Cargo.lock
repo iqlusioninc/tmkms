@@ -1361,6 +1361,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-derive"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2180,14 +2191,20 @@ dependencies = [
 
 [[package]]
 name = "tendermint-proto"
-version = "0.17.0-rc1"
+version = "0.17.0-rc2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beacdabf74dd3cada6162e2e79814cf389835d0a0f87ce8d8c2f5fd6dded1cc0"
+checksum = "82769721a85460adf236c5a4b4425222d3b5f499177802e7c819e0db95c12017"
 dependencies = [
  "anomaly",
  "bytes",
+ "chrono",
+ "num-derive",
+ "num-traits",
  "prost",
  "prost-types",
+ "serde",
+ "serde_bytes",
+ "subtle-encoding",
  "thiserror",
 ]
 
@@ -2305,7 +2322,6 @@ dependencies = [
  "prost-amino",
  "prost-amino-derive",
  "prost-derive",
- "prost-types",
  "rand",
  "rand_core",
  "rpassword",
