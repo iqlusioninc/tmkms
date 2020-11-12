@@ -641,6 +641,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "eyre"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f29abf4740a4778632fe27a4f681ef5b7a6f659aeba3330ac66f48e20cfa3b7"
+dependencies = [
+ "indenter",
+ "once_cell",
+]
+
+[[package]]
 name = "failure"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1084,6 +1094,12 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
+
+[[package]]
+name = "indenter"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0bd112d44d9d870a6819eb505d04dd92b5e4d94bb8c304924a0872ae7016fb5"
 
 [[package]]
 name = "indexmap"
@@ -2060,12 +2076,12 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stdtx"
-version = "0.3.0"
+version = "0.4.0-pre"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "470756684957fd9ed5060c00641a610e6ab7fae4194f0582e8611c5f6a2cb45b"
+checksum = "7fb28d154121d5216d10cbd3ec7ddbc0d0c95e4bba8f541b6743dd7a34279a2f"
 dependencies = [
- "anomaly",
  "ecdsa 0.8.5",
+ "eyre",
  "k256 0.5.10",
  "prost-amino",
  "prost-amino-derive",

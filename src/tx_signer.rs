@@ -21,7 +21,7 @@ use crate::{
 use abscissa_tokio::tokio;
 use sequence_file::SequenceFile;
 use std::process;
-use stdtx::{StdSignature, StdTx};
+use stdtx::amino;
 use subtle_encoding::hex;
 use tendermint_rpc::endpoint::status;
 use tokio::time;
@@ -40,7 +40,7 @@ pub struct TxSigner {
     chain_id: tendermint::chain::Id,
 
     /// Transaction builder
-    tx_builder: stdtx::Builder,
+    tx_builder: amino::Builder,
 
     /// Account address
     address: stdtx::Address,
@@ -71,7 +71,7 @@ pub struct TxSigner {
 impl TxSigner {
     /// Create a new transaction signer
     pub fn new(config: &TxSignerConfig) -> Result<Self, Error> {
-        let schema = stdtx::Schema::load_toml(&config.schema).unwrap_or_else(|e| {
+        let schema = amino::Schema::load_toml(&config.schema).unwrap_or_else(|e| {
             status_err!(
                 "couldn't read TX schema from `{}`: {}",
                 config.schema.display(),
@@ -81,7 +81,7 @@ impl TxSigner {
         });
 
         let tx_builder =
-            stdtx::Builder::new(schema, config.chain_id.to_string(), config.account_number);
+            amino::Builder::new(schema, config.chain_id.to_string(), config.account_number);
 
         let source = match &config.source {
             TxSource::JsonRpc { uri } => jsonrpc::Client::new(uri.clone()),
@@ -338,7 +338,7 @@ impl TxSigner {
         }
 
         info!(
-            "[{}] successfully broadcast TX {} (hash={})",
+            "[{}] successfully broadcast TX {} (shash={})",
             self.chain_id,
             self.seq_file.sequence(),
             response.hash
@@ -347,7 +347,7 @@ impl TxSigner {
         Ok(())
     }
 
-    fn sign_tx(&self, sign_msg: &SignMsg) -> Result<StdTx, Error> {
+    fn sign_tx(&self, sign_msg: &SignMsg) -> Result<amino::StdTx, Error> {
         sign_msg.authorize(&self.acl)?;
 
         let registry = chain::REGISTRY.get();
@@ -360,7 +360,7 @@ impl TxSigner {
 
         let account_id = tendermint::account::Id::new(self.address.0);
 
-        let mut signature = StdSignature::from(
+        let mut signature = amino::StdSignature::from(
             chain
                 .keyring
                 .sign_ecdsa(account_id, sign_msg.sign_bytes())?,
