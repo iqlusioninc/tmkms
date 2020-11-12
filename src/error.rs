@@ -216,8 +216,8 @@ impl From<serde_json::error::Error> for Error {
 }
 
 #[cfg(feature = "tx-signer")]
-impl From<stdtx::Error> for Error {
-    fn from(other: stdtx::Error) -> Self {
+impl From<stdtx::error::Report> for Error {
+    fn from(other: stdtx::error::Report) -> Self {
         ErrorKind::StdtxError.context(other).into()
     }
 }

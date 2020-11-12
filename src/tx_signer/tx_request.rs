@@ -1,7 +1,7 @@
 //! Transaction signing requests
 
 use serde::Deserialize;
-use stdtx::StdFee;
+use stdtx::amino;
 
 /// Request to sign a transaction request
 #[derive(Clone, Debug, Deserialize)]
@@ -11,7 +11,7 @@ pub struct TxSigningRequest {
     pub chain_id: String,
 
     /// Fee
-    pub fee: StdFee,
+    pub fee: amino::StdFee,
 
     /// Memo
     pub memo: String,

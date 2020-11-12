@@ -3,7 +3,7 @@
 use hyper::http::Uri;
 use serde::{de, Deserialize};
 use std::path::PathBuf;
-use stdtx::{Address, TypeName};
+use stdtx::{amino::TypeName, Address};
 use tendermint::{chain, net};
 
 /// Transaction signer (`[tx_signer]`) configuration

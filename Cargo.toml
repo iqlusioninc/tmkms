@@ -37,7 +37,7 @@ serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
 sha2 = "0.9"
 signature = { version = "1.2", features = ["std"] }
-stdtx = { version = "0.3", optional = true }
+stdtx = { version = "=0.4.0-pre", optional = true, features = ["amino"] }
 subtle = "2"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
