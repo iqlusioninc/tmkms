@@ -35,7 +35,7 @@ impl State {
         // FIXME: load from S3
         let mut consensus_state = consensus::State::default();
 
-        consensus_state.height = 0.into();
+        consensus_state.height = 0u32.into();
 
         let initial_state = Self {
             consensus_state,

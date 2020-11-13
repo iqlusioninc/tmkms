@@ -54,7 +54,7 @@ impl Session {
                     // FIXME: peer_id
                     &None,
                     config.timeout,
-                    config.protocol_version,
+                    config.protocol_version.into(),
                 )?;
                 info!(
                     "[{}@vsock({}:{})] connected (secret) to validator successfully",

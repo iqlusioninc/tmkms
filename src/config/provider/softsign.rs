@@ -7,10 +7,9 @@ use crate::{
     prelude::*,
 };
 use serde::Deserialize;
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+#[cfg(not(feature = "nitro-enclave"))]
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 /// Software signer configuration
 #[derive(Deserialize, Debug)]
@@ -28,19 +27,45 @@ pub struct SoftsignConfig {
 
     /// Path to a file containing a cryptographic key
     // TODO: use `abscissa_core::Secret` to wrap this `PathBuf`
+    #[cfg(not(feature = "nitro-enclave"))]
     pub path: SoftPrivateKey,
+
+    /// AWS KMS envelope: https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/message-format.html
+    #[cfg(feature = "nitro-enclave")]
+    pub encrypted_key_b64: String,
+
+    /// AWS credentials -- if not set, they'll be obtained from IAM
+    #[cfg(feature = "nitro-enclave")]
+    pub credentials: Option<AwsCredentials>,
 }
 
 /// Software-backed private key (stored in a file)
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
+#[cfg(not(feature = "nitro-enclave"))]
 pub struct SoftPrivateKey(PathBuf);
 
+#[cfg(not(feature = "nitro-enclave"))]
 impl AsRef<Path> for SoftPrivateKey {
     /// Borrow this private key as a path
     fn as_ref(&self) -> &Path {
         self.0.as_ref()
     }
+}
+
+/// Credentials, generally obtained from parent instance IAM
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+#[cfg(feature = "nitro-enclave")]
+pub struct AwsCredentials {
+    /// AccessKeyId
+    pub aws_region: String,
+    /// AccessKeyId
+    pub aws_key_id: String,
+    /// SecretAccessKey
+    pub aws_secret_key: String,
+    /// SessionToken
+    pub aws_session_token: String,
 }
 
 /// Private key format
