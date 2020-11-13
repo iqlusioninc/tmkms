@@ -4,6 +4,8 @@
 
 #[cfg(feature = "nitro-enclave")]
 use crate::config::provider::softsign::AwsCredentials;
+#[cfg(not(feature = "nitro-enclave"))]
+use crate::key_utils;
 use crate::{
     chain,
     config::provider::{
@@ -11,7 +13,6 @@ use crate::{
         KeyType,
     },
     error::{Error, ErrorKind::*},
-    key_utils,
     keyring::{self, SigningProvider},
     prelude::*,
 };
@@ -93,7 +94,6 @@ fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> 
     let ciphertext = base64::decode(config.encrypted_key_b64.trim_end())
         .map_err(|e| format_err!(IoError, "can't decode wrapped key: {}", e))?;
     if let Some(AwsCredentials {
-        aws_region,
         aws_key_id,
         aws_secret_key,
         aws_session_token,
@@ -101,7 +101,7 @@ fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> 
     {
         let key_encoded_bytes = Zeroizing::new(
             aws_ne_sys::kms_decrypt(
-                aws_region.as_bytes(),
+                config.aws_region.as_bytes(),
                 aws_key_id.as_bytes(),
                 aws_secret_key.as_bytes(),
                 aws_session_token.as_bytes(),
@@ -147,7 +147,6 @@ fn load_secp256k1_key(config: &SoftsignConfig) -> Result<ecdsa::SigningKey, Erro
     let ciphertext = base64::decode(config.encrypted_key_b64.trim_end())
         .map_err(|e| format_err!(IoError, "can't decode wrapped key: {}", e))?;
     if let Some(AwsCredentials {
-        aws_region,
         aws_key_id,
         aws_secret_key,
         aws_session_token,
@@ -155,7 +154,7 @@ fn load_secp256k1_key(config: &SoftsignConfig) -> Result<ecdsa::SigningKey, Erro
     {
         let key_encoded_bytes = Zeroizing::new(
             aws_ne_sys::kms_decrypt(
-                aws_region.as_bytes(),
+                config.aws_region.as_bytes(),
                 aws_key_id.as_bytes(),
                 aws_secret_key.as_bytes(),
                 aws_session_token.as_bytes(),

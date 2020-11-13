@@ -7,6 +7,7 @@ use tendermint::TendermintKey;
 /// Options for how keys for this chain are represented
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
+#[cfg_attr(feature = "nitro-enclave", derive(serde::Serialize))]
 pub enum Format {
     /// Use the Bech32 serialization format with the given key prefixes
     #[serde(rename = "bech32")]

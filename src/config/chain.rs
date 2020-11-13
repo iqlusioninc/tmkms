@@ -10,6 +10,7 @@ use std::path::PathBuf;
 /// Chain configuration
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "nitro-enclave", derive(serde::Serialize))]
 pub struct ChainConfig {
     /// Chain ID of this Tendermint network/chain
     pub id: chain::Id,
@@ -23,5 +24,6 @@ pub struct ChainConfig {
     /// User-specified command to run to obtain the current block height for
     /// this chain. This will be executed at launch time to populate the
     /// initial block height if configured
+    #[cfg(not(feature = "nitro-enclave"))]
     pub state_hook: Option<HookConfig>,
 }

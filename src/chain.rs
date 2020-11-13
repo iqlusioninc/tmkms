@@ -40,6 +40,7 @@ impl Chain {
 
         let mut state = State::load_state(state_file)?;
 
+        #[cfg(not(feature = "nitro-enclave"))]
         if let Some(ref hook) = config.state_hook {
             match state::hook::run(hook) {
                 Ok(hook_output) => state.update_from_hook_output(hook_output)?,

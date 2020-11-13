@@ -20,6 +20,7 @@ use std::fmt;
 /// Provider configuration
 #[derive(Default, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "nitro-enclave", derive(serde::Serialize))]
 pub struct ProviderConfig {
     /// Software-backed signer
     #[cfg(feature = "softsign")]
@@ -40,6 +41,7 @@ pub struct ProviderConfig {
 /// Types of cryptographic keys
 // TODO(tarcieri): move this into a provider-agnostic module
 #[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "nitro-enclave", derive(serde::Serialize))]
 pub enum KeyType {
     /// Account keys
     #[serde(rename = "account")]

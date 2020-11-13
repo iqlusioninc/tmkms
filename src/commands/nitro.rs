@@ -1,11 +1,13 @@
 //! Start the KMS in Nitro Enclave and host utilities for communicating with the enclave
 
+use crate::config::provider::softsign::AwsCredentials;
 use crate::config::KmsConfig;
 use crate::{chain, client::Client, prelude::*};
 use abscissa_core::Config;
 use abscissa_core::{Command, Options};
 use nix::sys::select::{select, FdSet};
 use nix::sys::socket::SockAddr;
+use rusoto_credential::{InstanceMetadataProvider, ProvideAwsCredentials};
 use std::io::Read;
 use std::io::Write;
 use std::os::unix::io::AsRawFd;
@@ -179,11 +181,35 @@ impl PushConfigCommand {
     fn push_config_to_nitro(&self) -> Result<(), String> {
         let data = std::fs::read_to_string(&self.config)
             .map_err(|err| format!("Reading config: {:?}", err))?;
+        let mut kms_config =
+            KmsConfig::load_toml(data).map_err(|err| format!("Parsing config failed: {}", err))?;
+        for softsignconfig in kms_config.providers.softsign.iter_mut() {
+            if softsignconfig.credentials.is_none() {
+                let mut rt = tokio::runtime::Runtime::new()
+                    .map_err(|err| format!("Failed to init tokio runtime: {}", err))?;
+                let credentials = rt
+                    .block_on(async move { InstanceMetadataProvider::new().credentials().await })
+                    .map_err(|err| {
+                        format!("Failed to obtain credentials from instance: {}", err)
+                    })?;
+                softsignconfig.credentials = Some(AwsCredentials {
+                    aws_key_id: credentials.aws_access_key_id().to_owned(),
+                    aws_secret_key: credentials.aws_secret_access_key().to_owned(),
+                    aws_session_token: credentials
+                        .token()
+                        .as_ref()
+                        .ok_or("missing session token".to_owned())?
+                        .to_owned(),
+                });
+            }
+        }
+        let data = serde_json::to_vec(&kms_config)
+            .map_err(|err| format!("Failed to serialize config: {:?}", err))?;
         let addr = SockAddr::new_vsock(self.config_push_cid, self.config_push_port);
         let mut stream =
             VsockStream::connect(&addr).map_err(|err| format!("Connection failed: {:?}", err))?;
         stream
-            .write(data.as_bytes())
+            .write(&data)
             .map_err(|err| format!("writing data failed: {:?}", err))?;
         stream
             .flush()
@@ -270,9 +296,7 @@ impl StartCommand {
         }
         config_raw.resize(total, 0);
         info!("config read");
-        let config_str = String::from_utf8(config_raw)
-            .map_err(|err| format!("Parsing raw config failed: {:?}", err))?;
-        let kms_config = KmsConfig::load_toml(config_str)
+        let kms_config: KmsConfig = serde_json::from_slice(&config_raw)
             .map_err(|err| format!("Parsing config failed: {}", err))?;
         info!("config parsed");
         config

@@ -14,6 +14,7 @@ use std::str::FromStr;
 /// Software signer configuration
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "nitro-enclave", derive(serde::Serialize))]
 pub struct SoftsignConfig {
     /// Chains this signing key is authorized to be used from
     pub chain_ids: Vec<chain::Id>,
@@ -37,6 +38,10 @@ pub struct SoftsignConfig {
     /// AWS credentials -- if not set, they'll be obtained from IAM
     #[cfg(feature = "nitro-enclave")]
     pub credentials: Option<AwsCredentials>,
+
+    /// AWS region
+    #[cfg(feature = "nitro-enclave")]
+    pub aws_region: String,
 }
 
 /// Software-backed private key (stored in a file)
@@ -54,12 +59,10 @@ impl AsRef<Path> for SoftPrivateKey {
 }
 
 /// Credentials, generally obtained from parent instance IAM
-#[derive(Deserialize, Debug)]
+#[derive(serde::Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 #[cfg(feature = "nitro-enclave")]
 pub struct AwsCredentials {
-    /// AccessKeyId
-    pub aws_region: String,
     /// AccessKeyId
     pub aws_key_id: String,
     /// SecretAccessKey
@@ -70,6 +73,7 @@ pub struct AwsCredentials {
 
 /// Private key format
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "nitro-enclave", derive(serde::Serialize))]
 pub enum KeyFormat {
     /// Base64-encoded
     #[serde(rename = "base64")]
