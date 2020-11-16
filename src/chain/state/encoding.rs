@@ -24,7 +24,6 @@ pub struct EncodedState {
     pub step: i8,
 
     /// Block ID being proposed (if available)
-    #[serde(with = "tendermint_proto::serializers::optional")]
     pub block_id: Option<block::Id>,
 }
 
