@@ -13,15 +13,18 @@ use tendermint::block;
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct EncodedState {
     /// Current block height
+    #[serde(with = "tendermint::serializers::from_str")]
     pub height: u64,
 
     /// Current consensus round
+    #[serde(with = "tendermint::serializers::from_str")]
     pub round: u32,
 
     /// Current consensus step
     pub step: i8,
 
     /// Block ID being proposed (if available)
+    #[serde(with = "tendermint_proto::serializers::optional")]
     pub block_id: Option<block::Id>,
 }
 
