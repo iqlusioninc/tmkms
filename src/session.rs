@@ -147,7 +147,7 @@ impl Session {
 
         let mut to_sign = vec![];
         request.sign_bytes(
-            self.config.chain_id,
+            self.config.chain_id.clone(),
             self.config.protocol_version,
             &mut to_sign,
         )?;

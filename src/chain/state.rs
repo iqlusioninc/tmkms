@@ -3,10 +3,13 @@
 //!
 //! Double-signing protection is the primary purpose of this code (for now).
 
+mod encoding;
 mod error;
 pub mod hook;
 
 pub use self::error::{StateError, StateErrorKind};
+
+use self::encoding::EncodedState;
 use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
@@ -33,17 +36,18 @@ impl State {
     {
         match fs::read_to_string(path.as_ref()) {
             Ok(state_json) => {
-                let consensus_state = serde_json::from_str(&state_json).map_err(|e| {
-                    format_err!(
-                        ParseError,
-                        "error parsing {}: {}",
-                        path.as_ref().display(),
-                        e
-                    )
-                })?;
+                let consensus_state: EncodedState =
+                    serde_json::from_str(&state_json).map_err(|e| {
+                        format_err!(
+                            ParseError,
+                            "error parsing {}: {}",
+                            path.as_ref().display(),
+                            e
+                        )
+                    })?;
 
                 Ok(Self {
-                    consensus_state,
+                    consensus_state: consensus_state.into(),
                     state_file_path: path.as_ref().to_owned(),
                 })
             }
@@ -165,7 +169,7 @@ impl State {
 
         // TODO(tarcieri): correct upstream `tendermint-rs` default height to 0
         // Set the initial block height to 0 to indicate we've never signed a block
-        consensus_state.height = 0.into();
+        consensus_state.height = 0u32.into();
 
         let initial_state = Self {
             consensus_state,
@@ -185,7 +189,7 @@ impl State {
             &self.consensus_state
         );
 
-        let json = serde_json::to_string(&self.consensus_state)?;
+        let json = serde_json::to_string(&EncodedState::from(self.consensus_state.clone()))?;
 
         let state_file_dir = self.state_file_path.parent().unwrap_or_else(|| {
             panic!("state file cannot be root directory");
@@ -221,8 +225,8 @@ mod tests {
     macro_rules! state {
         ($height:expr, $round:expr, $step:expr, $block_id:expr) => {
             consensus::State {
-                height: block::Height::from($height as u64),
-                round: $round,
+                height: block::Height::from($height as u32),
+                round: block::Round::from($round as u16),
                 step: $step,
                 block_id: $block_id,
             }

@@ -345,8 +345,12 @@ fn test_handle_and_sign_proposal() {
         let p_req = proposal::SignedProposalResponse::decode(resp.as_ref())
             .expect("decoding proposal failed");
         let mut sign_bytes: Vec<u8> = vec![];
-        spr.sign_bytes(chain_id.into(), ProtocolVersion::Legacy, &mut sign_bytes)
-            .unwrap();
+        spr.sign_bytes(
+            chain_id.parse().unwrap(),
+            ProtocolVersion::Legacy,
+            &mut sign_bytes,
+        )
+        .unwrap();
 
         let prop: amino_types::proposal::Proposal = p_req
             .proposal
@@ -408,8 +412,12 @@ fn test_handle_and_sign_vote() {
 
         let v_resp = vote::SignedVoteResponse::decode(resp.as_ref()).expect("decoding vote failed");
         let mut sign_bytes: Vec<u8> = vec![];
-        svr.sign_bytes(chain_id.into(), ProtocolVersion::Legacy, &mut sign_bytes)
-            .unwrap();
+        svr.sign_bytes(
+            chain_id.parse().unwrap(),
+            ProtocolVersion::Legacy,
+            &mut sign_bytes,
+        )
+        .unwrap();
 
         let vote_msg: amino_types::vote::Vote = v_resp
             .vote
@@ -475,8 +483,12 @@ fn test_exceed_max_height() {
 
         let v_resp = vote::SignedVoteResponse::decode(resp.as_ref()).expect("decoding vote failed");
         let mut sign_bytes: Vec<u8> = vec![];
-        svr.sign_bytes(chain_id.into(), ProtocolVersion::Legacy, &mut sign_bytes)
-            .unwrap();
+        svr.sign_bytes(
+            chain_id.parse().unwrap(),
+            ProtocolVersion::Legacy,
+            &mut sign_bytes,
+        )
+        .unwrap();
 
         let vote_msg: amino_types::vote::Vote = v_resp
             .vote

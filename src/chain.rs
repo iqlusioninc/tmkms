@@ -55,7 +55,7 @@ impl Chain {
         }
 
         Ok(Self {
-            id: config.id,
+            id: config.id.clone(),
             keyring: KeyRing::new(config.key_format.clone()),
             state: Mutex::new(state),
         })

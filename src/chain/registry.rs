@@ -56,9 +56,9 @@ impl Registry {
 
     /// Register a `Chain` with the registry
     pub fn register_chain(&mut self, chain: Chain) -> Result<(), Error> {
-        let chain_id = chain.id;
+        let chain_id = chain.id.clone();
 
-        if self.0.insert(chain_id, chain).is_none() {
+        if self.0.insert(chain_id.clone(), chain).is_none() {
             Ok(())
         } else {
             // TODO(tarcieri): handle updating the set of registered chains

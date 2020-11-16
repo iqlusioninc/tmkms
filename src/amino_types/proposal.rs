@@ -5,7 +5,7 @@ use super::{
     signature::{SignableMsg, SignedMsgType},
     time::TimeMsg,
     validate::{self, ConsensusMessage, Error::*},
-    TendermintRequest,
+    ParseChainId, TendermintRequest,
 };
 use crate::{config::validator::ProtocolVersion, rpc};
 use bytes::BufMut;
@@ -75,7 +75,7 @@ struct CanonicalProposal {
     pub chain_id: String,
 }
 
-impl chain::ParseId for CanonicalProposal {
+impl ParseChainId for CanonicalProposal {
     fn parse_chain_id(&self) -> Result<chain::Id, error::Error> {
         self.chain_id.parse()
     }
@@ -184,7 +184,7 @@ impl SignableMsg for SignProposalRequest {
                     Ok(h) => h,
                     Err(_err) => return None, // TODO(tarcieri): return an error?
                 },
-                round: p.round,
+                round: block::Round::from(p.round as u16),
                 step: 3,
                 block_id: {
                     match p.block_id {

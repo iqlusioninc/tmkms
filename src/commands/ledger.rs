@@ -53,7 +53,7 @@ impl Runnable for InitCommand {
             process::exit(1);
         });
 
-        let chain_id = config.validator[0].chain_id;
+        let chain_id = config.validator[0].chain_id.clone();
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&chain_id).unwrap();
 
@@ -66,7 +66,7 @@ impl Runnable for InitCommand {
         let mut to_sign = vec![];
         sign_vote_req
             .sign_bytes(
-                config.validator[0].chain_id,
+                config.validator[0].chain_id.clone(),
                 ProtocolVersion::Legacy,
                 &mut to_sign,
             )
