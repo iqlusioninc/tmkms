@@ -33,7 +33,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
 
     // seed initial entropy (needed for TLS connections to AWS KMS) via NSM
     // (arg is a number of bytes to seed)
-    #[cfg(feature = "nitro-enclave")]
+    #[cfg(all(feature = "nitro-enclave", feature = "aws-ne-sys"))]
     if aws_ne_sys::seed_entropy(512).is_err() {
         status_err!("failed to seed initial entropy!");
         std::process::exit(1);
@@ -100,6 +100,7 @@ fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> 
     }) = &config.credentials
     {
         let key_encoded_bytes = Zeroizing::new(
+            #[cfg(all(feature = "nitro-enclave", feature = "aws-ne-sys"))]
             aws_ne_sys::kms_decrypt(
                 config.aws_region.as_bytes(),
                 aws_key_id.as_bytes(),
@@ -108,6 +109,8 @@ fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> 
                 ciphertext.as_ref(),
             )
             .map_err(|_e| format_err!(AccessError, "failed to decrypt wrapped key"))?,
+            #[cfg(all(feature = "nitro-enclave", not(feature = "aws-ne-sys")))]
+            vec![],
         );
         let key_format = config.key_format.as_ref().cloned().unwrap_or_default();
 
@@ -153,6 +156,7 @@ fn load_secp256k1_key(config: &SoftsignConfig) -> Result<ecdsa::SigningKey, Erro
     }) = &config.credentials
     {
         let key_encoded_bytes = Zeroizing::new(
+            #[cfg(all(feature = "nitro-enclave", feature = "aws-ne-sys"))]
             aws_ne_sys::kms_decrypt(
                 config.aws_region.as_bytes(),
                 aws_key_id.as_bytes(),
@@ -161,6 +165,8 @@ fn load_secp256k1_key(config: &SoftsignConfig) -> Result<ecdsa::SigningKey, Erro
                 ciphertext.as_ref(),
             )
             .map_err(|_e| format_err!(AccessError, "failed to decrypt wrapped key"))?,
+            #[cfg(all(feature = "nitro-enclave", not(feature = "aws-ne-sys")))]
+            vec![],
         );
         let key_bytes = Zeroizing::new(
             base64::decode(&*key_encoded_bytes)

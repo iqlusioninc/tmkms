@@ -61,12 +61,12 @@ byteorder = "1"
 rand = "0.7"
 
 [features]
-default = ["softsign", "nitro-enclave"]
+default = []
 softsign = []
 tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc"]
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
-nitro-enclave = ["aws-ne-sys", "rusoto_credential", "nix", "tokio", "vsock"]
+nitro-enclave = ["rusoto_credential", "nix", "tokio", "vsock"] # "softsign", "nitro-enclave", "aws-ne-sys" features to be enabled for enclave-build
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]
