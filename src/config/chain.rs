@@ -19,6 +19,7 @@ pub struct ChainConfig {
     pub key_format: keyring::Format,
 
     /// Path to chain-specific `priv_validator_state.json` file
+    #[cfg(not(feature = "nitro-enclave"))]
     pub state_file: Option<PathBuf>,
 
     /// User-specified command to run to obtain the current block height for
@@ -26,4 +27,9 @@ pub struct ChainConfig {
     /// initial block height if configured
     #[cfg(not(feature = "nitro-enclave"))]
     pub state_hook: Option<HookConfig>,
+
+    /// Proxy socket address to persist the state or load the initial state
+    /// TODO: S3 address + aws credentials?
+    #[cfg(feature = "nitro-enclave")]
+    pub state_addr: Option<crate::config::validator::VsockAddr>,
 }

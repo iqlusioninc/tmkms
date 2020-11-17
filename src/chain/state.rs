@@ -7,10 +7,10 @@ mod error;
 pub mod hook;
 
 pub use self::error::{StateError, StateErrorKind};
-#[cfg(not(feature = "nitro-enclave"))]
+#[cfg(feature = "nitro-enclave")]
+use crate::connection::vsock::{self, VsockStream};
 use crate::error::ErrorKind::*;
 use crate::{error::Error, prelude::*};
-#[cfg(not(feature = "nitro-enclave"))]
 use std::fs;
 use std::{
     io::{self, prelude::*},
@@ -23,29 +23,38 @@ use tendermint::consensus;
 pub struct State {
     consensus_state: consensus::State,
     state_file_path: PathBuf,
+    /// socket for persisting state outside the enclave
+    /// (used in both host and enclave environments)
+    #[cfg(feature = "nitro-enclave")]
+    pub state_stream: Option<VsockStream>,
 }
 
 impl State {
     /// Load the state from the given path
     #[cfg(feature = "nitro-enclave")]
-    pub fn load_state<P>(path: P) -> Result<Self, Error>
-    where
-        P: AsRef<Path>,
-    {
-        // FIXME: load from S3
+    pub fn load_state_vsock(vsock_cid_port: Option<(u32, u32)>) -> Result<Self, Error> {
         let mut consensus_state = consensus::State::default();
-
-        consensus_state.height = 0u32.into();
+        let state_stream = if let Some((cid, port)) = vsock_cid_port {
+            let addr = vsock::SockAddr::new_vsock(cid, port);
+            let mut stream = vsock::VsockStream::connect(&addr)?;
+            let consensus_state_read: consensus::State = Self::read_from_vsock(&mut stream)?;
+            consensus_state = consensus_state_read;
+            Some(stream)
+        } else {
+            warn!("no persistence vsock configured");
+            consensus_state.height = 0u32.into();
+            None
+        };
 
         let initial_state = Self {
             consensus_state,
-            state_file_path: path.as_ref().to_owned(),
+            state_stream,
+            state_file_path: Default::default(),
         };
         Ok(initial_state)
     }
 
     /// Load the state from the given path
-    #[cfg(not(feature = "nitro-enclave"))]
     pub fn load_state<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
@@ -64,6 +73,8 @@ impl State {
                 Ok(Self {
                     consensus_state,
                     state_file_path: path.as_ref().to_owned(),
+                    #[cfg(feature = "nitro-enclave")]
+                    state_stream: None,
                 })
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => {
@@ -135,11 +146,20 @@ impl State {
 
         self.consensus_state = new_state;
 
+        #[cfg(not(feature = "nitro-enclave"))]
         self.sync_to_disk().map_err(|e| {
             format_err!(
                 StateErrorKind::SyncError,
                 "error writing state to {}: {}",
                 self.state_file_path.display(),
+                e
+            )
+        })?;
+        #[cfg(feature = "nitro-enclave")]
+        self.sync_to_vsock().map_err(|e| {
+            format_err!(
+                StateErrorKind::SyncError,
+                "error writing state to vsock: {}",
                 e
             )
         })?;
@@ -179,7 +199,6 @@ impl State {
     }
 
     /// Write the initial state to the given path on disk
-    #[cfg(not(feature = "nitro-enclave"))]
     fn write_initial_state(path: &Path) -> Result<Self, Error> {
         let mut consensus_state = consensus::State::default();
 
@@ -190,11 +209,78 @@ impl State {
         let initial_state = Self {
             consensus_state,
             state_file_path: path.to_owned(),
+            #[cfg(feature = "nitro-enclave")]
+            state_stream: None,
         };
 
         initial_state.sync_to_disk()?;
 
         Ok(initial_state)
+    }
+
+    /// Read state from vsock
+    #[cfg(feature = "nitro-enclave")]
+    pub fn read_from_vsock(stream: &mut VsockStream) -> Result<consensus::State, Error> {
+        let mut len_b = [0u8; 2];
+        stream
+            .read_exact(&mut len_b)
+            .map_err(|e| format_err!(IoError, "error reading len: {}", e))?;
+
+        let l = (u16::from_le_bytes(len_b)) as usize;
+        let mut state_raw = vec![0u8; l];
+        let mut total = 0;
+
+        while let Ok(n) = stream.read(&mut state_raw[total..]) {
+            if n == 0 || n + total > l {
+                break;
+            }
+            total += n;
+        }
+
+        if total == 0 {
+            return Err(IoError.into());
+        }
+        state_raw.resize(total, 0);
+        info!("initial state read");
+        let consensus_state_read: consensus::State = serde_json::from_slice(&state_raw)
+            .map_err(|e| format_err!(ParseError, "error parsing: {}", e))?;
+        Ok(consensus_state_read)
+    }
+
+    /// Sync the current state to vsock
+    #[cfg(feature = "nitro-enclave")]
+    pub fn sync_from_vsock_to_disk(&mut self) -> io::Result<()> {
+        let mut new_state = None;
+        if let Some(stream) = self.state_stream.as_mut() {
+            let mstate = Self::read_from_vsock(stream);
+            if let Ok(state) = mstate {
+                new_state = Some(state);
+            } else {
+                warn!("error reading from vsock");
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+        }
+        if let Some(state) = new_state {
+            self.consensus_state = state;
+            self.sync_to_disk()
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Sync the current state to vsock
+    #[cfg(feature = "nitro-enclave")]
+    pub fn sync_to_vsock(&mut self) -> io::Result<()> {
+        if let Some(stream) = self.state_stream.as_mut() {
+            debug!("writing new consensus state: {:?}", &self.consensus_state);
+            let json = serde_json::to_string(&self.consensus_state)?;
+            let json_len = (json.as_bytes().len() as u16).to_le_bytes();
+            stream.write(&json_len)?;
+            stream.write(json.as_bytes())?;
+            stream.flush()?;
+            debug!("successfully wrote new consensus state");
+        }
+        Ok(())
     }
 
     /// Sync the current state to disk

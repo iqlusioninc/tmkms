@@ -1,5 +1,6 @@
 //! Start the KMS in Nitro Enclave and host utilities for communicating with the enclave
 
+use crate::chain::state::State;
 use crate::config::provider::softsign::AwsCredentials;
 use crate::config::KmsConfig;
 use crate::{chain, client::Client, prelude::*};
@@ -54,6 +55,7 @@ pub struct Proxy {
     local_port: u32,
     remote_addr: PathBuf,
 }
+const VSOCK_PROXY_CID: u32 = 3;
 
 impl Proxy {
     /// creates a new vsock<->uds proxy
@@ -67,7 +69,6 @@ impl Proxy {
     /// Creates a listening socket
     /// Returns the file descriptor for it or the appropriate error
     pub fn sock_listen(&self) -> Result<VsockListener, String> {
-        const VSOCK_PROXY_CID: u32 = 3;
         let sockaddr = SockAddr::new_vsock(VSOCK_PROXY_CID, self.local_port);
         let listener = VsockListener::bind(&sockaddr)
             .map_err(|_| format!("Could not bind to {:?}", sockaddr))?;
@@ -146,6 +147,76 @@ impl Runnable for ProxyCommand {
                 warn!("Listening for enclave connections failed: {}", e);
                 process::exit(1);
             }
+        }
+    }
+}
+
+/// The `nitro persist` command
+#[derive(Command, Debug, Options)]
+pub struct PersistCommand {
+    /// Vsock port enclave connects to
+    #[options(
+        short = "p",
+        long = "port",
+        help = "vsock port the enclave connects to"
+    )]
+    pub port: u32,
+    /// state file to persist
+    #[options(
+        short = "s",
+        long = "statefile",
+        help = "path to where the state should be persisted"
+    )]
+    pub state_file_path: PathBuf,
+}
+
+impl PersistCommand {
+    fn sync_state(&self) -> Result<(), String> {
+        let mut state = State::load_state(self.state_file_path.to_owned())
+            .map_err(|err| format!("Loading state failed: {}", err))?;
+        let sockaddr = SockAddr::new_vsock(VSOCK_PROXY_CID, self.port);
+        let mlistener = VsockListener::bind(&sockaddr);
+        match mlistener {
+            Ok(listener) => {
+                info!("listening for enclave persistence");
+                for conn in listener.incoming() {
+                    match conn {
+                        Ok(stream) => {
+                            info!("vsock persistence connection established");
+                            state.state_stream = Some(stream);
+                            state
+                                .sync_to_vsock()
+                                .map_err(|err| format!("Sync to vsock failed: {}", err))?;
+                            loop {
+                                if let Err(e) = state.sync_from_vsock_to_disk() {
+                                    warn!("sync failed: {}", e);
+                                    break;
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            warn!("Vsock connection failed: {}", e);
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                return Err(format!(
+                    "Listening for enclave persistence connections failed: {}",
+                    e
+                ))
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Runnable for PersistCommand {
+    /// Proxy to persist tmkms state in a host
+    fn run(&self) {
+        if let Err(e) = self.sync_state() {
+            warn!("persistence connection failed: {}", e);
+            process::exit(1);
         }
     }
 }

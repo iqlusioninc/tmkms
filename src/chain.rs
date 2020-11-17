@@ -32,6 +32,22 @@ pub struct Chain {
 
 impl Chain {
     /// Attempt to create a `Chain` state from the given configuration
+    #[cfg(feature = "nitro-enclave")]
+    pub fn from_config(config: &ChainConfig) -> Result<Chain, Error> {
+        let state = if let Some(addr) = &config.state_addr {
+            State::load_state_vsock(Some((addr.cid, addr.port)))
+        } else {
+            State::load_state_vsock(None)
+        }?;
+        Ok(Self {
+            id: config.id.clone(),
+            keyring: KeyRing::new(config.key_format.clone()),
+            state: Mutex::new(state),
+        })
+    }
+
+    /// Attempt to create a `Chain` state from the given configuration
+    #[cfg(not(feature = "nitro-enclave"))]
     pub fn from_config(config: &ChainConfig) -> Result<Chain, Error> {
         let state_file = match config.state_file {
             Some(ref path) => path.to_owned(),
@@ -40,7 +56,6 @@ impl Chain {
 
         let mut state = State::load_state(state_file)?;
 
-        #[cfg(not(feature = "nitro-enclave"))]
         if let Some(ref hook) = config.state_hook {
             match state::hook::run(hook) {
                 Ok(hook_output) => state.update_from_hook_output(hook_output)?,

@@ -83,7 +83,14 @@ pub struct VsockAddr {
     /// vsock port
     pub port: u32,
     /// secret connection -- disabled if proxied to unix
+    #[serde(default = "secret_connection_vsock")]
     pub secret_connection: bool,
+}
+
+/// Default value for the `VsockAddr` secret_connection field
+#[cfg(feature = "nitro-enclave")]
+fn secret_connection_vsock() -> bool {
+    false
 }
 
 #[cfg(feature = "nitro-enclave")]
