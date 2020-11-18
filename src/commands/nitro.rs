@@ -29,6 +29,9 @@ pub enum NitroCommand {
     /// proxy to unix domain socket
     #[options(help = "forward traffic from enclave vsock to unix domain socket of tendermint")]
     Proxy(ProxyCommand),
+    /// proxy to state file
+    #[options(help = "sync consensus state to files on host instance")]
+    Persist(PersistCommand),
 }
 
 /// The `nitro proxy` command
