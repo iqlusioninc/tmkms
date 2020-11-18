@@ -241,7 +241,7 @@ impl State {
             return Err(IoError.into());
         }
         state_raw.resize(total, 0);
-        info!("initial state read");
+        debug!("initial state read");
         let consensus_state_read: consensus::State = serde_json::from_slice(&state_raw)
             .map_err(|e| format_err!(ParseError, "error parsing: {}", e))?;
         Ok(consensus_state_read)
