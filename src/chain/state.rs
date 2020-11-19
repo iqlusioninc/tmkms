@@ -3,13 +3,11 @@
 //!
 //! Double-signing protection is the primary purpose of this code (for now).
 
-mod encoding;
 mod error;
 pub mod hook;
 
 pub use self::error::{StateError, StateErrorKind};
 
-use self::encoding::EncodedState;
 use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
@@ -36,18 +34,17 @@ impl State {
     {
         match fs::read_to_string(path.as_ref()) {
             Ok(state_json) => {
-                let consensus_state: EncodedState =
-                    serde_json::from_str(&state_json).map_err(|e| {
-                        format_err!(
-                            ParseError,
-                            "error parsing {}: {}",
-                            path.as_ref().display(),
-                            e
-                        )
-                    })?;
+                let consensus_state = serde_json::from_str(&state_json).map_err(|e| {
+                    format_err!(
+                        ParseError,
+                        "error parsing {}: {}",
+                        path.as_ref().display(),
+                        e
+                    )
+                })?;
 
                 Ok(Self {
-                    consensus_state: consensus_state.into(),
+                    consensus_state,
                     state_file_path: path.as_ref().to_owned(),
                 })
             }
@@ -189,7 +186,7 @@ impl State {
             &self.consensus_state
         );
 
-        let json = serde_json::to_string(&EncodedState::from(self.consensus_state.clone()))?;
+        let json = serde_json::to_string(&self.consensus_state)?;
 
         let state_file_dir = self.state_file_path.parent().unwrap_or_else(|| {
             panic!("state file cannot be root directory");
