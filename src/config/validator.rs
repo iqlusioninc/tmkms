@@ -36,7 +36,7 @@ pub struct ValidatorConfig {
 
     /// For nitro enclave connection (ignore Tendermint addr, as it's proxy-ed via vsock)
     #[cfg(feature = "nitro-enclave")]
-    pub addr: VsockAddr,
+    pub addr: ProxyVsockAddr,
 }
 
 /// Protocol version (based on the Tendermint version)
@@ -76,10 +76,8 @@ impl From<ProtocolVersion> for secret_connection::Version {
 #[cfg(feature = "nitro-enclave")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-/// VM socket address (context id + port)
-pub struct VsockAddr {
-    /// enclave vsock context id
-    pub cid: u32,
+/// VM socket address: port (cid is fixed to 3 within enclave)
+pub struct ProxyVsockAddr {
     /// vsock port
     pub port: u32,
     /// secret connection -- disabled if proxied to unix
@@ -87,16 +85,16 @@ pub struct VsockAddr {
     pub secret_connection: bool,
 }
 
-/// Default value for the `VsockAddr` secret_connection field
+/// Default value for the `ProxyVsockAddr` secret_connection field
 #[cfg(feature = "nitro-enclave")]
 fn secret_connection_vsock() -> bool {
     false
 }
 
 #[cfg(feature = "nitro-enclave")]
-impl std::fmt::Display for VsockAddr {
+impl std::fmt::Display for ProxyVsockAddr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "vsock (cid:{}, port: {})", self.cid, self.port)
+        write!(f, "vsock (cid:3, port: {})", self.port)
     }
 }
 

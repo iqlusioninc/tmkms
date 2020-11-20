@@ -9,13 +9,16 @@ pub use self::{
     registry::{GlobalRegistry, Registry, REGISTRY},
     state::State,
 };
+#[cfg(not(feature = "nitro-enclave"))]
+use crate::prelude::*;
 use crate::{
     config::{chain::ChainConfig, KmsConfig},
     error::Error,
     keyring::{self, KeyRing},
-    prelude::*,
 };
-use std::{path::PathBuf, sync::Mutex};
+#[cfg(not(feature = "nitro-enclave"))]
+use std::path::PathBuf;
+use std::sync::Mutex;
 pub use tendermint::chain::Id;
 
 /// Information about a particular Tendermint blockchain network
@@ -34,8 +37,9 @@ impl Chain {
     /// Attempt to create a `Chain` state from the given configuration
     #[cfg(feature = "nitro-enclave")]
     pub fn from_config(config: &ChainConfig) -> Result<Chain, Error> {
-        let state = if let Some(addr) = &config.state_addr {
-            State::load_state_vsock(Some((addr.cid, addr.port)))
+        const VSOCK_PROXY_CID: u32 = 3;
+        let state = if let Some(port) = &config.state_vsock_port {
+            State::load_state_vsock(Some((VSOCK_PROXY_CID, *port)))
         } else {
             State::load_state_vsock(None)
         }?;

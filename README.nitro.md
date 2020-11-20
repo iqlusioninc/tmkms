@@ -116,7 +116,7 @@ directly in NE, and must do so via "vsock" connection proxies.
 [[chain]]
 id = "..."
 key_format = { type = "bech32", account_key_prefix = "...", consensus_key_prefix = "..." }
-state_addr = { cid = 3, port = <vsock port for state persistence proxy> }
+state_vsock_port = <vsock port for state persistence proxy>
 
 [[providers.softsign]]
 chain_ids = [...]
@@ -127,7 +127,7 @@ aws_region = "<AWS region to use>"
 
 [[validator]]
 chain_id = "..."
-addr = { cid = 3, port = <port for proxy to Tendermint "privval" connection> }
+addr = { port = <port for proxy to Tendermint "privval" connection> }
 # you can also specify whether to use the secret connection (if "privval" over proxy is listening on TCP)
 # in which case you'd need to bundle the identity key in the deployment Docker/enclave image
 # (retrieving this from AWS KMS is a TODO item)

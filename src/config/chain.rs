@@ -5,6 +5,7 @@ mod hook;
 pub use self::hook::HookConfig;
 use crate::{chain, keyring};
 use serde::Deserialize;
+#[cfg(not(feature = "nitro-enclave"))]
 use std::path::PathBuf;
 
 /// Chain configuration
@@ -28,8 +29,8 @@ pub struct ChainConfig {
     #[cfg(not(feature = "nitro-enclave"))]
     pub state_hook: Option<HookConfig>,
 
-    /// Proxy socket address to persist the state or load the initial state
+    /// Proxy socket port to persist the state or load the initial state
     /// TODO: S3 address + aws credentials?
     #[cfg(feature = "nitro-enclave")]
-    pub state_addr: Option<crate::config::validator::VsockAddr>,
+    pub state_vsock_port: Option<u32>,
 }

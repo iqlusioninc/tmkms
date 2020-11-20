@@ -36,19 +36,19 @@ impl Session {
     /// Open a session using the given validator configuration in Nitro Enclave
     #[cfg(feature = "nitro-enclave")]
     pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
+        const VSOCK_PROXY_CID: u32 = 3;
         let connection: Box<dyn Connection> = {
             debug!(
                 "[{}@{}] connecting to validator...",
                 &config.chain_id, &config.addr
             );
-            let crate::config::validator::VsockAddr {
-                cid,
+            let crate::config::validator::ProxyVsockAddr {
                 port,
                 secret_connection,
             } = config.addr;
             if secret_connection {
                 let conn = vsock::open_secret_connection(
-                    cid,
+                    VSOCK_PROXY_CID,
                     port,
                     &config.secret_key,
                     // FIXME: peer_id
@@ -58,7 +58,7 @@ impl Session {
                 )?;
                 info!(
                     "[{}@vsock({}:{})] connected (secret) to validator successfully",
-                    &config.chain_id, cid, port
+                    &config.chain_id, VSOCK_PROXY_CID, port
                 );
 
                 Box::new(conn)
@@ -68,12 +68,12 @@ impl Session {
                     &config.chain_id, &config.addr
                 );
 
-                let addr = vsock::SockAddr::new_vsock(cid, port);
+                let addr = vsock::SockAddr::new_vsock(VSOCK_PROXY_CID, port);
                 let socket = vsock::VsockStream::connect(&addr)?;
                 let conn = UnixConnection::new(socket);
                 info!(
                     "[{}@vsock({}:{})] connected (non-secret) to validator successfully",
-                    &config.chain_id, cid, port
+                    &config.chain_id, VSOCK_PROXY_CID, port
                 );
 
                 Box::new(conn)
