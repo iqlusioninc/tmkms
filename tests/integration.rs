@@ -1,10 +1,5 @@
 //! KMS integration test
 
-use abscissa_core::prelude::warn;
-use chrono::{DateTime, Utc};
-use ed25519_dalek::{self as ed25519, Verifier};
-use prost_amino::Message;
-use rand::Rng;
 use std::{
     convert::TryFrom,
     fs,
@@ -13,14 +8,20 @@ use std::{
     os::unix::net::{UnixListener, UnixStream},
     process::{Child, Command},
 };
+
+use abscissa_core::prelude::warn;
+use chrono::{DateTime, Utc};
+use ed25519_dalek::{self as ed25519, Verifier};
+use rand::Rng;
 use tempfile::NamedTempFile;
+
+use prost_amino::Message;
+use tendermint_p2p::secret_connection::{self, SecretConnection};
+
 use tmkms::{
     amino_types::{self, *},
     config::validator::ProtocolVersion,
-    connection::{
-        secret_connection::{self, SecretConnection},
-        unix::UnixConnection,
-    },
+    connection::unix::UnixConnection,
 };
 
 /// Integration tests for the KMS command-line interface

@@ -3,18 +3,20 @@
 // TODO: docs for everything
 #![allow(missing_docs)]
 
-use crate::{
-    amino_types,
-    config::validator::ProtocolVersion,
-    connection::secret_connection::DATA_MAX_SIZE,
-    error::{Error, ErrorKind},
-    prelude::*,
-};
+use std::io::Read;
+
 use bytes::Bytes;
 use prost::Message as _;
 use prost_amino::{encoding::decode_varint, Message as _};
-use std::io::Read;
+use tendermint_p2p::secret_connection::DATA_MAX_SIZE;
 use tendermint_proto as proto;
+
+use crate::{
+    amino_types,
+    config::validator::ProtocolVersion,
+    error::{Error, ErrorKind},
+    prelude::*,
+};
 
 /// RPC requests to the KMS
 #[derive(Debug)]

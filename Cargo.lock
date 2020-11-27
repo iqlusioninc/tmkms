@@ -2075,6 +2075,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "tendermint-p2p"
+version = "0.17.0-rc3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e9c878e0b802847b36db51cb69f6d3ad0d7ff1cb49254596adbec010e760e2a"
+dependencies = [
+ "chacha20poly1305",
+ "ed25519-dalek",
+ "eyre",
+ "hkdf",
+ "merlin",
+ "prost",
+ "prost-amino",
+ "prost-amino-derive",
+ "rand_core",
+ "sha2",
+ "subtle",
+ "subtle-encoding",
+ "tendermint",
+ "tendermint-proto",
+ "thiserror",
+ "x25519-dalek",
+ "zeroize",
+]
+
+[[package]]
 name = "tendermint-proto"
 version = "0.17.0-rc3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2202,7 +2227,6 @@ dependencies = [
  "abscissa_tokio",
  "byteorder",
  "bytes",
- "chacha20poly1305",
  "chrono",
  "ed25519-dalek",
  "getrandom",
@@ -2213,7 +2237,6 @@ dependencies = [
  "hyper-rustls",
  "k256",
  "ledger",
- "merlin",
  "once_cell",
  "prost",
  "prost-amino",
@@ -2231,11 +2254,11 @@ dependencies = [
  "subtle-encoding",
  "tempfile",
  "tendermint",
+ "tendermint-p2p",
  "tendermint-proto",
  "tendermint-rpc",
  "thiserror",
  "wait-timeout",
- "x25519-dalek",
  "yubihsm",
  "zeroize",
 ]

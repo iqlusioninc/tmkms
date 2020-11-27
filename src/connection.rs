@@ -1,11 +1,13 @@
 //! Connections to a validator (TCP or Unix socket)
 
-pub mod secret_connection;
+use std::io;
+
+use tendermint_p2p::secret_connection::SecretConnection;
+
+use self::unix::UnixConnection;
+
 pub mod tcp;
 pub mod unix;
-
-use self::{secret_connection::SecretConnection, unix::UnixConnection};
-use std::io;
 
 /// Connections to a validator
 pub trait Connection: io::Read + io::Write + Sync + Send {}
