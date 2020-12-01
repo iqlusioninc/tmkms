@@ -1,14 +1,17 @@
 //! TCP socket connection to a validator
 
-use super::secret_connection::{self, PublicKey, SecretConnection};
+use std::{net::TcpStream, path::PathBuf, time::Duration};
+
+use subtle::ConstantTimeEq;
+use tendermint::node;
+use tendermint_p2p::error::Error as TmError;
+use tendermint_p2p::secret_connection::{self, PublicKey, SecretConnection};
+
 use crate::{
     error::{Error, ErrorKind::*},
     key_utils,
     prelude::*,
 };
-use std::{net::TcpStream, path::PathBuf, time::Duration};
-use subtle::ConstantTimeEq;
-use tendermint::node;
 
 /// Default timeout in seconds
 const DEFAULT_TIMEOUT: u16 = 10;
@@ -39,7 +42,15 @@ pub fn open_secret_connection(
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = SecretConnection::new(socket, &identity_key, protocol_version)?;
+    let connection = match SecretConnection::new(socket, &identity_key, protocol_version) {
+        Ok(conn) => conn,
+        Err(error) => match error.downcast_ref::<TmError>() {
+            Some(TmError::CryptoError) => fail!(CryptoError, format!("{}", error)),
+            Some(TmError::ProtocolError) => fail!(ProtocolError, format!("{}", error)),
+            Some(TmError::InvalidKey) => fail!(InvalidKey, format!("{}", error)),
+            None => fail!(ProtocolError, format!("{}", error)),
+        },
+    };
     let actual_peer_id = connection.remote_pubkey().peer_id();
 
     // TODO(tarcieri): move this into `SecretConnection::new`

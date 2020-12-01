@@ -1,18 +1,22 @@
 //! Utilities
 
-use crate::{
-    error::{Error, ErrorKind::*},
-    prelude::*,
-};
-use ed25519_dalek as ed25519;
 use std::{
     fs::{self, OpenOptions},
     io::Write,
     os::unix::fs::OpenOptionsExt,
     path::Path,
 };
+
+use ed25519_dalek as ed25519;
+use ed25519_dalek::SECRET_KEY_LENGTH;
+use rand_core::{OsRng, RngCore};
 use subtle_encoding::base64;
 use zeroize::Zeroizing;
+
+use crate::{
+    error::{Error, ErrorKind::*},
+    prelude::*,
+};
 
 /// File permissions for secret data
 pub const SECRET_FILE_PERMS: u32 = 0o600;
@@ -73,4 +77,11 @@ pub fn write_base64_secret(path: impl AsRef<Path>, data: &[u8]) -> Result<(), Er
             )
             .into()
         })
+}
+
+/// Generate a Secret Connection key at the given path
+pub fn generate_key(path: impl AsRef<Path>) -> Result<(), Error> {
+    let mut secret_key = Zeroizing::new([0u8; SECRET_KEY_LENGTH]);
+    OsRng.fill_bytes(&mut *secret_key);
+    write_base64_secret(path, &*secret_key)
 }

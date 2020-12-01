@@ -1,9 +1,9 @@
 //! Validator configuration
 
-use crate::connection::secret_connection;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tendermint::{chain, net};
+use tendermint_p2p::secret_connection;
 
 /// Validator configuration
 #[derive(Clone, Debug, Deserialize, Serialize)]

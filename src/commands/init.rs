@@ -4,7 +4,7 @@ pub mod config_builder;
 pub mod networks;
 
 use self::{config_builder::ConfigBuilder, networks::Network};
-use crate::{config::CONFIG_FILE_NAME, connection::secret_connection, prelude::*};
+use crate::{config::CONFIG_FILE_NAME, key_utils, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
 use std::{
     fs,
@@ -106,7 +106,7 @@ impl Runnable for InitCommand {
         status_ok!("Generated", "KMS configuration: {}", config_path.display());
 
         let secret_connection_key = secrets_dir.join(SECRET_CONNECTION_KEY);
-        secret_connection::generate_key(&secret_connection_key).unwrap_or_else(|e| {
+        key_utils::generate_key(&secret_connection_key).unwrap_or_else(|e| {
             abort!(
                 "couldn't generate `{}`: {}",
                 secret_connection_key.display(),
