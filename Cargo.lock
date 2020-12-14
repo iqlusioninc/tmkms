@@ -376,6 +376,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2d9162b7289a46e86208d6af2c686ca5bfde445878c41a458a9fac706252d0b"
 
 [[package]]
+name = "const-oid"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e143857ef5e50b46bba431bb0ed990426912f5eea85d6048214d8196d83efed"
+
+[[package]]
 name = "core-foundation"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -514,8 +520,19 @@ version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87bf8bfb05ea8a6f74ddf48c7d1774851ba77bbe51ac984fdfa6c30310e1ff5f"
 dependencies = [
- "elliptic-curve",
+ "elliptic-curve 0.6.6",
  "hmac 0.9.0",
+ "signature",
+]
+
+[[package]]
+name = "ecdsa"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f488ad19df443921d9fa5b9ce13a282b552709c511d2d90b1fd635e0204d74d5"
+dependencies = [
+ "elliptic-curve 0.7.1",
+ "hmac 0.10.1",
  "signature",
 ]
 
@@ -557,11 +574,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "396db09c483e7fca5d4fdb9112685632b3e76c9a607a2649c1bf904404a01366"
 dependencies = [
  "bitvec",
- "const-oid",
+ "const-oid 0.1.0",
  "digest",
  "ff",
  "generic-array",
  "group",
+ "rand_core",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "elliptic-curve"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d02ac72d4e61713e291a2ae644c1bd82be82c21b9a0de2271e0aa6886b7e0b4"
+dependencies = [
+ "bitvec",
+ "digest",
+ "ff",
+ "generic-array",
+ "group",
+ "pkcs8",
  "rand_core",
  "subtle",
  "zeroize",
@@ -1082,10 +1116,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3934640b1efbc660af5889d041854b6985d403771dc4d5fee984e13e8f82f313"
 dependencies = [
  "cfg-if 1.0.0",
- "ecdsa",
- "elliptic-curve",
+ "ecdsa 0.8.5",
+ "elliptic-curve 0.6.6",
  "sha2",
  "sha3",
+]
+
+[[package]]
+name = "k256"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4aebc14f2c1f2c5fd414f878084102b9ccb100fd90706e35979cd70a32f5d938"
+dependencies = [
+ "cfg-if 1.0.0",
+ "ecdsa 0.9.0",
+ "elliptic-curve 0.7.1",
+ "sha2",
 ]
 
 [[package]]
@@ -1346,8 +1392,8 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "280ed58e7e5f3052b6e2f596fa40c7eff4c27c4b6b6deecb5d685ba5c2080980"
 dependencies = [
- "ecdsa",
- "elliptic-curve",
+ "ecdsa 0.8.5",
+ "elliptic-curve 0.6.6",
  "sha2",
 ]
 
@@ -1357,8 +1403,8 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06de0548166c258c22bb6bdcff3074eac4b07125040aa74db3f61db87fe5f275"
 dependencies = [
- "ecdsa",
- "elliptic-curve",
+ "ecdsa 0.8.5",
+ "elliptic-curve 0.6.6",
 ]
 
 [[package]]
@@ -1433,6 +1479,15 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "pkcs8"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6529960a627342f19f68d43a07b268c98fd347e68668df3743a3cb9211c0975f"
+dependencies = [
+ "const-oid 0.3.5",
+]
 
 [[package]]
 name = "pkg-config"
@@ -1970,9 +2025,9 @@ version = "0.4.0-pre"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fb28d154121d5216d10cbd3ec7ddbc0d0c95e4bba8f541b6743dd7a34279a2f"
 dependencies = [
- "ecdsa",
+ "ecdsa 0.8.5",
  "eyre",
- "k256",
+ "k256 0.5.10",
  "prost-amino",
  "prost-amino-derive",
  "rust_decimal",
@@ -2067,7 +2122,7 @@ dependencies = [
  "ed25519",
  "ed25519-dalek",
  "futures",
- "k256",
+ "k256 0.5.10",
  "num-traits",
  "once_cell",
  "prost",
@@ -2248,7 +2303,7 @@ dependencies = [
  "hkdf",
  "hyper",
  "hyper-rustls",
- "k256",
+ "k256 0.6.0",
  "ledger",
  "once_cell",
  "prost",
@@ -2706,12 +2761,12 @@ dependencies = [
  "chrono",
  "cmac",
  "digest",
- "ecdsa",
+ "ecdsa 0.8.5",
  "ed25519",
  "ed25519-dalek",
  "harp",
  "hmac 0.10.1",
- "k256",
+ "k256 0.5.10",
  "log",
  "p256",
  "p384",
