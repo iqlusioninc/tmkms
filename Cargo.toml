@@ -22,7 +22,7 @@ hkd32 = { version = "0.5", default-features = false, features = ["mnemonic"] }
 hkdf = "0.10.0"
 hyper = { version = "0.13", optional = true }
 hyper-rustls = { version = "0.21", optional = true }
-k256 = { version = "0.5", features = ["ecdsa", "sha256"] }
+k256 = { version = "0.7", features = ["ecdsa", "sha256"] }
 ledger = { version = "0.2", optional = true }
 once_cell = "1.5"
 prost = "0.6"
