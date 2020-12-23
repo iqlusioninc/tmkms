@@ -45,7 +45,7 @@ tendermint-proto = "=0.17.0-rc3"
 tendermint-p2p = { version = "=0.17.0-rc3", features = ["amino"] }
 thiserror = "1"
 wait-timeout = "0.2"
-yubihsm = { version = "0.35", features = ["secp256k1", "setup", "usb"], optional = true }
+yubihsm = { version = "0.37", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 
 [dev-dependencies]
