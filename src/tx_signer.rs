@@ -305,7 +305,7 @@ impl TxSigner {
 
         let response = match self.rpc_client.broadcast_tx_commit(amino_tx).await {
             Ok(resp) => {
-                self.last_tx = LastTx::Response(resp.clone());
+                self.last_tx = LastTx::Response(Box::new(resp.clone()));
                 resp
             }
             Err(e) => {

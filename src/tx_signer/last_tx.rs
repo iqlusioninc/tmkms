@@ -9,7 +9,7 @@ pub enum LastTx {
     None,
 
     /// Tendermint RPC response
-    Response(tx_commit::Response),
+    Response(Box<tx_commit::Response>),
 
     /// Error broadcasting the previous transaction
     Error(tendermint_rpc::error::Error),
