@@ -112,7 +112,7 @@ fn load_secp256k1_key(config: &SoftsignConfig) -> Result<ecdsa::SigningKey, Erro
 
     let key_bytes = key_utils::load_base64_secret(&config.path)?;
 
-    let secret_key = ecdsa::SigningKey::new(key_bytes.as_slice()).map_err(|e| {
+    let secret_key = ecdsa::SigningKey::from_bytes(key_bytes.as_slice()).map_err(|e| {
         format_err!(
             ConfigError,
             "can't decode account key base64 from {}: {}",

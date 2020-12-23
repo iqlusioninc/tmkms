@@ -83,7 +83,7 @@ prerequisites for support.
 
 You will need the following prerequisites:
 
-- **Rust** (stable; **1.45+**): https://rustup.rs/
+- **Rust** (stable; **1.46+**): https://rustup.rs/
 - **C compiler**: e.g. gcc, clang
 - **pkg-config**
 - **libusb** (1.0+). Install instructions for common platforms:
@@ -117,7 +117,7 @@ If successful, this will produce a `tmkms` executable located at
 
 ### Installing with the `cargo install` command
 
-With Rust (1.45+) installed, you can install tmkms with the following:
+With Rust (1.46+) installed, you can install tmkms with the following:
 
 ```
 cargo install tmkms --features=yubihsm
@@ -230,7 +230,7 @@ limitations under the License.
 [build-link]: https://github.com/iqlusioninc/tmkms/actions
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/iqlusioninc/tmkms/blob/develop/LICENSE
-[rustc-image]: https://img.shields.io/badge/rustc-1.45+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.46+-blue.svg
 
 [//]: # (general links)
 
