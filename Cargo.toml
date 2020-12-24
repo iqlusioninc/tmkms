@@ -20,7 +20,7 @@ getrandom = "0.1"
 gumdrop = "0.7"
 hkd32 = { version = "0.5", default-features = false, features = ["mnemonic"] }
 hkdf = "0.10.0"
-hyper = { version = "0.13", optional = true }
+hyper = { version = "0.14", optional = true }
 hyper-rustls = { version = "0.21", optional = true }
 k256 = { version = "0.7", features = ["ecdsa", "sha256"] }
 ledger = { version = "0.2", optional = true }
