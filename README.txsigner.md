@@ -58,7 +58,7 @@ cargo install tmkms --features=tx-signer,yubihsm
 
 ## Architecture
 
-![Diagram](https://raw.githubusercontent.com/iqlusioninc/tmkms/develop/img/tx-signer.svg)
+![Diagram](https://raw.githubusercontent.com/iqlusioninc/tmkms/main/img/tx-signer.svg)
 
 Tendermint KMS polls a microservice you provide at an interval you specify to
 obtain transactions to be signed. After signing them, it automatically submits
@@ -360,7 +360,7 @@ fields = [
 For more examples, see the schema templates directory in the KMS
 GitHub repo:
 
-<https://github.com/iqlusioninc/tmkms/tree/develop/src/commands/init/templates/schema>
+<https://github.com/iqlusioninc/tmkms/tree/main/src/commands/init/templates/schema>
 
 ## Running and Debugging
 
@@ -461,14 +461,14 @@ the transaction in a block explorer for the particular Tendermint network you're
 interacting with and make sure it achieved the desired outcome.
 
 [StdTx]: https://godoc.org/github.com/cosmos/cosmos-sdk/x/auth/types#StdTx
-[YubiHSM 2]: https://github.com/iqlusioninc/tmkms/blob/develop/README.yubihsm.md
+[YubiHSM 2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Stargate]: https://blog.cosmos.network/cosmos-stargate-upgrade-overview-8939475fe673
 [Roadmap]: https://github.com/iqlusioninc/tmkms/issues/96
 [Protobuf]: https://github.com/iqlusioninc/crates/issues/459
 [secp256k1]: https://en.bitcoin.it/wiki/Secp256k1
 [ECDSA]: https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
 [Amino JSON]: https://docs.tendermint.com/master/spec/blockchain/encoding.html#json
-[`tmkms.toml`]: https://github.com/iqlusioninc/tmkms/blob/develop/tmkms.toml.example
+[`tmkms.toml`]: https://github.com/iqlusioninc/tmkms/blob/main/tmkms.toml.example
 [Cosmos Send Tokens]: https://hub.cosmos.network/master/resources/gaiacli.html#send-tokens
 [Terra Oracle]: https://docs.terra.money/dev/spec-oracle.html#message-types
 [broadcast_tx_sync]: https://docs.tendermint.com/master/rpc/#/Tx/broadcast_tx_sync
