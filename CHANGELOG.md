@@ -203,7 +203,7 @@ This release contains many improvements for users of the `yubihsm` backend:
 For more information on these changes, please see the "yubihsm-server feature"
 section in the Tendermint KMS YubiHSM docs:
 
-<https://github.com/iqlusioninc/tmkms/blob/develop/README.yubihsm.md>
+<https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md>
 
 ### Detailed Changes
 

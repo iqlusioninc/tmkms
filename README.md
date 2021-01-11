@@ -226,19 +226,19 @@ limitations under the License.
 
 [crate-image]: https://img.shields.io/crates/v/tmkms.svg
 [crate-link]: https://crates.io/crates/tmkms
-[build-image]: https://github.com/iqlusioninc/tmkms/workflows/CI/badge.svg?branch=develop&event=push
+[build-image]: https://github.com/iqlusioninc/tmkms/workflows/CI/badge.svg?branch=main&event=push
 [build-link]: https://github.com/iqlusioninc/tmkms/actions
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
-[license-link]: https://github.com/iqlusioninc/tmkms/blob/develop/LICENSE
+[license-link]: https://github.com/iqlusioninc/tmkms/blob/main/LICENSE
 [rustc-image]: https://img.shields.io/badge/rustc-1.46+-blue.svg
 
 [//]: # (general links)
 
 [Tendermint]: https://tendermint.com/
 [Cosmos Validators]: https://cosmos.network/docs/gaia/validators/validator-faq.html
-[YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/develop/README.yubihsm.md
+[YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
 [ed25519-dalek]: https://github.com/dalek-cryptography/ed25519-dalek
 [supported Rust platform]: https://forge.rust-lang.org/platform-support.html
 [libusb]: https://libusb.info/
-[Dockerfile]: https://github.com/iqlusioninc/tmkms/blob/develop/Dockerfile
+[Dockerfile]: https://github.com/iqlusioninc/tmkms/blob/main/Dockerfile
