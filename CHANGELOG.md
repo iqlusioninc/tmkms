@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.0 (UNRELEASED)
+
+This release (to be) is compatible with [tendermint v0.34] or older.
+
+It includes initial support for "Stargate", an upgrade to Cosmos Hub which
+will enable IBC. It also retains backwards compatibility for all older versions
+of Tendermint via the `[validator.protocol_version]` setting in `tmkms.toml`.
+
+For Stargate, configure this value to:
+
+```toml
+[[validator]]
+chain_id = "cosmoshub-4"
+protocol_version = "v0.34"
+```
+
+### Added
+- Tendermint v0.34 signing compatibility ([#211])
+
+### Changed
+- rpc: add support for protobuf-encoded messages ([#201])
+- tx-signer: retry failed transactions up to 3 times ([#213])
+- Use `consensus::State` serializers from `tendermint-rs` ([#232])
+- Use `tendermint-p2p` crate for secret connection ([#234])
+- Bump `tendermint-rs` to v0.17 ([#249])
+- Bump `stdtx` to v0.4 ([#249])
+- MSRV 1.46+ ([#249])
+
+[tendermint v0.34]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0340
+[#201]: https://github.com/iqlusioninc/tmkms/pull/201
+[#211]: https://github.com/iqlusioninc/tmkms/pull/211
+[#213]: https://github.com/iqlusioninc/tmkms/pull/213
+[#232]: https://github.com/iqlusioninc/tmkms/pull/232
+[#234]: https://github.com/iqlusioninc/tmkms/pull/234
+[#249]: https://github.com/iqlusioninc/tmkms/pull/249
+
 ## 0.9.0 (2020-10-22)
 
 This release is compatible with [tendermint v0.33] or older.
