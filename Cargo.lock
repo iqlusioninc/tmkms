@@ -2316,7 +2316,7 @@ dependencies = [
  "bytes 0.5.6",
  "chrono",
  "ed25519-dalek",
- "getrandom 0.1.16",
+ "getrandom 0.2.2",
  "gumdrop",
  "hkd32",
  "hkdf",
