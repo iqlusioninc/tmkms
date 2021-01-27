@@ -2,3 +2,7 @@
 
 [advisories]
 ignore = ["RUSTSEC-2019-0031", "RUSTSEC-2020-0016", "RUSTSEC-2020-0031", "RUSTSEC-2020-0036"] # advisory IDs to ignore e.g. ["RUSTSEC-2019-0001", ...]
+
+# Output Configuration
+[output]
+deny = ["warnings"] # exit on error if warnings are found
