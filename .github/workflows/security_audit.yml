@@ -19,6 +19,12 @@ jobs:
         with:
           path: ~/.cargo/bin
           key: ${{ runner.os }}-cargo-audit-v0.12.1
-      - uses: actions-rs/audit-check@v1
+      - uses: actions-rs/toolchain@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          toolchain: stable
+          override: true
+      - name: Install cargo audit
+        run: cargo install cargo-audit
+      - name: Run cargo audit
+        run: cargo audit --deny-warnings
+        
