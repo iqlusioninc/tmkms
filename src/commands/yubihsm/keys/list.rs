@@ -1,6 +1,6 @@
 //! List keys inside the YubiHSM2
 
-use crate::{application::app_config, chain, keyring, prelude::*, Map};
+use crate::{chain, keyring, prelude::*, Map};
 use abscissa_core::{Command, Options, Runnable};
 use k256::elliptic_curve::generic_array::GenericArray;
 use std::{path::PathBuf, process};
@@ -76,7 +76,7 @@ fn load_key_formatters() -> Map<u16, keyring::Format> {
 
 /// Load chain-specific key formatters from the configuration
 fn load_chain_formatters() -> Map<chain::Id, keyring::Format> {
-    let cfg = app_config();
+    let cfg = APP.config();
     let mut map = Map::new();
 
     for chain in &cfg.chain {

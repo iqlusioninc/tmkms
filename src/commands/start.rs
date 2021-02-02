@@ -5,7 +5,7 @@ use abscissa_core::{Command, Options};
 use std::{path::PathBuf, process};
 
 #[cfg(feature = "tx-signer")]
-use crate::{application::APPLICATION, config::TxSignerConfig, tx_signer::TxSigner};
+use crate::{application::APP, config::TxSignerConfig, tx_signer::TxSigner};
 
 /// The `start` command
 #[derive(Command, Debug, Options)]
@@ -44,7 +44,7 @@ impl Runnable for StartCommand {
 impl StartCommand {
     /// Spawn clients from the app's configuration
     fn spawn_clients(&self) -> Vec<Client> {
-        let config = app_config();
+        let config = APP.config();
 
         chain::load_config(&config).unwrap_or_else(|e| {
             status_err!("error loading configuration: {}", e);
@@ -71,7 +71,7 @@ fn run_app(validator_clients: Vec<Client>) {
 #[cfg(feature = "tx-signer")]
 fn run_app(validator_clients: Vec<Client>) {
     let signer_config = {
-        let cfg = app_config();
+        let cfg = APP.config();
 
         match cfg.tx_signer.len() {
             0 => None,
@@ -114,7 +114,7 @@ fn blocking_wait(validator_clients: Vec<Client>) {
 /// Launch the Tokio executor and spawn transaction signers
 #[cfg(feature = "tx-signer")]
 fn run_async_executor(config: TxSignerConfig) {
-    abscissa_tokio::run(&APPLICATION, async {
+    abscissa_tokio::run(&APP, async {
         let mut signer = TxSigner::new(&config).unwrap_or_else(|e| {
             status_err!("couldn't initialize TX signer: {}", e);
             process::exit(1);
