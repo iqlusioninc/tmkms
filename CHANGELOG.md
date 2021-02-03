@@ -27,9 +27,11 @@ protocol_version = "v0.34"
 - rpc: add support for protobuf-encoded messages ([#201])
 - tx-signer: retry failed transactions up to 3 times ([#213])
 - Use `consensus::State` serializers from `tendermint-rs` ([#232])
-- Use `tendermint-p2p` crate for secret connection ([#234])
-- Bump `tendermint-rs` to v0.17 ([#249])
+- Use `tendermint-p2p` crate for secret connection ([#234], [#290])
 - Bump `stdtx` to v0.4 ([#249])
+- Bump `tendermint-rs` to v0.18 ([#290])
+- Bump `tokio` to v1.0 ([#290])
+- Bump `yubihsm` crate dependency to v0.38 ([#289])
 - MSRV 1.46+ ([#249])
 
 [tendermint v0.34]: https://github.com/tendermint/tendermint/blob/master/CHANGELOG.md#v0340
@@ -39,6 +41,8 @@ protocol_version = "v0.34"
 [#232]: https://github.com/iqlusioninc/tmkms/pull/232
 [#234]: https://github.com/iqlusioninc/tmkms/pull/234
 [#249]: https://github.com/iqlusioninc/tmkms/pull/249
+[#289]: https://github.com/iqlusioninc/tmkms/pull/289
+[#290]: https://github.com/iqlusioninc/tmkms/pull/290
 
 ## 0.9.0 (2020-10-22)
 
