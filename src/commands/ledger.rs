@@ -46,7 +46,7 @@ pub struct InitCommand {
 
 impl Runnable for InitCommand {
     fn run(&self) {
-        let config = app_config();
+        let config = APP.config();
 
         chain::load_config(&config).unwrap_or_else(|e| {
             status_err!("error loading configuration: {}", e);

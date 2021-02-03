@@ -16,8 +16,10 @@ use std::{
     },
 };
 use yubihsm::{Client, Connector};
+
 #[cfg(feature = "yubihsm-server")]
 use zeroize::Zeroizing;
+
 #[cfg(not(feature = "yubihsm-mock"))]
 use {
     crate::config::provider::yubihsm::AdapterConfig,
@@ -194,7 +196,7 @@ fn prompt_for_auth_key_password(auth_key_id: u16) -> yubihsm::Credentials {
 
 /// Get the YubiHSM-related configuration
 pub fn config() -> YubihsmConfig {
-    let kms_config = app_config();
+    let kms_config = APP.config();
     let yubihsm_configs = &kms_config.providers.yubihsm;
 
     if yubihsm_configs.len() != 1 {

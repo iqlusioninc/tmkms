@@ -4,7 +4,7 @@ use super::KeyType;
 use crate::{chain, prelude::*};
 use abscissa_core::secret::{CloneableSecret, DebugSecret, ExposeSecret, Secret};
 use serde::Deserialize;
-use std::{fs, path::PathBuf, process};
+use std::{fmt, fs, path::PathBuf, process};
 use tendermint::net;
 use yubihsm::Credentials;
 use zeroize::{Zeroize, Zeroizing};
@@ -104,8 +104,8 @@ pub struct Password(String);
 impl CloneableSecret for Password {}
 
 impl DebugSecret for Password {
-    fn debug_secret() -> &'static str {
-        "REDACTED PASSWORD"
+    fn debug_secret(f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.write_str("REDACTED PASSWORD")
     }
 }
 

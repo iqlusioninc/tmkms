@@ -6,7 +6,6 @@ use crate::{
     error::{Error, ErrorKind},
     prelude::*,
 };
-use bytes::Buf;
 use hyper::{
     http::{header, Uri},
     Body,
@@ -40,10 +39,10 @@ impl Client {
         self.add_headers(&mut request);
 
         let builder = hyper::Client::builder();
-        let connector = HttpsConnector::new();
+        let connector = HttpsConnector::with_webpki_roots(); // TODO: local cert truststore
         let response = builder.build(connector).request(request).await?;
-        let response_body = hyper::body::aggregate(response.into_body()).await?;
-        let response_json = serde_json::from_slice::<Response>(response_body.bytes())?;
+        let response_body = hyper::body::to_bytes(response.into_body()).await?;
+        let response_json = serde_json::from_slice::<Response>(response_body.as_ref())?;
 
         match response_json.status {
             Status::Ok => Ok(response_json.tx),

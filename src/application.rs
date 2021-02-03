@@ -3,36 +3,18 @@
 use crate::{commands::KmsCommand, config::KmsConfig};
 use abscissa_core::{
     application::{self, AppCell},
+    config::{self, CfgCell},
     trace, Application, FrameworkError, StandardPaths,
 };
 
 /// Application state
-pub static APPLICATION: AppCell<KmsApplication> = AppCell::new();
-
-/// Obtain a read-only (multi-reader) lock on the application state.
-///
-/// Panics if the application state has not been initialized.
-pub fn app_reader() -> application::lock::Reader<KmsApplication> {
-    APPLICATION.read()
-}
-
-/// Obtain an exclusive mutable lock on the application state.
-pub fn app_writer() -> application::lock::Writer<KmsApplication> {
-    APPLICATION.write()
-}
-
-/// Obtain a read-only (multi-reader) lock on the application configuration.
-///
-/// Panics if the application configuration has not been loaded.
-pub fn app_config() -> abscissa_core::config::Reader<KmsApplication> {
-    abscissa_core::config::Reader::new(&APPLICATION)
-}
+pub static APP: AppCell<KmsApplication> = AppCell::new();
 
 /// The `tmkms` application
 #[derive(Debug)]
 pub struct KmsApplication {
     /// Application configuration.
-    config: Option<KmsConfig>,
+    config: CfgCell<KmsConfig>,
 
     /// Application state.
     state: application::State<Self>,
@@ -41,7 +23,7 @@ pub struct KmsApplication {
 impl Default for KmsApplication {
     fn default() -> Self {
         Self {
-            config: None,
+            config: CfgCell::default(),
             state: application::State::default(),
         }
     }
@@ -58,18 +40,13 @@ impl Application for KmsApplication {
     type Paths = StandardPaths;
 
     /// Accessor for application configuration.
-    fn config(&self) -> &KmsConfig {
-        self.config.as_ref().expect("not configured yet")
+    fn config(&self) -> config::Reader<KmsConfig> {
+        self.config.read()
     }
 
     /// Borrow the application state immutably.
     fn state(&self) -> &application::State<Self> {
         &self.state
-    }
-
-    /// Borrow the application state mutably.
-    fn state_mut(&mut self) -> &mut application::State<Self> {
-        &mut self.state
     }
 
     /// Register all components used by this application.
@@ -84,7 +61,8 @@ impl Application for KmsApplication {
         #[cfg(feature = "tx-signer")]
         components.push(Box::new(abscissa_tokio::TokioComponent::new()?));
 
-        self.state.components.register(components)
+        let mut component_registry = self.state.components_mut();
+        component_registry.register(components)
     }
 
     /// Post-configuration lifecycle callback.
@@ -93,8 +71,9 @@ impl Application for KmsApplication {
     /// time in app lifecycle when configuration would be loaded if
     /// possible.
     fn after_config(&mut self, config: Self::Cfg) -> Result<(), FrameworkError> {
-        self.state.components.after_config(&config)?;
-        self.config = Some(config);
+        let mut component_registry = self.state.components_mut();
+        component_registry.after_config(&config)?;
+        self.config.set_once(config);
         Ok(())
     }
 

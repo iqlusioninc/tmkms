@@ -5,7 +5,7 @@
 
 use std::io::Read;
 
-use bytes::Bytes;
+use bytes_v0_5::Bytes;
 use prost::Message as _;
 use prost_amino::{encoding::decode_varint, Message as _};
 use tendermint_p2p::secret_connection::DATA_MAX_SIZE;

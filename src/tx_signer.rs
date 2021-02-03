@@ -119,7 +119,7 @@ impl TxSigner {
                         "[{}] error getting initial block height: {}",
                         self.chain_id, e
                     );
-                    time::delay_for(RETRY_DELAY).await
+                    time::sleep(RETRY_DELAY).await
                 }
             }
         };
@@ -137,7 +137,7 @@ impl TxSigner {
                         "[{}] couldn't get current block height via RPC: {}",
                         &self.chain_id, e
                     );
-                    time::delay_for(RETRY_DELAY).await;
+                    time::sleep(RETRY_DELAY).await;
                     continue;
                 }
             };
@@ -179,7 +179,7 @@ impl TxSigner {
                         &self.chain_id, target_height, min_secs
                     );
 
-                    time::delay_until(min_deadline).await;
+                    time::sleep_until(min_deadline).await;
                 }
 
                 return Ok(status);
@@ -193,7 +193,7 @@ impl TxSigner {
                 return Ok(status);
             }
 
-            time::delay_for(RPC_POLL_INTERVAL).await
+            time::sleep(RPC_POLL_INTERVAL).await
         }
     }
 

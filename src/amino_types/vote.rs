@@ -9,6 +9,7 @@ use super::{
 };
 use crate::{config::validator::ProtocolVersion, rpc};
 use bytes::BufMut;
+use bytes_v0_5::BytesMut as BytesMutV05;
 use ed25519_dalek as ed25519;
 use once_cell::sync::Lazy;
 use prost::Message as _;
@@ -221,7 +222,9 @@ impl SignableMsg for SignVoteRequest {
             cv.encode_length_delimited(sign_bytes).unwrap();
         } else {
             let cv = CanonicalVote::new(vote, chain_id.as_str());
-            cv.encode_length_delimited(sign_bytes)?;
+            let mut sign_bytes_v0_5 = BytesMutV05::new();
+            cv.encode_length_delimited(&mut sign_bytes_v0_5)?;
+            sign_bytes.put_slice(sign_bytes_v0_5.as_ref());
         }
 
         Ok(true)
