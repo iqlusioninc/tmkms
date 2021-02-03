@@ -5,8 +5,12 @@
 [![Apache 2.0 Licensed][license-image]][license-link]
 ![MSRV][rustc-image]
 
-Key Management System for [Tendermint] applications, initially targeting
+Key Management System for [Tendermint] applications such as
 [Cosmos Validators].
+
+Provides isolated, optionally HSM-backed signing key management for Tendermint
+applications including validators, oracles, IBC relayers, and other transaction
+signing applications.
 
 ## About
 
