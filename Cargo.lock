@@ -1931,9 +1931,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1335b31840735b04fe2b6d44309122397afd04b7d24670dece2b99cc4ef487c5"
+checksum = "b1d8c80447d80ba50fe72c5fb424bdd139c58e71a445ab64a906b8fcd2c27799"
 dependencies = [
  "anomaly",
  "async-trait",
@@ -1989,9 +1989,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-proto"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7d54af90058f8df5bf6b9469f6988f49a80c169c3e450d702c1101432df60a6"
+checksum = "32afe47d9e66ac1ed94adaf389fd3ad42a06782508d0e7b2a8053738d45c2f2a"
 dependencies = [
  "anomaly",
  "bytes 1.0.1",
