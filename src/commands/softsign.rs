@@ -10,7 +10,7 @@ use abscissa_core::{Command, Help, Options, Runnable};
 #[derive(Command, Debug, Options, Runnable)]
 pub enum SoftsignCommand {
     /// Show help for the `softsign` subcommand
-    #[options(help = "show help for the 'yubihsm' subcommand")]
+    #[options(help = "show help for the 'softsign' subcommand")]
     Help(Help<Self>),
 
     /// Generate a software signing key
