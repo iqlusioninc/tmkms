@@ -1240,9 +1240,9 @@ dependencies = [
 
 [[package]]
 name = "pbkdf2"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e9dbbc79255e181e64afb7aee37d3b7e2e0925c20a6b05bba3ebe8ed82e6bfa"
+checksum = "309c95c5f738c85920eb7062a2de29f3840d4f96974453fc9ac1ba078da9c627"
 dependencies = [
  "crypto-mac",
 ]
@@ -1402,9 +1402,9 @@ checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
 name = "quote"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "991431c3519a3f36861882da93630ce66b52918dcf1b8e2fd66b397fc96f28df"
+checksum = "c3d0b9745dc2debf507c8422de05d7226cc1f0644216dfdfead988f9b1ab32a7"
 dependencies = [
  "proc-macro2",
 ]
@@ -1436,7 +1436,7 @@ checksum = "0ef9e7e66b4468674bfcb0c81af8b7fa0bb154fa9f28eb840da5c447baeb8d7e"
 dependencies = [
  "libc",
  "rand_chacha 0.3.0",
- "rand_core 0.6.1",
+ "rand_core 0.6.2",
  "rand_hc 0.3.0",
 ]
 
@@ -1457,7 +1457,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e12735cf05c9e10bf21534da50a147b924d555dc7a547c42e6bb2d5b6017ae0d"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.6.1",
+ "rand_core 0.6.2",
 ]
 
 [[package]]
@@ -1471,9 +1471,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c026d7df8b298d90ccbbc5190bd04d85e159eaf5576caeacf8741da93ccbd2e5"
+checksum = "34cf66eb183df1c5876e2dcf6b13d57340741e8dc255b48e40a26de954d06ae7"
 dependencies = [
  "getrandom 0.2.2",
 ]
@@ -1493,14 +1493,14 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3190ef7066a446f2e7f42e239d161e905420ccab01eb967c9eb27d21b2322a73"
 dependencies = [
- "rand_core 0.6.1",
+ "rand_core 0.6.2",
 ]
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05ec8ca9416c5ea37062b502703cd7fcb207736bc294f6e0cf367ac6fc234570"
+checksum = "94341e4e44e24f6b591b59e47a8a027df12e008d73fd5672dbea9cc22f4507d9"
 dependencies = [
  "bitflags",
 ]
@@ -1590,9 +1590,9 @@ dependencies = [
 
 [[package]]
 name = "rust_decimal"
-version = "1.10.2"
+version = "1.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3e5a94e2006dd60c603d8481c65b665b4b6694f78d23e15869ad10eb883e36e"
+checksum = "dc7f5b8840fb1f83869a3e1dfd06d93db79ea05311ac5b42b8337d3371caa4f1"
 dependencies = [
  "arrayvec",
  "num-traits",
@@ -1931,9 +1931,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1335b31840735b04fe2b6d44309122397afd04b7d24670dece2b99cc4ef487c5"
+checksum = "b1d8c80447d80ba50fe72c5fb424bdd139c58e71a445ab64a906b8fcd2c27799"
 dependencies = [
  "anomaly",
  "async-trait",
@@ -1964,9 +1964,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-p2p"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df9d2f48555eb4ab9d0b0c617e4efaacb4ee767c4e840e48d67aa7d4520dfb0c"
+checksum = "626ab63290d523141bec5913094581dc9da28be9c937cc09ef238d9657f57af2"
 dependencies = [
  "chacha20poly1305",
  "ed25519-dalek",
@@ -1989,9 +1989,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-proto"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7d54af90058f8df5bf6b9469f6988f49a80c169c3e450d702c1101432df60a6"
+checksum = "32afe47d9e66ac1ed94adaf389fd3ad42a06782508d0e7b2a8053738d45c2f2a"
 dependencies = [
  "anomaly",
  "bytes 1.0.1",
@@ -2008,9 +2008,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-rpc"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4e26ea1b21ae9d652e6cc8451c122d90672b7f59e874ae81e6d39b64b0d0dd1"
+checksum = "f722a9797e443cb3886a80535b3654bfbd7a961cbcc5510fc7247a5df6a0ef1c"
 dependencies = [
  "async-trait",
  "bytes 1.0.1",
@@ -2120,6 +2120,7 @@ dependencies = [
  "bytes 1.0.1",
  "chrono",
  "ed25519-dalek",
+ "funty",
  "getrandom 0.1.16",
  "gumdrop",
  "hkd32",
@@ -2289,9 +2290,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-normalization"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a13e63ab62dbe32aeee58d1c5408d35c36c392bba5d9d3142287219721afe606"
+checksum = "07fbfce1c8a97d547e8b5334978438d9d6ec8c20e38f56d4a4374d181493eaef"
 dependencies = [
  "tinyvec",
 ]
