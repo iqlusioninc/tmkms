@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.10.0 (UNRELEASED)
+## 0.10.0 (2021-02-16)
 
-This release (to be) is compatible with [tendermint v0.34] or older.
+This release is compatible with [tendermint v0.34] or older.
 
 It includes initial support for "Stargate", an upgrade to Cosmos Hub which
 will enable IBC. It also retains backwards compatibility for all older versions
@@ -18,7 +18,12 @@ For Stargate, configure this value to:
 [[validator]]
 chain_id = "cosmoshub-4"
 protocol_version = "v0.34"
+state_file = "/path/to/cosmoshub-4-state.json"
 ```
+
+Also make sure to update the `state_file` with a new filename
+(e.g. `cosmoshub-4-state.json`) and retain the old state file for `cosmoshub-3`.
+You'll need the old state file if a chain rollback is required!
 
 ### Added
 - Tendermint v0.34 signing compatibility ([#211])
