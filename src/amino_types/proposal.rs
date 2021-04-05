@@ -356,7 +356,7 @@ mod tests {
 
         match SignProposalRequest::decode(data.as_ref()) {
             Ok(have) => assert_eq!(have, want),
-            Err(err) => panic!(err.to_string()),
+            Err(err) => panic!("{}", err.to_string()),
         }
     }
 }
