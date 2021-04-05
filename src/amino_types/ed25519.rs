@@ -104,7 +104,7 @@ mod tests {
 
         match PubKeyRequest::decode(want.as_ref()) {
             Ok(have) => assert_eq!(have, msg),
-            Err(err) => panic!(err.to_string()),
+            Err(err) => panic!("{}", err.to_string()),
         }
     }
 
@@ -146,7 +146,7 @@ mod tests {
 
         match PubKeyResponse::decode(encoded.as_ref()) {
             Ok(have) => assert_eq!(have, msg),
-            Err(err) => panic!(err),
+            Err(err) => panic!("{}", err),
         }
     }
 
