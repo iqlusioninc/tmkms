@@ -200,7 +200,7 @@ impl KmsProcess {
                 KmsConnection::Tcp(
                     SecretConnection::new(
                         socket_cp,
-                        &identity_keypair,
+                        identity_keypair,
                         secret_connection::Version::Legacy,
                     )
                     .unwrap(),
