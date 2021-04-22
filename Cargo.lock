@@ -2285,7 +2285,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tmkms"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "abscissa_core",
  "abscissa_tokio",
@@ -2294,7 +2294,6 @@ dependencies = [
  "bytes 1.0.1",
  "chrono",
  "ed25519-dalek",
- "funty",
  "getrandom 0.1.16",
  "gumdrop",
  "hkd32",
