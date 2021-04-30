@@ -356,7 +356,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73d4de4f7724e5fe70addfb2bd37c2abd2f95084a429d7773b0b9645499b4272"
 dependencies = [
- "crypto-mac",
+ "crypto-mac 0.10.0",
  "dbl",
 ]
 
@@ -414,6 +414,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4857fd85a0c34b3c3297875b747c1e02e06b6a0ea32dd892d8192b9ce0813ea6"
 dependencies = [
  "cipher",
+ "generic-array",
+ "subtle",
+]
+
+[[package]]
+name = "crypto-mac"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25fab6889090c8133f3deb8f73ba3c65a7f456f66436fc012a1b1e272b1e103e"
+dependencies = [
  "generic-array",
  "subtle",
 ]
@@ -509,7 +519,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41fbdb4ff710acb4db8ca29f93b897529ea6d6a45626d5183b47e012aa6ae7e4"
 dependencies = [
  "elliptic-curve",
- "hmac",
+ "hmac 0.10.1",
  "signature",
 ]
 
@@ -899,7 +909,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b68c4bfcead3bb33ccdc3e531879c7ddc44c952f44373f92d54485185335fda7"
 dependencies = [
- "hmac",
+ "hmac 0.10.1",
  "once_cell",
  "rand_core 0.5.1",
  "sha2",
@@ -913,7 +923,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51ab2f639c231793c5f6114bdb9bbe50a7dbbfcd7c7c6bd8475dec2d991e964f"
 dependencies = [
  "digest",
- "hmac",
+ "hmac 0.10.1",
+]
+
+[[package]]
+name = "hkdf"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01706d578d5c281058480e673ae4086a9f4710d8df1ad80a5b03e39ece5f886b"
+dependencies = [
+ "digest",
+ "hmac 0.11.0",
 ]
 
 [[package]]
@@ -922,7 +942,17 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1441c6b1e930e2817404b5046f1f989899143a12bf92de603b69f4e0aee1e15"
 dependencies = [
- "crypto-mac",
+ "crypto-mac 0.10.0",
+ "digest",
+]
+
+[[package]]
+name = "hmac"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a2a2320eb7ec0ebe8da8f744d7812d9fc4cb4d09344ac01898dbcb6a20ae69b"
+dependencies = [
+ "crypto-mac 0.11.0",
  "digest",
 ]
 
@@ -1402,7 +1432,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf916dd32dd26297907890d99dc2740e33f6bd9073965af4ccff2967962f5508"
 dependencies = [
- "crypto-mac",
+ "crypto-mac 0.10.0",
 ]
 
 [[package]]
@@ -2142,7 +2172,7 @@ dependencies = [
  "chacha20poly1305",
  "ed25519-dalek",
  "eyre",
- "hkdf",
+ "hkdf 0.10.0",
  "merlin",
  "prost",
  "prost-amino",
@@ -2297,7 +2327,7 @@ dependencies = [
  "getrandom 0.1.16",
  "gumdrop",
  "hkd32",
- "hkdf",
+ "hkdf 0.11.0",
  "hyper",
  "hyper-rustls",
  "k256",
@@ -2748,7 +2778,7 @@ dependencies = [
  "ed25519",
  "ed25519-dalek",
  "harp",
- "hmac",
+ "hmac 0.10.1",
  "k256",
  "log",
  "p256",
