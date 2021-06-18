@@ -911,13 +911,13 @@ dependencies = [
 
 [[package]]
 name = "hkd32"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b68c4bfcead3bb33ccdc3e531879c7ddc44c952f44373f92d54485185335fda7"
+checksum = "84f2a5541afe0725f0b95619d6af614f48c1b176385b8aa30918cfb8c4bfafc8"
 dependencies = [
- "hmac 0.10.1",
+ "hmac 0.11.0",
  "once_cell",
- "rand_core 0.5.1",
+ "rand_core 0.6.2",
  "sha2",
  "zeroize",
 ]
