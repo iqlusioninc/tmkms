@@ -71,8 +71,8 @@ impl GenerateCommand {
 
         let key_id_str = &self.key_ids[0];
 
-        if key_id_str.starts_with("0x") {
-            u16::from_str_radix(&key_id_str[2..], 16).ok()
+        if let Some(s) = key_id_str.strip_prefix("0x") {
+            u16::from_str_radix(s, 16).ok()
         } else {
             key_id_str.parse().ok()
         }

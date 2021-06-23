@@ -57,10 +57,12 @@ impl Runnable for InitCommand {
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&chain_id).unwrap();
 
-        let mut vote = Vote::default();
-        vote.height = self.height.unwrap();
-        vote.round = self.round.unwrap();
-        vote.vote_type = SignedMsgType::Proposal.to_u32();
+        let vote = Vote {
+            height: self.height.unwrap(),
+            round: self.round.unwrap(),
+            vote_type: SignedMsgType::Proposal.to_u32(),
+            ..Default::default()
+        };
         println!("{:?}", vote);
         let sign_vote_req = SignVoteRequest { vote: Some(vote) };
         let mut to_sign = vec![];

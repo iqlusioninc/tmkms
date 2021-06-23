@@ -5,7 +5,7 @@ use abscissa_core::{Command, Options, Runnable};
 use ed25519_dalek as ed25519;
 use k256::ecdsa;
 use rand_core::{OsRng, RngCore};
-use std::{path::PathBuf, process};
+use std::{path::Path, path::PathBuf, process};
 
 /// Default type of key to generate
 pub const DEFAULT_KEY_TYPE: &str = "consensus";
@@ -54,7 +54,7 @@ impl Runnable for KeygenCommand {
 }
 
 /// Randomly generate a Base64-encoded secp256k1 key and store it at the given path
-fn generate_secp256k1_key(output_path: &PathBuf) {
+fn generate_secp256k1_key(output_path: &Path) {
     let signing_key = ecdsa::SigningKey::random(&mut OsRng);
 
     key_utils::write_base64_secret(output_path, &signing_key.to_bytes()).unwrap_or_else(|e| {
@@ -70,7 +70,7 @@ fn generate_secp256k1_key(output_path: &PathBuf) {
 }
 
 /// Randomly generate a Base64-encoded Ed25519 key and store it at the given path
-fn generate_ed25519_key(output_path: &PathBuf) {
+fn generate_ed25519_key(output_path: &Path) {
     let mut sk_bytes = [0u8; 32];
     OsRng.fill_bytes(&mut sk_bytes);
     let sk = ed25519::SecretKey::from_bytes(&sk_bytes).unwrap();

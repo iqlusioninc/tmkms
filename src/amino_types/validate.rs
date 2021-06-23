@@ -16,7 +16,7 @@ pub enum Error {
     #[error("negative round")]
     NegativeRound,
     #[error("negative POLRound (exception: -1)")]
-    NegativePOLRound,
+    NegativePolRound,
     #[error("negative ValidatorIndex")]
     NegativeValidatorIndex,
     #[error("expected ValidatorAddress size to be 20 bytes")]

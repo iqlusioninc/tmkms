@@ -14,7 +14,7 @@ pub enum Error {
     InvalidMessageSize,
 
     #[error("received an invalid PK")]
-    InvalidPK,
+    InvalidPk,
 
     #[error("received no signature back")]
     NoSignature,

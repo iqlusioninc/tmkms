@@ -242,7 +242,7 @@ impl ConsensusMessage for Proposal {
             return Err(NegativeRound);
         }
         if self.pol_round < -1 {
-            return Err(NegativePOLRound);
+            return Err(NegativePolRound);
         }
         // TODO validate proposal's block_id
 
