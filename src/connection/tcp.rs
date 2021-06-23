@@ -45,8 +45,8 @@ pub fn open_secret_connection(
     let connection = match SecretConnection::new(socket, identity_key, protocol_version) {
         Ok(conn) => conn,
         Err(error) => match error.downcast_ref::<TmError>() {
-            Some(TmError::CryptoError) => fail!(CryptoError, format!("{}", error)),
-            Some(TmError::ProtocolError) => fail!(ProtocolError, format!("{}", error)),
+            Some(TmError::Crypto) => fail!(CryptoError, format!("{}", error)),
+            Some(TmError::Protocol) => fail!(ProtocolError, format!("{}", error)),
             Some(TmError::InvalidKey) => fail!(InvalidKey, format!("{}", error)),
             None => fail!(ProtocolError, format!("{}", error)),
         },
