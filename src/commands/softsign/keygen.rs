@@ -76,7 +76,10 @@ fn generate_ed25519_key(output_path: &PathBuf) {
     let sk = ed25519::SecretKey::from_bytes(&sk_bytes).unwrap();
     let pk = ed25519::PublicKey::from(&sk);
 
-    let keypair = ed25519::Keypair{ public: pk, secret: sk };
+    let keypair = ed25519::Keypair {
+        public: pk,
+        secret: sk,
+    };
 
     key_utils::write_base64_secret(output_path, keypair.secret.as_ref()).unwrap_or_else(|e| {
         status_err!("{}", e);
