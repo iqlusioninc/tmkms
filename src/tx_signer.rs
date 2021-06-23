@@ -370,7 +370,7 @@ impl TxSigner {
             .keyring
             .get_account_pubkey(account_id)
             .expect("missing account key")
-            .as_bytes()
+            .to_bytes()
             .into();
 
         let msg_type_info = sign_msg
