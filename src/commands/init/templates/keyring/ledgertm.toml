@@ -1,2 +1,2 @@
 [[providers.ledgertm]]
-chain_ids = ["cosmoshub-1"]
+chain_ids = ["$CHAIN_ID"]
