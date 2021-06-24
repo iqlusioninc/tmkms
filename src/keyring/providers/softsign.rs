@@ -30,7 +30,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
             KeyType::Account => {
                 let signer = load_secp256k1_key(&config)?;
                 let public_key =
-                    tendermint::PublicKey::from_raw_secp256k1(&signer.verify_key().to_bytes())
+                    tendermint::PublicKey::from_raw_secp256k1(&signer.verifying_key().to_bytes())
                         .unwrap();
 
                 let account_pubkey = TendermintKey::AccountKey(public_key);

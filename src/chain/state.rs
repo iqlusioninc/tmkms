@@ -137,8 +137,10 @@ impl State {
             let delta = hook_height - last_height;
 
             if delta < hook::BLOCK_HEIGHT_SANITY_LIMIT {
-                let mut new_state = consensus::State::default();
-                new_state.height = output.latest_block_height;
+                let new_state = tendermint::consensus::State {
+                    height: output.latest_block_height,
+                    ..Default::default()
+                };
                 self.consensus_state = new_state;
 
                 info!("updated block height from hook: {}", hook_height);
@@ -162,11 +164,10 @@ impl State {
 
     /// Write the initial state to the given path on disk
     fn write_initial_state(path: &Path) -> Result<Self, Error> {
-        let mut consensus_state = consensus::State::default();
-
-        // TODO(tarcieri): correct upstream `tendermint-rs` default height to 0
-        // Set the initial block height to 0 to indicate we've never signed a block
-        consensus_state.height = 0u32.into();
+        let consensus_state = tendermint::consensus::State {
+            height: 0u32.into(),
+            ..Default::default()
+        };
 
         let initial_state = Self {
             consensus_state,

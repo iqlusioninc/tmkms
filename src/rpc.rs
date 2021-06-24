@@ -121,9 +121,8 @@ pub enum Response {
 impl Response {
     /// Encode response to bytes
     pub fn encode(self, protocol_version: ProtocolVersion) -> Result<Vec<u8>, Error> {
+        let mut buf = Vec::new();
         if protocol_version.is_protobuf() {
-            let mut buf = Vec::new();
-
             let msg = match self {
                 Response::SignedVote(resp) => proto::privval::message::Sum::SignedVoteResponse(
                     proto::privval::SignedVoteResponse {
@@ -172,19 +171,15 @@ impl Response {
             };
 
             proto::privval::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
-            Ok(buf)
         } else {
-            let mut buf = Vec::new();
-
             match self {
                 Response::SignedProposal(sp) => sp.encode(&mut buf)?,
                 Response::SignedVote(sv) => sv.encode(&mut buf)?,
                 Response::Ping(ping) => ping.encode(&mut buf)?,
                 Response::PublicKey(pk) => pk.encode(&mut buf)?,
             }
-
-            Ok(buf)
         }
+        Ok(buf)
     }
 }
 

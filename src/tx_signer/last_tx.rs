@@ -40,10 +40,7 @@ impl LastTx {
 
     /// Was there no last TX?
     pub fn is_none(&self) -> bool {
-        match self {
-            LastTx::None => true,
-            _ => false,
-        }
+        matches!(self, LastTx::None)
     }
 
     /// Was there a response from the last transaction broadcast?

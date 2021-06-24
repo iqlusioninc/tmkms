@@ -97,7 +97,7 @@ impl TendermintValidatorApp {
                 }
 
                 if response.data.len() != 32 {
-                    return Err(Error::InvalidPK);
+                    return Err(Error::InvalidPk);
                 }
 
                 let mut array = [0u8; 32];
