@@ -1,0 +1,6 @@
+### Sentinel Network
+
+[[chain]]
+id = "sentinelhub-2"
+key_format = { type = "bech32", account_key_prefix = "sentpub", consensus_key_prefix = "sentvalconspub" }
+state_file = "$KMS_HOME/state/sentinelhub-2-consensus.json"
