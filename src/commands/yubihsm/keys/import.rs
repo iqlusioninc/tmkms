@@ -25,8 +25,8 @@ pub struct ImportCommand {
     #[options(short = "w", long = "wrapkey", help = "wrap key to decrypt with")]
     pub wrap_key_id: Option<u16>,
 
-    /// Type of key to import (either `wrap`, `priv_validator`, or `base64`, default `wrap`)
-    #[options(short = "t", help = "type of key to import (wrap, base64 or priv_validator)")]
+    /// Type of key to import (either `wrap`, `json`, or `base64`, default `wrap`)
+    #[options(short = "t", help = "type of key to import (wrap, base64 or json)")]
     pub key_type: Option<String>,
 
     /// Label for imported key (only applicable to `priv_validator` keys)
@@ -47,7 +47,7 @@ impl Runnable for ImportCommand {
 
         match self.key_type.as_deref() {
             Some("wrap") => self.import_wrapped(&contents),
-            Some("priv_validator") => self.import_priv_validator_json(&contents),
+            Some("json") => self.import_priv_validator_json(&contents),
             Some("base64") => self.import_base64(&contents),
             Some(other) => {
                 status_err!("invalid key type: {}", other);
