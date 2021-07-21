@@ -36,7 +36,12 @@ impl Display for Network {
 impl Network {
     /// Get a slice containing all known networks
     pub fn all() -> &'static [Network] {
-        &[Network::Columbus, Network::CosmosHub, Network::IrisHub, Network::SentinelHub]
+        &[
+            Network::Columbus,
+            Network::CosmosHub,
+            Network::IrisHub,
+            Network::SentinelHub,
+        ]
     }
 
     /// Parse a network name from the chain ID prefix
