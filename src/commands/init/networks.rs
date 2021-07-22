@@ -17,6 +17,9 @@ pub enum Network {
 
     /// Iris `irishub` chain
     IrisHub,
+
+    /// Sentinel `sentinelhub` chain
+    SentinelHub,
 }
 
 impl Display for Network {
@@ -25,6 +28,7 @@ impl Display for Network {
             Network::Columbus => "columbus",
             Network::CosmosHub => "cosmoshub",
             Network::IrisHub => "irishub",
+            Network::SentinelHub => "sentinelhub",
         })
     }
 }
@@ -32,7 +36,12 @@ impl Display for Network {
 impl Network {
     /// Get a slice containing all known networks
     pub fn all() -> &'static [Network] {
-        &[Network::Columbus, Network::CosmosHub, Network::IrisHub]
+        &[
+            Network::Columbus,
+            Network::CosmosHub,
+            Network::IrisHub,
+            Network::SentinelHub,
+        ]
     }
 
     /// Parse a network name from the chain ID prefix
@@ -41,6 +50,7 @@ impl Network {
             "columbus" => Network::Columbus,
             "cosmoshub" => Network::CosmosHub,
             "irishub" => Network::IrisHub,
+            "sentinelhub" => Network::SentinelHub,
             other => {
                 status_err!("unknown Tendermint network: `{}`", other);
                 eprintln!("\nRegistered networks:");
@@ -60,6 +70,7 @@ impl Network {
             Network::Columbus => "columbus-3",
             Network::CosmosHub => "cosmoshub-3",
             Network::IrisHub => "irishub",
+            Network::SentinelHub => "sentinelhub-2",
         }
     }
 
@@ -69,6 +80,7 @@ impl Network {
             Network::Columbus => "terra.toml",
             Network::CosmosHub => "cosmos-sdk.toml",
             Network::IrisHub => "iris.toml",
+            Network::SentinelHub => "sentinelhub.toml",
         }
     }
 }
