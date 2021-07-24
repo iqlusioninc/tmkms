@@ -20,6 +20,9 @@ pub enum Network {
 
     /// Sentinel `sentinelhub` chain
     SentinelHub,
+
+    /// Osmosis `osmosis` chain
+    Osmosis,
 }
 
 impl Display for Network {
@@ -29,6 +32,7 @@ impl Display for Network {
             Network::CosmosHub => "cosmoshub",
             Network::IrisHub => "irishub",
             Network::SentinelHub => "sentinelhub",
+            Network::Osmosis => "osmosis",
         })
     }
 }
@@ -41,6 +45,7 @@ impl Network {
             Network::CosmosHub,
             Network::IrisHub,
             Network::SentinelHub,
+            Network::Osmosis,
         ]
     }
 
@@ -51,6 +56,7 @@ impl Network {
             "cosmoshub" => Network::CosmosHub,
             "irishub" => Network::IrisHub,
             "sentinelhub" => Network::SentinelHub,
+            "osmosis" => Network::Osmosis,
             other => {
                 status_err!("unknown Tendermint network: `{}`", other);
                 eprintln!("\nRegistered networks:");
@@ -71,6 +77,7 @@ impl Network {
             Network::CosmosHub => "cosmoshub-3",
             Network::IrisHub => "irishub",
             Network::SentinelHub => "sentinelhub-2",
+            Network::Osmosis => "osmosis-1",
         }
     }
 
@@ -81,6 +88,7 @@ impl Network {
             Network::CosmosHub => "cosmos-sdk.toml",
             Network::IrisHub => "iris.toml",
             Network::SentinelHub => "sentinelhub.toml",
+            Network::Osmosis => "osmosis.toml",
         }
     }
 }
