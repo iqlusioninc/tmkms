@@ -66,6 +66,7 @@ impl ConfigBuilder {
                 Network::IrisHub => include_str!("templates/networks/irishub.toml"),
                 Network::SentinelHub => include_str!("templates/networks/sentinelhub.toml"),
                 Network::Osmosis => include_str!("templates/networks/osmosis.toml"),
+                Network::Persistence => include_str!("templates/networks/persistence.toml"),
             });
         }
     }
