@@ -62,7 +62,7 @@ impl Network {
             "irishub" => Network::IrisHub,
             "sentinelhub" => Network::SentinelHub,
             "osmosis" => Network::Osmosis,
-            "persistence" => Network::Persistence,
+            "core" => Network::Persistence,
             other => {
                 status_err!("unknown Tendermint network: `{}`", other);
                 eprintln!("\nRegistered networks:");
