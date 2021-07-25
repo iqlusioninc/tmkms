@@ -36,7 +36,7 @@ impl Display for Network {
             Network::IrisHub => "irishub",
             Network::SentinelHub => "sentinelhub",
             Network::Osmosis => "osmosis",
-            Network::Persistence => "persistence",
+            Network::Persistence => "core",
         })
     }
 }
