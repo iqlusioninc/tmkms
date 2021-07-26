@@ -1117,6 +1117,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69ddb889f9d0d08a67338271fa9b62996bc788c7796a5c18cf057420aaed5eaf"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1557,7 +1566,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e6984d2f1a23009bd270b8bb56d0926810a3d483f59c987d77969e9d8e840b2"
 dependencies = [
  "bytes 1.0.1",
- "prost-derive",
+ "prost-derive 0.7.0",
+]
+
+[[package]]
+name = "prost"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de5e2533f59d08fcf364fd374ebda0692a70bd6d7e66ef97f306f45c6c5d8020"
+dependencies = [
+ "bytes 1.0.1",
+ "prost-derive 0.8.0",
 ]
 
 [[package]]
@@ -1598,13 +1617,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "600d2f334aa05acb02a755e217ef1ab6dea4d51b58b7846588b747edec04efba"
+dependencies = [
+ "anyhow",
+ "itertools 0.10.1",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "prost-types"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b518d7cdd93dab1d1122cf07fa9a60771836c668dde9d9e2a139f957f0d9f1bb"
 dependencies = [
  "bytes 1.0.1",
- "prost",
+ "prost 0.7.0",
 ]
 
 [[package]]
@@ -2186,7 +2218,7 @@ dependencies = [
  "k256",
  "num-traits",
  "once_cell",
- "prost",
+ "prost 0.7.0",
  "prost-types",
  "ripemd160",
  "serde",
@@ -2216,7 +2248,7 @@ dependencies = [
  "flume",
  "hkdf 0.10.0",
  "merlin",
- "prost",
+ "prost 0.7.0",
  "prost-amino",
  "prost-amino-derive",
  "rand_core 0.5.1",
@@ -2240,7 +2272,7 @@ dependencies = [
  "chrono",
  "num-derive",
  "num-traits",
- "prost",
+ "prost 0.7.0",
  "prost-types",
  "serde",
  "serde_bytes",
@@ -2374,10 +2406,10 @@ dependencies = [
  "k256",
  "ledger",
  "once_cell",
- "prost",
+ "prost 0.8.0",
  "prost-amino",
  "prost-amino-derive",
- "prost-derive",
+ "prost-derive 0.7.0",
  "rand 0.7.3",
  "rand_core 0.6.3",
  "rpassword",
