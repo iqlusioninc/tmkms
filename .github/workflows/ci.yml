@@ -134,26 +134,6 @@ jobs:
           command: test
           args: --all-features -- --test-threads 1
 
-  codecov:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-      - run: sudo apt-get update && sudo apt-get install libudev-dev
-      - uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: latest
-          args: --all --all-features -- --test-threads 1
-      - uses: codecov/codecov-action@v2
-      - uses: actions/upload-artifact@v1
-        with:
-          name: code-coverage-report
-          path: cobertura.xml
-
   validate:
     name: Validate against test harness
     runs-on: ubuntu-latest
