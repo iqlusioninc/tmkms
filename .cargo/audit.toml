@@ -9,5 +9,6 @@ ignore = [
     "RUSTSEC-2020-0036",
     "RUSTSEC-2021-0060",
     "RUSTSEC-2021-0059",
-    "RUSTSEC-2021-0064"
+    "RUSTSEC-2021-0064",
+    "RUSTSEC-2021-0073"
 ] # advisory IDs to ignore e.g. ["RUSTSEC-2019-0001", ...]
