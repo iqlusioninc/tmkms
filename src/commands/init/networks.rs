@@ -23,6 +23,9 @@ pub enum Network {
 
     /// Osmosis `osmosis` chain
     Osmosis,
+
+    /// Persistence `core` chain
+    Persistence,
 }
 
 impl Display for Network {
@@ -33,6 +36,7 @@ impl Display for Network {
             Network::IrisHub => "irishub",
             Network::SentinelHub => "sentinelhub",
             Network::Osmosis => "osmosis",
+            Network::Persistence => "core",
         })
     }
 }
@@ -46,6 +50,7 @@ impl Network {
             Network::IrisHub,
             Network::SentinelHub,
             Network::Osmosis,
+            Network::Persistence,
         ]
     }
 
@@ -57,6 +62,7 @@ impl Network {
             "irishub" => Network::IrisHub,
             "sentinelhub" => Network::SentinelHub,
             "osmosis" => Network::Osmosis,
+            "core" => Network::Persistence,
             other => {
                 status_err!("unknown Tendermint network: `{}`", other);
                 eprintln!("\nRegistered networks:");
@@ -78,6 +84,7 @@ impl Network {
             Network::IrisHub => "irishub",
             Network::SentinelHub => "sentinelhub-2",
             Network::Osmosis => "osmosis-1",
+            Network::Persistence => "core-1",
         }
     }
 
@@ -89,6 +96,7 @@ impl Network {
             Network::IrisHub => "iris.toml",
             Network::SentinelHub => "sentinelhub.toml",
             Network::Osmosis => "osmosis.toml",
+            Network::Persistence => "persistence.toml",
         }
     }
 }
