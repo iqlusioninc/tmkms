@@ -26,7 +26,7 @@ pub struct ImportCommand {
     pub wrap_key_id: Option<u16>,
 
     /// Type of key to import (either `wrap`, `json`, or `base64`, default `wrap`)
-    #[options(short = "t", help = "type of key to import (wrap or priv_validator)")]
+    #[options(short = "t", help = "type of key to import (wrap, base64 or json)")]
     pub key_type: Option<String>,
 
     /// Label for imported key (only applicable to `priv_validator` keys)
@@ -54,7 +54,7 @@ impl Runnable for ImportCommand {
                 process::exit(1);
             }
             None => {
-                if self.path.ends_with("priv_validator.json") {
+                if self.path.ends_with("priv_validator_key.json") {
                     self.import_priv_validator_json(&contents)
                 } else {
                     self.import_wrapped(&contents)
