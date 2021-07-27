@@ -16,7 +16,7 @@ edition     = "2018"
 
 [dependencies]
 abscissa_core = "=0.6.0-pre.1"
-abscissa_tokio = { version = "=0.6.0-pre.1", optional = true }
+abscissa_tokio = { version = "=0.6.0-pre.2", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
