@@ -2197,7 +2197,39 @@ dependencies = [
  "signature",
  "subtle",
  "subtle-encoding",
- "tendermint-proto",
+ "tendermint-proto 0.20.0",
+ "thiserror",
+ "toml",
+ "url",
+ "zeroize",
+]
+
+[[package]]
+name = "tendermint"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0752808f59b612916614e92e43be64e9ba566b762a266bcfcf7dce1b324e9319"
+dependencies = [
+ "anomaly",
+ "async-trait",
+ "bytes 1.1.0",
+ "chrono",
+ "ed25519",
+ "ed25519-dalek",
+ "futures",
+ "num-traits",
+ "once_cell",
+ "prost",
+ "prost-types",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "serde_repr",
+ "sha2",
+ "signature",
+ "subtle",
+ "subtle-encoding",
+ "tendermint-proto 0.21.0",
  "thiserror",
  "toml",
  "url",
@@ -2222,8 +2254,8 @@ dependencies = [
  "rand_core 0.5.1",
  "sha2",
  "subtle",
- "tendermint",
- "tendermint-proto",
+ "tendermint 0.20.0",
+ "tendermint-proto 0.20.0",
  "thiserror",
  "x25519-dalek",
  "zeroize",
@@ -2249,10 +2281,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "tendermint-rpc"
-version = "0.20.0"
+name = "tendermint-proto"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8f1c168b05be5e5c4237f49584356432defc91903f9dd7dbe74798eda48db43"
+checksum = "bfd0371c6b0c7fc4f6b053b8a1bc868a2a47c49a1408c4cd6f595d9f3bd3c238"
+dependencies = [
+ "anomaly",
+ "bytes 1.1.0",
+ "chrono",
+ "num-derive",
+ "num-traits",
+ "prost",
+ "prost-types",
+ "serde",
+ "serde_bytes",
+ "subtle-encoding",
+ "thiserror",
+]
+
+[[package]]
+name = "tendermint-rpc"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0fa8d172e3129802d28de980531993dd25cc01841c5bc8fe4a87c7750a7f222"
 dependencies = [
  "async-trait",
  "bytes 1.1.0",
@@ -2268,8 +2319,8 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "subtle-encoding",
- "tendermint",
- "tendermint-proto",
+ "tendermint 0.21.0",
+ "tendermint-proto 0.21.0",
  "thiserror",
  "tokio",
  "tracing",
@@ -2389,9 +2440,9 @@ dependencies = [
  "subtle",
  "subtle-encoding",
  "tempfile",
- "tendermint",
+ "tendermint 0.20.0",
  "tendermint-p2p",
- "tendermint-proto",
+ "tendermint-proto 0.20.0",
  "tendermint-rpc",
  "thiserror",
  "wait-timeout",
