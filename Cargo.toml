@@ -46,7 +46,7 @@ subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
 tendermint = { version = "0.20", features = ["secp256k1"] }
 tendermint-rpc = { version = "0.20", optional = true, features = ["http-client"] }
-tendermint-proto = "0.20"
+tendermint-proto = "0.21"
 tendermint-p2p = { version = "0.20", features = ["amino"] }
 thiserror = "1"
 wait-timeout = "0.2"
