@@ -1,13 +1,8 @@
 use super::compute_prefix;
-use crate::prelude::*;
 use once_cell::sync::Lazy;
 use prost_amino_derive::Message;
 use std::convert::TryFrom;
-use tendermint::{
-    error,
-    public_key::{Ed25519, PublicKey},
-    Error,
-};
+use tendermint::public_key::{Ed25519, PublicKey};
 
 // Note:On the golang side this is generic in the sense that it could everything that implements
 // github.com/tendermint/tendermint/crypto.PubKey
@@ -30,14 +25,12 @@ pub struct PubKeyResponse {
 pub struct PubKeyRequest {}
 
 impl TryFrom<PubKeyResponse> for PublicKey {
-    type Error = Error;
+    type Error = eyre::Report;
 
     // This does not check if the underlying pub_key_ed25519 has the right size.
     // The caller needs to make sure that this is actually the case.
-    fn try_from(response: PubKeyResponse) -> Result<PublicKey, Error> {
-        Ed25519::from_bytes(&response.pub_key_ed25519)
-            .map(Into::into)
-            .map_err(|_| format_err!(error::Kind::InvalidKey, "malformed Ed25519 key").into())
+    fn try_from(response: PubKeyResponse) -> eyre::Result<PublicKey> {
+        Ok(Ed25519::from_bytes(&response.pub_key_ed25519)?.into())
     }
 }
 
