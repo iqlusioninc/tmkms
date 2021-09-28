@@ -1,5 +1,5 @@
 use super::{
-    block_id::{BlockId, CanonicalBlockId, CanonicalPartSetHeader},
+    block_id::{BlockId, CanonicalBlockId, CanonicalPartSetHeader, ParseId},
     compute_prefix,
     remote_error::RemoteError,
     signature::{SignableMsg, SignedMsgType},
@@ -16,10 +16,7 @@ use prost::Message as _;
 use prost_amino::{EncodeError, Message};
 use prost_amino_derive::Message;
 use std::convert::TryFrom;
-use tendermint::{
-    block::{self, ParseId},
-    chain, consensus, error,
-};
+use tendermint::{block, chain, consensus, error};
 use tendermint_proto::types as proto_types;
 
 #[derive(Clone, PartialEq, Message)]

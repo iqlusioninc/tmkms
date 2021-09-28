@@ -1,5 +1,5 @@
 use super::{
-    block_id::{BlockId, CanonicalBlockId, CanonicalPartSetHeader},
+    block_id::{BlockId, CanonicalBlockId, CanonicalPartSetHeader, ParseId},
     compute_prefix,
     remote_error::RemoteError,
     signature::SignableMsg,
@@ -16,12 +16,7 @@ use prost::Message as _;
 use prost_amino::{error::EncodeError, Message};
 use prost_amino_derive::Message;
 use std::convert::TryFrom;
-use tendermint::{
-    block::{self, ParseId},
-    chain, consensus,
-    error::Error,
-    vote,
-};
+use tendermint::{block, chain, consensus, error::Error, vote};
 use tendermint_proto::types as proto_types;
 
 const VALIDATOR_ADDR_SIZE: usize = 20;
@@ -71,7 +66,11 @@ impl From<&vote::Vote> for Vote {
             timestamp: vote.timestamp.map(Into::into),
             validator_address: vote.validator_address.as_bytes().to_vec(),
             validator_index: vote.validator_index.value() as i64,
-            signature: vote.signature.as_bytes().to_vec(),
+            signature: vote
+                .signature
+                .as_ref()
+                .map(|sig| sig.as_bytes().to_vec())
+                .unwrap_or_default(),
         }
     }
 }

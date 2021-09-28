@@ -1,10 +1,9 @@
 use super::validate::{self, ConsensusMessage, Error::*};
-use crate::prelude::*;
+use eyre::eyre;
 use prost_amino_derive::Message;
 use std::convert::TryInto;
 use tendermint::{
     block::{self, parts},
-    error::{self, Error},
     hash::{Hash, SHA256_HASH_SIZE},
 };
 use tendermint_proto as proto;
@@ -24,31 +23,25 @@ impl BlockId {
 }
 
 /// Parse an Amino-encoded SHA-256 hash
-fn parse_sha256_hash(bytes: &[u8]) -> Result<Hash, Error> {
-    bytes.try_into().map(Hash::Sha256).map_err(|_| {
-        format_err!(
-            error::Kind::Parse,
-            "malformed hash: {}-bytes (expected 32)",
-            bytes.len()
-        )
-        .into()
-    })
+fn parse_sha256_hash(bytes: &[u8]) -> eyre::Result<Hash> {
+    Ok(bytes.try_into().map(Hash::Sha256)?)
 }
 
 /// Parse `block::Id` from a type
 pub trait ParseId {
     /// Parse `block::Id`, or return an `Error` if parsing failed
-    fn parse_block_id(&self) -> Result<block::Id, Error>;
+    fn parse_block_id(&self) -> eyre::Result<block::Id>;
 }
 
-impl block::ParseId for BlockId {
-    fn parse_block_id(&self) -> Result<block::Id, Error> {
+impl ParseId for BlockId {
+    fn parse_block_id(&self) -> eyre::Result<block::Id> {
         let hash = parse_sha256_hash(&self.hash)?;
 
-        let part_set_header = match &self.parts_header {
-            Some(p) => p.parse_parts_header()?,
-            None => fail!(error::Kind::Parse, "missing block ID parts header"),
-        };
+        let part_set_header = self
+            .parts_header
+            .as_ref()
+            .ok_or_else(|| eyre!("missing block ID parts header"))?
+            .parse_parts_header()?;
 
         Ok(block::Id {
             hash,
@@ -112,12 +105,14 @@ pub struct CanonicalBlockId {
 }
 
 impl ParseId for CanonicalBlockId {
-    fn parse_block_id(&self) -> Result<block::Id, Error> {
+    fn parse_block_id(&self) -> eyre::Result<block::Id> {
         let hash = parse_sha256_hash(&self.hash)?;
-        let part_set_header = match &self.parts_header {
-            Some(p) => p.parse_parts_header()?,
-            None => fail!(error::Kind::Parse, "missing block ID parts header"),
-        };
+        let part_set_header = self
+            .parts_header
+            .as_ref()
+            .ok_or_else(|| eyre!("missing block ID parts header"))?
+            .parse_parts_header()?;
+
         Ok(block::Id {
             hash,
             part_set_header,
@@ -146,8 +141,11 @@ impl From<&parts::Header> for PartsSetHeader {
 }
 
 impl PartsSetHeader {
-    fn parse_parts_header(&self) -> Result<block::parts::Header, Error> {
-        block::parts::Header::new(self.total as u32, parse_sha256_hash(&self.hash)?)
+    fn parse_parts_header(&self) -> eyre::Result<block::parts::Header> {
+        Ok(block::parts::Header::new(
+            self.total as u32,
+            parse_sha256_hash(&self.hash)?,
+        )?)
     }
 }
 
@@ -182,7 +180,10 @@ pub struct CanonicalPartSetHeader {
 }
 
 impl CanonicalPartSetHeader {
-    fn parse_parts_header(&self) -> Result<block::parts::Header, Error> {
-        block::parts::Header::new(self.total as u32, parse_sha256_hash(&self.hash)?)
+    fn parse_parts_header(&self) -> eyre::Result<block::parts::Header> {
+        Ok(block::parts::Header::new(
+            self.total as u32,
+            parse_sha256_hash(&self.hash)?,
+        )?)
     }
 }
