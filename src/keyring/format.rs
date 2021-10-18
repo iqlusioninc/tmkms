@@ -1,5 +1,6 @@
 //! Chain-specific key configuration
 
+use cosmrs::crypto::PublicKey;
 use serde::Deserialize;
 use subtle_encoding::bech32;
 use tendermint::TendermintKey;
@@ -17,6 +18,10 @@ pub enum Format {
         /// Prefix to use for Consensus keys
         consensus_key_prefix: String,
     },
+
+    /// JSON-encoded Cosmos protobuf representation of keys
+    #[serde(rename = "cosmos-json")]
+    CosmosJson,
 
     /// Hex is a baseline representation
     #[serde(rename = "hex")]
@@ -36,6 +41,7 @@ impl Format {
                 }
                 TendermintKey::ConsensusKey(pk) => pk.to_bech32(consensus_key_prefix),
             },
+            Format::CosmosJson => PublicKey::from(*public_key.public_key()).to_json(),
             Format::Hex => public_key.to_hex(),
         }
     }

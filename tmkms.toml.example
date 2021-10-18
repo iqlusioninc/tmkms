@@ -8,7 +8,7 @@
 # Information about Tendermint blockchain networks this KMS services
 #
 # - id: The chain ID for this chain
-# - key_format: How this chain handles serialization. Type may be "bech32" or "hex"
+# - key_format: How this chain handles serialization. Type may be "bech32", "cosmos-json" or "hex"
 # - state_file (optional): path to where the state of the last signing operation is persisted
 # - state_hook (optional): user-specified command to run on startup to obtain the current height
 #   of this chain. The command should output JSON which looks like the following:
@@ -23,6 +23,11 @@ key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_
 id = "irishub"
 key_format = { type = "bech32", account_key_prefix = "iap", consensus_key_prefix = "icp" }
 # state_file = "/path/to/irishub_priv_validator_state.json"
+
+[[chain]]
+id = "agoricdev-4"
+key_format = { type = "cosmos-json" }
+# state_file = "/path/to/agoricdev_priv_validator_state.json"
 
 ## Validator configuration
 [[validator]]
