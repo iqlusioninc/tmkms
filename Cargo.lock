@@ -401,7 +401,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "676c5bae3939f3a7cbda3ff160fdcf85bbc997cb95dde092c2709099077564d8"
 dependencies = [
- "prost",
+ "prost 0.7.0",
  "prost-types",
  "tendermint-proto",
 ]
@@ -418,7 +418,7 @@ dependencies = [
  "eyre",
  "getrandom 0.2.3",
  "k256",
- "prost",
+ "prost 0.7.0",
  "prost-types",
  "rand_core 0.6.3",
  "serde",
@@ -1186,6 +1186,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69ddb889f9d0d08a67338271fa9b62996bc788c7796a5c18cf057420aaed5eaf"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1659,7 +1668,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e6984d2f1a23009bd270b8bb56d0926810a3d483f59c987d77969e9d8e840b2"
 dependencies = [
  "bytes 1.1.0",
- "prost-derive",
+ "prost-derive 0.7.0",
+]
+
+[[package]]
+name = "prost"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "444879275cb4fd84958b1a1d5420d15e6fcf7c235fe47f053c9c2a80aceb6001"
+dependencies = [
+ "bytes 1.1.0",
+ "prost-derive 0.9.0",
 ]
 
 [[package]]
@@ -1700,13 +1719,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9cc1a3263e07e0bf68e96268f37665207b49560d98739662cdfaae215c720fe"
+dependencies = [
+ "anyhow",
+ "itertools 0.10.1",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "prost-types"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b518d7cdd93dab1d1122cf07fa9a60771836c668dde9d9e2a139f957f0d9f1bb"
 dependencies = [
  "bytes 1.1.0",
- "prost",
+ "prost 0.7.0",
 ]
 
 [[package]]
@@ -2288,7 +2320,7 @@ dependencies = [
  "k256",
  "num-traits",
  "once_cell",
- "prost",
+ "prost 0.7.0",
  "prost-types",
  "ripemd160",
  "serde",
@@ -2320,8 +2352,8 @@ dependencies = [
  "flume",
  "hkdf 0.10.0",
  "merlin",
- "prost",
- "prost-derive",
+ "prost 0.7.0",
+ "prost-derive 0.7.0",
  "rand_core 0.5.1",
  "sha2",
  "signature",
@@ -2344,7 +2376,7 @@ dependencies = [
  "flex-error",
  "num-derive",
  "num-traits",
- "prost",
+ "prost 0.7.0",
  "prost-types",
  "serde",
  "serde_bytes",
@@ -2488,10 +2520,10 @@ dependencies = [
  "k256",
  "ledger",
  "once_cell",
- "prost",
+ "prost 0.9.0",
  "prost-amino",
  "prost-amino-derive",
- "prost-derive",
+ "prost-derive 0.7.0",
  "rand 0.7.3",
  "rand_core 0.6.3",
  "rpassword",
