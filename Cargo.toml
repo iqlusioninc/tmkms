@@ -20,7 +20,7 @@ abscissa_tokio = { version = "=0.6.0-pre.2", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
-cosmrs = "0.2.1"
+cosmrs = "0.3.0"
 ed25519-dalek = "1"
 eyre = "0.6"
 getrandom = "0.1"
