@@ -2,7 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tendermint::{chain, net};
+use tendermint::chain;
+use tendermint_config::net;
 use tendermint_p2p::secret_connection;
 
 /// Validator configuration

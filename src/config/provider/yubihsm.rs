@@ -5,7 +5,7 @@ use crate::{chain, prelude::*};
 use abscissa_core::secret::{CloneableSecret, DebugSecret, ExposeSecret, Secret};
 use serde::Deserialize;
 use std::{fmt, fs, path::PathBuf, process};
-use tendermint::net;
+use tendermint_config::net;
 use yubihsm::Credentials;
 use zeroize::{Zeroize, Zeroizing};
 

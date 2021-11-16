@@ -15,7 +15,8 @@ use crate::{
 };
 use ed25519_dalek as ed25519;
 use k256::ecdsa;
-use tendermint::{config::PrivValidatorKey, PrivateKey, TendermintKey};
+use tendermint::{PrivateKey, TendermintKey};
+use tendermint_config::PrivValidatorKey;
 
 /// Create software-backed Ed25519 signer objects from the given configuration
 pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) -> Result<(), Error> {

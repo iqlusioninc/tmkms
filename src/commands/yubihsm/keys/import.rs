@@ -6,7 +6,8 @@ use abscissa_core::{Command, Options, Runnable};
 use ed25519_dalek as ed25519;
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;
-use tendermint::{config::PrivValidatorKey, PrivateKey, PublicKey};
+use tendermint::{PrivateKey, PublicKey};
+use tendermint_config::PrivValidatorKey;
 use yubihsm::object;
 use zeroize::Zeroizing;
 
