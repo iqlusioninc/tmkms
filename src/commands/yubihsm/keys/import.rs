@@ -139,7 +139,7 @@ impl ImportCommand {
         // TODO: display non hex format when listing/displaying keys
         let key_info = match public_key.algorithm {
             yubihsm::asymmetric::Algorithm::Ed25519 => {
-                PublicKey::from_raw_ed25519(&public_key.as_ref())
+                PublicKey::from_raw_ed25519(public_key.as_ref())
                     .unwrap()
                     .to_hex()
             }

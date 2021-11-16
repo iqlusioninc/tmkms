@@ -29,7 +29,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
     for config in configs {
         match config.key_type {
             KeyType::Account => {
-                let signer = load_secp256k1_key(&config)?;
+                let signer = load_secp256k1_key(config)?;
                 let public_key =
                     tendermint::PublicKey::from_raw_secp256k1(&signer.verifying_key().to_bytes())
                         .unwrap();
@@ -56,7 +56,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
 
                 loaded_consensus_key = true;
 
-                let signing_key = load_ed25519_key(&config)?;
+                let signing_key = load_ed25519_key(config)?;
                 let consensus_pubkey = TendermintKey::ConsensusKey(signing_key.public.into());
 
                 let signer = keyring::ed25519::Signer::new(

@@ -172,7 +172,7 @@ impl Runnable for GenerateCommand {
             create_encrypted_backup(
                 &hsm,
                 key_id,
-                &backup_file,
+                backup_file,
                 self.wrap_key_id.unwrap_or(DEFAULT_WRAP_KEY),
             );
         }

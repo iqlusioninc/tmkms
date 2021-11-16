@@ -48,7 +48,7 @@ impl Runnable for ListCommand {
         println!("Listing keys in YubiHSM #{}:", serial_number);
 
         for key in &keys {
-            display_key_info(&*hsm, &key, &key_formatters);
+            display_key_info(&*hsm, key, &key_formatters);
         }
     }
 }
