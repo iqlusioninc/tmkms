@@ -4,7 +4,8 @@ use hyper::http::Uri;
 use serde::{de, Deserialize};
 use std::path::PathBuf;
 use stdtx::{amino::TypeName, Address};
-use tendermint::{chain, net};
+use tendermint::chain;
+use tendermint_config::net;
 
 /// Transaction signer (`[tx_signer]`) configuration
 #[derive(Clone, Deserialize, Debug)]
