@@ -10,6 +10,8 @@ use crate::{
 use std::sync::Arc;
 use tendermint::TendermintKey;
 
+#[allow(clippy::redundant_allocation)]
+
 /// Ed25519 signer
 #[derive(Clone)]
 pub struct Signer {

@@ -73,7 +73,7 @@ impl Runnable for SetupCommand {
     /// Perform initial YubiHSM dervice provisioning
     fn run(&self) {
         let hsm_connector = crate::yubihsm::connector();
-        let hsm_serial_number = get_hsm_client(&hsm_connector)
+        let hsm_serial_number = get_hsm_client(hsm_connector)
             .device_info()
             .expect("error getting device info")
             .serial_number;
@@ -84,7 +84,7 @@ impl Runnable for SetupCommand {
 
             read_mnemonic_from_stdin("*** Enter mnemonic (separate words with spaces): ")
         } else {
-            generate_mnemonic_from_hsm_and_os_csprngs(&hsm_connector)
+            generate_mnemonic_from_hsm_and_os_csprngs(hsm_connector)
         };
 
         let roles = derive_roles_from_mnemonic(&mnemonic);
@@ -336,7 +336,7 @@ fn derive_role_from_mnemonic(
     key_id: object::Id,
     role_name: &str,
 ) -> Role {
-    let role_password = RolePassword::derive_from_mnemonic(&mnemonic, role_name);
+    let role_password = RolePassword::derive_from_mnemonic(mnemonic, role_name);
 
     let role_credentials = Credentials::new(
         key_id,

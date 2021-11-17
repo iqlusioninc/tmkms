@@ -6,7 +6,8 @@ use abscissa_core::{Command, Options, Runnable};
 use ed25519_dalek as ed25519;
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;
-use tendermint::{config::PrivValidatorKey, PrivateKey, PublicKey};
+use tendermint::{PrivateKey, PublicKey};
+use tendermint_config::PrivValidatorKey;
 use yubihsm::object;
 use zeroize::Zeroizing;
 
@@ -138,7 +139,7 @@ impl ImportCommand {
         // TODO: display non hex format when listing/displaying keys
         let key_info = match public_key.algorithm {
             yubihsm::asymmetric::Algorithm::Ed25519 => {
-                PublicKey::from_raw_ed25519(&public_key.as_ref())
+                PublicKey::from_raw_ed25519(public_key.as_ref())
                     .unwrap()
                     .to_hex()
             }

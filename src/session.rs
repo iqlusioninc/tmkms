@@ -12,7 +12,8 @@ use crate::{
     rpc::{Request, Response},
 };
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
-use tendermint::{consensus, net};
+use tendermint::consensus;
+use tendermint_config::net;
 
 /// Encrypted session with a validator node
 pub struct Session {

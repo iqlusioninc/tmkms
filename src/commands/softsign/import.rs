@@ -3,7 +3,8 @@
 use crate::{config::provider::softsign::KeyFormat, key_utils, prelude::*};
 use abscissa_core::{Command, Options, Runnable};
 use std::{path::PathBuf, process};
-use tendermint::{config::PrivValidatorKey, PrivateKey};
+use tendermint::PrivateKey;
+use tendermint_config::PrivValidatorKey;
 
 /// `import` command: import a `priv_validator.json` formatted key and convert
 /// it into the raw format used by the softsign backend (by default)

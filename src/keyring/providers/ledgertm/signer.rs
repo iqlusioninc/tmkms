@@ -45,7 +45,7 @@ impl Signer<Signature> for Ed25519LedgerTmAppSigner {
     /// c: Compute a compact, fixed-sized signature of the given amino/json vote
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, Error> {
         let app = self.app.lock().unwrap();
-        let sig = app.sign(&msg).map_err(Error::from_source)?;
+        let sig = app.sign(msg).map_err(Error::from_source)?;
         Ok(Signature::from(sig))
     }
 }

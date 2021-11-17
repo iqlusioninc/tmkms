@@ -59,7 +59,7 @@ impl SignMsg {
     pub fn authorize(&self, acl: &TxAcl) -> Result<(), Error> {
         // Ensure message types are authorized in the ACL
         for msg_type in &self.msg_types {
-            if !acl.msg_type.contains(&msg_type) {
+            if !acl.msg_type.contains(msg_type) {
                 fail!(
                     ErrorKind::AccessError,
                     "unauthorized request to sign `{}` message",
