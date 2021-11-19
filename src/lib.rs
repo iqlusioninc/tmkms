@@ -3,10 +3,15 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
 
-#[cfg(not(any(feature = "softsign", feature = "yubihsm", feature = "ledger")))]
+#[cfg(not(any(
+    feature = "softsign",
+    feature = "yubihsm",
+    feature = "ledger",
+    feature = "fortanixdsm"
+)))]
 compile_error!(
     "please enable one of the following backends with cargo's --features argument: \
-     yubihsm, ledgertm, softsign (e.g. --features=yubihsm)"
+     yubihsm, ledgertm, softsign, fortanixdsm (e.g. --features=yubihsm)"
 );
 
 pub mod amino_types;

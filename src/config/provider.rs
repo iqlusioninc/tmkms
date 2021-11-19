@@ -1,5 +1,7 @@
 //! Cryptographic service providers: signing backends
 
+#[cfg(feature = "fortanixdsm")]
+pub mod fortanixdsm;
 #[cfg(feature = "ledger")]
 pub mod ledgertm;
 #[cfg(feature = "softsign")]
@@ -7,6 +9,8 @@ pub mod softsign;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
+#[cfg(feature = "fortanixdsm")]
+use self::fortanixdsm::FortanixDsmConfig;
 #[cfg(feature = "ledger")]
 use self::ledgertm::LedgerTendermintConfig;
 #[cfg(feature = "softsign")]
@@ -35,6 +39,11 @@ pub struct ProviderConfig {
     #[cfg(feature = "ledger")]
     #[serde(default)]
     pub ledgertm: Vec<LedgerTendermintConfig>,
+
+    /// Fortanix DSM provider configurations
+    #[cfg(feature = "fortanixdsm")]
+    #[serde(default)]
+    pub fortanixdsm: Vec<FortanixDsmConfig>,
 }
 
 /// Types of cryptographic keys
