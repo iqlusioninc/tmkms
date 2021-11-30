@@ -100,15 +100,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anomaly"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "550632e31568ae1a5f47998c3aa48563030fc49b9ec91913ca337cf64fbc5ccb"
-dependencies = [
- "backtrace",
-]
-
-[[package]]
 name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -331,7 +322,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "serde",
- "time",
+ "time 0.1.43",
  "winapi",
 ]
 
@@ -577,9 +568,9 @@ dependencies = [
 
 [[package]]
 name = "ed25519"
-version = "1.2.0"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4620d40f6d2601794401d6dd95a5cf69b6c157852539470eeda433a99b3c0efc"
+checksum = "74e1069e39f1454367eb2de793ed062fac4c35c2934b76a81d90dd9abcd28816"
 dependencies = [
  "signature",
 ]
@@ -903,12 +894,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "harp"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60bf12c625ed5e96f81609ae4377c34e9fa3e4d1fada392404322daeace511ab"
-
-[[package]]
 name = "hashbrown"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -975,7 +960,7 @@ checksum = "84f2a5541afe0725f0b95619d6af614f48c1b176385b8aa30918cfb8c4bfafc8"
 dependencies = [
  "hmac 0.11.0",
  "once_cell",
- "pbkdf2",
+ "pbkdf2 0.8.0",
  "rand_core 0.6.3",
  "sha2",
  "zeroize",
@@ -1243,9 +1228,9 @@ checksum = "fbe5e23404da5b4f555ef85ebed98fb4083e55a00c317800bc2a50ede9f3d219"
 
 [[package]]
 name = "libusb1-sys"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e22e89d08bbe6816c6c5d446203b859eba35b8fa94bf1b7edb2f6d25d43f023f"
+checksum = "b8772b7e8d4d988e19684aec5a3f5e470ecaf5c705cf0303da3973508e873027"
 dependencies = [
  "cc",
  "libc",
@@ -1514,6 +1499,15 @@ name = "pbkdf2"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d95f5254224e617595d2cc3cc73ff0a5eaf2637519e25f03388154e9378b6ffa"
+dependencies = [
+ "crypto-mac 0.11.1",
+]
+
+[[package]]
+name = "pbkdf2"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f05894bce6a1ba4be299d0c5f29563e08af2bc18bb7d48313113bed71e904739"
 dependencies = [
  "crypto-mac 0.11.1",
 ]
@@ -1872,9 +1866,9 @@ dependencies = [
 
 [[package]]
 name = "rusb"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9a5084628cc5be77b1c750b3e5ee0cc519d2f2491b3f06b78b3aac3328b00ad"
+checksum = "83b454219aa5007af92a042ec13b2035325318a21d3c6be18bf592f841430794"
 dependencies = [
  "libc",
  "libusb1-sys",
@@ -2435,10 +2429,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "tiny_http"
-version = "0.8.2"
+name = "time"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ce51b50006056f590c9b7c3808c3bd70f0d1101666629713866c227d6e58d39"
+checksum = "41effe7cfa8af36f439fac33861b66b049edc6f9a32331e2312660529c1c24ad"
+dependencies = [
+ "libc",
+ "serde",
+]
+
+[[package]]
+name = "tiny_http"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96155b5f7149ba7a99ea5d516c538250b26eab60b4485c0f5344432573e7a450"
 dependencies = [
  "ascii",
  "chrono",
@@ -2906,28 +2910,25 @@ dependencies = [
 
 [[package]]
 name = "yubihsm"
-version = "0.39.0"
+version = "0.40.0-pre"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c32cd8146a6966df8137f5dbb77010ae5253e6937b21d1fd6ed55213478b4d0"
+checksum = "c0cb5ac2b1e96c7d71e55ee550309cbb392d83dc5c3156bfcfb3b67e518952e2"
 dependencies = [
  "aes",
- "anomaly",
  "bitflags",
  "block-modes",
  "ccm",
- "chrono",
  "cmac",
  "digest",
  "ecdsa",
  "ed25519",
  "ed25519-dalek",
- "harp",
  "hmac 0.11.0",
  "k256",
  "log",
  "p256",
  "p384",
- "pbkdf2",
+ "pbkdf2 0.9.0",
  "rand_core 0.6.3",
  "rusb",
  "serde",
@@ -2936,6 +2937,7 @@ dependencies = [
  "signature",
  "subtle",
  "thiserror",
+ "time 0.3.5",
  "tiny_http",
  "uuid",
  "zeroize",
