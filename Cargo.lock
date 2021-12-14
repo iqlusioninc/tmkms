@@ -2253,13 +2253,12 @@ dependencies = [
 
 [[package]]
 name = "tendermint"
-version = "0.23.1"
+version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02880339f0e89dc7de809cb300a7dbe5e066c71937a7a55472438ae02e4a841b"
+checksum = "9015fdeab074f9b8f97dcb89c2bb2ec8537c89423e95551e8d7ecdfbab58a329"
 dependencies = [
  "async-trait",
  "bytes 1.1.0",
- "chrono",
  "ed25519",
  "ed25519-dalek",
  "flex-error",
@@ -2279,6 +2278,7 @@ dependencies = [
  "subtle",
  "subtle-encoding",
  "tendermint-proto",
+ "time 0.3.5",
  "zeroize",
 ]
 
@@ -2298,9 +2298,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-p2p"
-version = "0.23.1"
+version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82fb1ca942ff50615ea2abe71761bd931161b8d085790be894046a4dea9b4274"
+checksum = "fed806ac8705707267a7c2e6e3ecc33287544034731f77363743829fa2340cbb"
 dependencies = [
  "aead",
  "chacha20poly1305",
@@ -2325,12 +2325,11 @@ dependencies = [
 
 [[package]]
 name = "tendermint-proto"
-version = "0.23.1"
+version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1b8319fcf0860833eabe3278cf2d94ca20ef04bee6a77d892f986026fb1c252"
+checksum = "da86f6e52ced9c2f24c4ae57662ce8a44dd90ee7bc47bae27a710b02d48e193c"
 dependencies = [
  "bytes 1.1.0",
- "chrono",
  "flex-error",
  "num-derive",
  "num-traits",
@@ -2339,6 +2338,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "subtle-encoding",
+ "time 0.3.5",
 ]
 
 [[package]]
@@ -2376,9 +2376,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-std-ext"
-version = "0.23.1"
+version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bad0442d855704801e02536dc6f68b11a01423347a6882c06c49b0dfb6b409ec"
+checksum = "639aa7d263d01da5ca847bae5453de683b28cc8070544c66ed60fce140cd7823"
 
 [[package]]
 name = "termcolor"
@@ -2436,7 +2436,14 @@ checksum = "41effe7cfa8af36f439fac33861b66b049edc6f9a32331e2312660529c1c24ad"
 dependencies = [
  "libc",
  "serde",
+ "time-macros",
 ]
+
+[[package]]
+name = "time-macros"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25eb0ca3468fc0acc11828786797f6ef9aa1555e4a211a60d64cc8e4d1be47d6"
 
 [[package]]
 name = "tiny_http"
