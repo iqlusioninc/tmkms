@@ -11,22 +11,13 @@ use abscissa_core::{
 pub static APP: AppCell<KmsApplication> = AppCell::new();
 
 /// The `tmkms` application
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct KmsApplication {
     /// Application configuration.
     config: CfgCell<KmsConfig>,
 
     /// Application state.
     state: application::State<Self>,
-}
-
-impl Default for KmsApplication {
-    fn default() -> Self {
-        Self {
-            config: CfgCell::default(),
-            state: application::State::default(),
-        }
-    }
 }
 
 impl Application for KmsApplication {

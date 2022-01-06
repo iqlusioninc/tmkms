@@ -21,7 +21,7 @@ pub struct TimeMsg {
 
 impl ParseTimestamp for TimeMsg {
     fn parse_timestamp(&self) -> Result<Time, Error> {
-        Ok(Time::from_unix_timestamp(self.seconds, self.nanos as u32)?)
+        Time::from_unix_timestamp(self.seconds, self.nanos as u32)
     }
 }
 

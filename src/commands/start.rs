@@ -8,7 +8,7 @@ use std::{path::PathBuf, process};
 use crate::{application::APP, config::TxSignerConfig, tx_signer::TxSigner};
 
 /// The `start` command
-#[derive(Command, Debug, Options)]
+#[derive(Command, Debug, Default, Options)]
 pub struct StartCommand {
     /// Path to configuration file
     #[options(short = "c", long = "config", help = "path to tmkms.toml")]
@@ -17,15 +17,6 @@ pub struct StartCommand {
     /// Print debugging information
     #[options(short = "v", long = "verbose", help = "enable verbose debug logging")]
     pub verbose: bool,
-}
-
-impl Default for StartCommand {
-    fn default() -> Self {
-        Self {
-            config: None,
-            verbose: false,
-        }
-    }
 }
 
 impl Runnable for StartCommand {
