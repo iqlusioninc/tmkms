@@ -1,6 +1,5 @@
 //! Timestamps
 
-use chrono::{TimeZone, Utc};
 use prost_amino_derive::Message;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tendermint::{
@@ -22,7 +21,7 @@ pub struct TimeMsg {
 
 impl ParseTimestamp for TimeMsg {
     fn parse_timestamp(&self) -> Result<Time, Error> {
-        Ok(Utc.timestamp(self.seconds, self.nanos as u32).into())
+        Ok(Time::from_unix_timestamp(self.seconds, self.nanos as u32)?)
     }
 }
 
