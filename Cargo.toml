@@ -20,7 +20,7 @@ abscissa_tokio = { version = "=0.6.0-pre.2", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
-cosmrs = "0.3"
+cosmrs = "0.4"
 ed25519-dalek = "1"
 eyre = "0.6"
 getrandom = "0.1"
@@ -73,7 +73,3 @@ overflow-checks = true
 
 [package.metadata.docs.rs]
 all-features = true
-
-# TODO(tarcieri): release cosmrs v0.4
-[patch.crates-io]
-cosmrs = { git = "https://github.com/cosmos/cosmos-rust.git" }
