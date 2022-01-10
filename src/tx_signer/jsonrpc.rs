@@ -10,7 +10,7 @@ use hyper::{
     http::{header, Uri},
     Body,
 };
-use hyper_rustls::HttpsConnector;
+use hyper_rustls::HttpsConnectorBuilder;
 use serde::{Deserialize, Serialize};
 use tendermint::chain;
 use tendermint_rpc::endpoint::{broadcast::tx_commit, status};
@@ -39,7 +39,11 @@ impl Client {
         self.add_headers(&mut request);
 
         let builder = hyper::Client::builder();
-        let connector = HttpsConnector::with_webpki_roots(); // TODO: local cert truststore
+        let connector = HttpsConnectorBuilder::new()
+            .with_webpki_roots()
+            .https_only()
+            .enable_http1()
+            .build(); // TODO: local cert truststore
         let response = builder.build(connector).request(request).await?;
         let response_body = hyper::body::to_bytes(response.into_body()).await?;
         let response_json = serde_json::from_slice::<Response>(response_body.as_ref())?;
