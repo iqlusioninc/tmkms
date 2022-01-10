@@ -593,6 +593,10 @@ dependencies = [
  "ed25519",
  "rand",
  "serde",
+<<<<<<< HEAD
+=======
+ "serde_bytes",
+>>>>>>> 61d8085 (revert hkdf to v0.11 & sha2 to v0.9)
  "sha2",
  "zeroize",
 ]
@@ -1231,7 +1235,10 @@ dependencies = [
  "cfg-if 1.0.0",
  "ecdsa",
  "elliptic-curve",
+<<<<<<< HEAD
  "sec1",
+=======
+>>>>>>> 61d8085 (revert hkdf to v0.11 & sha2 to v0.9)
  "sha2",
  "sha3",
 ]
@@ -1519,7 +1526,10 @@ checksum = "d0e0c5310031b5d4528ac6534bccc1446c289ac45c47b277d5aa91089c5f74fa"
 dependencies = [
  "ecdsa",
  "elliptic-curve",
+<<<<<<< HEAD
  "sec1",
+=======
+>>>>>>> 61d8085 (revert hkdf to v0.11 & sha2 to v0.9)
  "sha2",
 ]
 
