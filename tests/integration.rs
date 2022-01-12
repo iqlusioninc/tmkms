@@ -1,7 +1,6 @@
 //! KMS integration test
 
 use std::{
-    convert::TryFrom,
     fs,
     io::{self, Cursor, Read, Write},
     net::{TcpListener, TcpStream},

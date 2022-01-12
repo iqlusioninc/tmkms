@@ -1,5 +1,4 @@
 use prost_amino::encoding::encoded_len_varint;
-use std::convert::TryInto;
 
 /// Extend the original prost_amino::Message trait with a few helper functions in order to
 /// reduce boiler-plate code (and without modifying the prost-amino dependency).
