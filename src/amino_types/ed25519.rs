@@ -1,7 +1,6 @@
 use super::compute_prefix;
 use once_cell::sync::Lazy;
 use prost_amino_derive::Message;
-use std::convert::TryFrom;
 use tendermint::public_key::{Ed25519, PublicKey};
 
 // Note:On the golang side this is generic in the sense that it could everything that implements
@@ -54,7 +53,6 @@ mod tests {
     use super::*;
     use ed25519_dalek::PUBLIC_KEY_LENGTH;
     use prost_amino::Message;
-    use std::convert::TryInto;
 
     #[test]
     fn test_empty_pubkey_msg() {

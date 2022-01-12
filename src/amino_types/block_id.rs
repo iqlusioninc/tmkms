@@ -1,7 +1,6 @@
 use super::validate::{self, ConsensusMessage, Error::*};
 use eyre::eyre;
 use prost_amino_derive::Message;
-use std::convert::TryInto;
 use tendermint::{
     block::{self, parts},
     hash::{Hash, SHA256_HASH_SIZE},

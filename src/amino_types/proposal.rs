@@ -15,7 +15,6 @@ use once_cell::sync::Lazy;
 use prost::Message as _;
 use prost_amino::{EncodeError, Message};
 use prost_amino_derive::Message;
-use std::convert::TryFrom;
 use tendermint::{block, chain, consensus, error};
 use tendermint_proto::types as proto_types;
 
