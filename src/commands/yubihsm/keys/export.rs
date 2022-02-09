@@ -2,30 +2,26 @@
 
 use super::*;
 use crate::{key_utils, prelude::*};
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use std::{path::PathBuf, process};
 
 /// The `yubihsm keys export` subcommand: create encrypted backups of keys
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct ExportCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 
-    /// ID of the key to export
-    #[options(short = "i", long = "id", help = "key to export in encrypted form")]
+    /// ID of key to export in encrypted form
+    #[clap(short = 'i', long = "id")]
     pub key_id: u16,
 
     /// ID of the wrap key to encrypt the exported key under
-    #[options(
-        short = "w",
-        long = "wrapkey",
-        help = "wrap key to encrypt exported key"
-    )]
+    #[clap(short = 'w', long = "wrapkey")]
     pub wrap_key_id: Option<u16>,
 
     /// Path to write the resulting file to
-    #[options(free, help = "path where ciphertext of exported key will be written")]
     pub path: PathBuf,
 }
 

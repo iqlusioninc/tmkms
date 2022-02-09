@@ -1,8 +1,9 @@
 //! Set up a new YubiHSM2 or restore from backup
 
 use crate::prelude::*;
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
 use chrono::{SecondsFormat, Utc};
+use clap::Parser;
 use getrandom::getrandom;
 use hkd32::{mnemonic, KeyMaterial};
 use hkdf::Hkdf;
@@ -42,30 +43,26 @@ const VALIDATOR_ROLE_NAME: &str = "validator";
 
 /// The `yubihsm setup` subcommand: performs initial device provisioning
 /// including creation of initial authentication and wrap keys.
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct SetupCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 
-    /// Print debugging information
-    #[options(short = "v", long = "verbose", help = "enable verbose debug logging")]
+    /// enable verbose debug logging
+    #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 
-    /// Only print derived keys - do not reinitialize HSM
-    #[options(short = "p", long = "print-only", help = "print derived keys ONLY")]
+    /// print derived keys ONLY - do not reinitialize HSM
+    #[clap(short = 'p', long = "print-only")]
     pub print_only: bool,
 
-    /// Restore an HSM from an existing 24-word remonic
-    #[options(short = "r", long = "restore", help = "restore from existing 24-words")]
+    /// restore from existing 24-word mnemonic
+    #[clap(short = 'r', long = "restore")]
     pub restore: bool,
 
-    /// Write a provisioning report as JSON to the given filename
-    #[options(
-        short = "w",
-        long = "write-report",
-        help = "write report file at given path"
-    )]
+    /// write report file at given path
+    #[clap(short = 'w', long = "write-report")]
     pub write_report: Option<PathBuf>,
 }
 

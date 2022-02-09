@@ -6,30 +6,24 @@ mod setup;
 mod test;
 
 pub use self::{detect::DetectCommand, keys::KeysCommand, setup::SetupCommand, test::TestCommand};
-use abscissa_core::{Command, Help, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Subcommand;
 use std::path::PathBuf;
 
 /// The `yubihsm` subcommand
-#[derive(Command, Debug, Options, Runnable)]
+#[derive(Command, Debug, Runnable, Subcommand)]
 pub enum YubihsmCommand {
-    /// Detected connected YubiHSM2 devices
-    #[options(help = "detect all YubiHSM2 devices connected via USB")]
+    /// detect all YubiHSM2 devices connected via USB
     Detect(DetectCommand),
 
-    /// Show help for the `yubihsm` subcommand
-    #[options(help = "show help for the 'yubihsm' subcommand")]
-    Help(Help<Self>),
-
-    /// Key management subcommands
-    #[options(help = "key management subcommands")]
+    /// key management subcommands
+    #[clap(subcommand)]
     Keys(KeysCommand),
 
-    /// Perform initial YubiHSM2 device setup
-    #[options(help = "initial device setup and configuration")]
+    /// initial device setup and configuration
     Setup(SetupCommand),
 
-    /// Perform a signing test
-    #[options(help = "perform a signing test")]
+    /// perform a signing test
     Test(TestCommand),
 }
 

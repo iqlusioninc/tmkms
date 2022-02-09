@@ -1,22 +1,21 @@
 //! `tmkms softsign import` command
 
 use crate::{config::provider::softsign::KeyFormat, key_utils, prelude::*};
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use std::{path::PathBuf, process};
 use tendermint::PrivateKey;
 use tendermint_config::PrivValidatorKey;
 
 /// `import` command: import a `priv_validator.json` formatted key and convert
 /// it into the raw format used by the softsign backend (by default)
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct ImportCommand {
-    #[options(
-        short = "f",
-        help = "key format to import: 'json' or 'raw' (default 'json')"
-    )]
+    /// key format to import: 'json' or 'raw' (default 'json')
+    #[clap(short = 'f')]
     format: Option<String>,
 
-    #[options(free, help = "[INPUT] and [OUTPUT] paths for key generation")]
+    /// [INPUT] and [OUTPUT] paths for key generation
     paths: Vec<PathBuf>,
 }
 

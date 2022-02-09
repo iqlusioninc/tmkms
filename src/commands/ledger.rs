@@ -9,14 +9,14 @@ use crate::{
     config::validator::ProtocolVersion,
     prelude::*,
 };
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::{Parser, Subcommand};
 use std::{path::PathBuf, process};
 
 /// `ledger` subcommand
-#[derive(Command, Debug, Options, Runnable)]
+#[derive(Command, Debug, Runnable, Subcommand)]
 pub enum LedgerCommand {
-    /// Initialize HRS values
-    #[options(help = "initialise the height/round/step")]
+    /// initialise the height/round/step
     Initialise(InitCommand),
 }
 
@@ -29,18 +29,18 @@ impl LedgerCommand {
 }
 
 /// `ledger init` subcommand
-#[derive(Command, Debug, Options)]
+#[derive(Command, Debug, Parser)]
 pub struct InitCommand {
     /// config file path
-    #[options(short = "c", long = "config")]
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 
     /// block height
-    #[options(short = "h", long = "height")]
+    #[clap(short = 'h', long = "height")]
     pub height: Option<i64>,
 
     /// block round
-    #[options(short = "r", long = "round")]
+    #[clap(short = 'r', long = "round")]
     pub round: Option<i64>,
 }
 

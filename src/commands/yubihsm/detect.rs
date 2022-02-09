@@ -1,19 +1,20 @@
 //! Detect YubiHSM2s connected via USB
 
 use crate::prelude::*;
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use std::process;
 use yubihsm::connector::usb::Devices;
 
 /// The `yubihsm detect` subcommand
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct DetectCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<String>,
 
-    /// Print debugging information
-    #[options(short = "v", long = "verbose", help = "enable verbose debug logging")]
+    /// enable verbose debug logging
+    #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 }
 
