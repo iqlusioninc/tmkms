@@ -2,7 +2,8 @@
 
 use super::*;
 use crate::prelude::*;
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use ed25519_dalek as ed25519;
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;
@@ -12,30 +13,29 @@ use yubihsm::object;
 use zeroize::Zeroizing;
 
 /// The `yubihsm keys import` subcommand
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct ImportCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 
-    /// ID of the key to import (if applicable)
-    #[options(short = "i", long = "id", help = "key ID to import")]
+    /// key ID to import
+    #[clap(short = 'i', long = "id")]
     pub key_id: Option<u16>,
 
-    /// ID of the wrap key the original key was encrypted with
-    #[options(short = "w", long = "wrapkey", help = "wrap key to decrypt with")]
+    /// wrap key to decrypt with
+    #[clap(short = 'w', long = "wrapkey")]
     pub wrap_key_id: Option<u16>,
 
-    /// Type of key to import (either `wrap`, `json`, or `base64`, default `wrap`)
-    #[options(short = "t", help = "type of key to import (wrap, base64 or json)")]
+    /// type of key to import (wrap, base64 or json)
+    #[clap(short = 't')]
     pub key_type: Option<String>,
 
-    /// Label for imported key (only applicable to `priv_validator` keys)
-    #[options(short = "l", long = "label", help = "label for priv_validator keys")]
+    /// label for priv_validator keys
+    #[clap(short = 'l', long = "label")]
     pub label: Option<String>,
 
-    /// Path to the key to import
-    #[options(free, help = "path to key to import")]
+    /// path to key to import
     pub path: PathBuf,
 }
 

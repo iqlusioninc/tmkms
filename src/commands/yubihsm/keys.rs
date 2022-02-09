@@ -8,7 +8,8 @@ mod list;
 use self::{
     export::ExportCommand, generate::GenerateCommand, import::ImportCommand, list::ListCommand,
 };
-use abscissa_core::{Command, Help, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Subcommand;
 use std::path::PathBuf;
 
 /// Default YubiHSM2 domain (internal partitioning)
@@ -21,26 +22,18 @@ pub const DEFAULT_CAPABILITIES: yubihsm::Capability = yubihsm::Capability::SIGN_
 pub const DEFAULT_WRAP_KEY: yubihsm::object::Id = 1;
 
 /// The `yubihsm keys` subcommand
-#[derive(Command, Debug, Options, Runnable)]
+#[derive(Command, Debug, Subcommand, Runnable)]
 pub enum KeysCommand {
-    /// `yubihsm keys export`
-    #[options(help = "export an encrypted backup of a signing key inside the HSM device")]
+    /// export an encrypted backup of a signing key inside the HSM device
     Export(ExportCommand),
 
-    /// `yubihsm keys generate`
-    #[options(help = "generate an Ed25519 signing key inside the HSM device")]
+    /// generate an Ed25519 signing key inside the HSM device
     Generate(GenerateCommand),
 
-    /// `yubihsm keys help`
-    #[options(help = "show help for the 'yubihsm keys' subcommand")]
-    Help(Help<Self>),
-
-    /// `yubihsm keys import`
-    #[options(help = "import validator signing key for the 'yubihsm keys' subcommand")]
+    /// import validator signing key for the 'yubihsm keys' subcommand
     Import(ImportCommand),
 
-    /// `yubihsm keys list`
-    #[options(help = "list all suitable Ed25519 keys in the HSM")]
+    /// list all suitable Ed25519 keys in the HSM
     List(ListCommand),
 }
 
@@ -52,7 +45,6 @@ impl KeysCommand {
             KeysCommand::Generate(generate) => generate.config.as_ref(),
             KeysCommand::List(list) => list.config.as_ref(),
             KeysCommand::Import(import) => import.config.as_ref(),
-            _ => None,
         }
     }
 }

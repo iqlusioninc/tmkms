@@ -2,8 +2,9 @@
 
 use super::*;
 use crate::{config::provider::KeyType, key_utils, prelude::*};
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
 use chrono::{SecondsFormat, Utc};
+use clap::Parser;
 use std::{
     path::{Path, PathBuf},
     process,
@@ -11,51 +12,38 @@ use std::{
 use tendermint::PublicKey;
 
 /// The `yubihsm keys generate` subcommand
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct GenerateCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 
-    /// Label for generated key(s)
-    #[options(short = "l", long = "label", help = "label for generated key")]
+    /// label for generated key
+    #[clap(short = 'l', long = "label")]
     pub label: Option<String>,
 
-    /// Bech32 prefix to use when displaying key
-    #[options(
-        short = "p",
-        long = "prefix",
-        help = "bech32 prefix to display generated key with"
-    )]
+    /// bech32 prefix to display generated key with
+    #[clap(short = 'p', long = "prefix")]
     pub bech32_prefix: Option<String>,
 
-    /// Type of key to generate (default 'ed25519')
-    #[options(short = "t", help = "type of key to generate (default: ed25519)")]
+    /// type of key to generate (default: ed25519)
+    #[clap(short = 't')]
     pub key_type: Option<String>,
 
     /// Mark this key as non-exportable
-    #[options(no_short, long = "non-exportable", help = "mark key as non-exportable")]
+    #[clap(long = "non-exportable")]
     pub non_exportable: bool,
 
-    /// Create an encrypted backup of this key in the given file
-    #[options(
-        short = "b",
-        long = "backup",
-        help = "path where encrypted backup should be written"
-    )]
+    /// path where encrypted backup should be written
+    #[clap(short = 'b', long = "backup")]
     pub backup_file: Option<PathBuf>,
 
     /// Key ID of the wrap key to use when creating a backup
-    #[options(
-        short = "w",
-        long = "wrapkey",
-        help = "ID of wrap key to encrypt exported key"
-    )]
+    #[clap(short = 'w', long = "wrapkey")]
     pub wrap_key_id: Option<yubihsm::object::Id>,
 
     /// Key ID to generate
-    #[options(free, help = "key ID to generate")]
-    key_ids: Vec<String>,
+    pub key_ids: Vec<String>,
 }
 
 impl GenerateCommand {

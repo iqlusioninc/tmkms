@@ -1,16 +1,17 @@
 //! List keys inside the YubiHSM2
 
 use crate::{chain, keyring, prelude::*, Map};
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use k256::elliptic_curve::generic_array::GenericArray;
 use std::{path::PathBuf, process};
 use tendermint::{PublicKey, TendermintKey};
 
 /// The `yubihsm keys list` subcommand
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct ListCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 }
 

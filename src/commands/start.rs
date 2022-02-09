@@ -1,21 +1,22 @@
 //! Start the KMS
 
 use crate::{chain, client::Client, prelude::*};
-use abscissa_core::{Command, Options};
+use abscissa_core::Command;
+use clap::Parser;
 use std::{path::PathBuf, process};
 
 #[cfg(feature = "tx-signer")]
 use crate::{application::APP, config::TxSignerConfig, tx_signer::TxSigner};
 
 /// The `start` command
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct StartCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 
-    /// Print debugging information
-    #[options(short = "v", long = "verbose", help = "enable verbose debug logging")]
+    /// enable verbose debug logging
+    #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 }
 

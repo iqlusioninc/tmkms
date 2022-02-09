@@ -16,16 +16,16 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-abscissa_core = "=0.6.0-pre.1"
-abscissa_tokio = { version = "=0.6.0-pre.2", optional = true }
+abscissa_core = "=0.6.0-rc.1"
+abscissa_tokio = { version = "=0.6.0-rc.1", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
+clap = "3"
 cosmrs = "0.4"
 ed25519-dalek = "1"
 eyre = "0.6"
 getrandom = "0.1"
-gumdrop = "0.7"
 hkd32 = { version = "0.6", default-features = false, features = ["mnemonic"] }
 hkdf = "0.11"
 hyper = { version = "0.14", optional = true }
@@ -58,7 +58,7 @@ yubihsm = { version = "0.40", features = ["secp256k1", "setup", "usb"], optional
 zeroize = "1"
 
 [dev-dependencies]
-abscissa_core = { version = "=0.6.0-pre.1", features = ["testing"] }
+abscissa_core = { version = "=0.6.0-rc.1", features = ["testing"] }
 byteorder = "1"
 rand = "0.7"
 

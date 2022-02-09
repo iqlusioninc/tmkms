@@ -1,7 +1,8 @@
 //! Test the YubiHSM2 is working by performing signatures successively
 
 use crate::prelude::*;
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use std::{
     path::PathBuf,
     process, thread,
@@ -12,18 +13,17 @@ use std::{
 const TEST_MESSAGE: &[u8; 128] = &[0u8; 128];
 
 /// The `yubihsm test` subcommand
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct TestCommand {
-    /// Path to configuration file
-    #[options(short = "c", long = "config", help = "path to tmkms.toml")]
+    /// path to tmkms.toml
+    #[clap(short = 'c', long = "config")]
     pub config: Option<PathBuf>,
 
-    /// Print debugging information
-    #[options(short = "v", long = "verbose", help = "enable verbose debug logging")]
+    /// enable verbose debug logging
+    #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 
-    /// Key ID to use for test
-    #[options(free, help = "Ed25519 signing key ID in YubiHSM")]
+    /// Ed25519 signing key ID in YubiHSM
     key_id: u16,
 }
 

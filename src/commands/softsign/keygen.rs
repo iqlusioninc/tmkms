@@ -1,7 +1,8 @@
 //! `tmkms softsign keygen` subcommand
 
 use crate::{key_utils, prelude::*};
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use ed25519_dalek as ed25519;
 use k256::ecdsa;
 use rand_core::{OsRng, RngCore};
@@ -11,16 +12,13 @@ use std::{path::Path, path::PathBuf, process};
 pub const DEFAULT_KEY_TYPE: &str = "consensus";
 
 /// `keygen` command
-#[derive(Command, Debug, Default, Options)]
+#[derive(Command, Debug, Default, Parser)]
 pub struct KeygenCommand {
-    #[options(
-        short = "t",
-        long = "type",
-        help = "type of key: 'account' or 'consensus' (default 'consensus')"
-    )]
+    /// type of key: 'account' or 'consensus' (default 'consensus')
+    #[clap(short = 't', long = "type")]
     key_type: Option<String>,
 
-    #[options(free, help = "path where generated key should be created")]
+    /// path where generated key should be created
     output_paths: Vec<PathBuf>,
 }
 

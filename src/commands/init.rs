@@ -5,7 +5,8 @@ pub mod networks;
 
 use self::{config_builder::ConfigBuilder, networks::Network};
 use crate::{config::CONFIG_FILE_NAME, key_utils, prelude::*};
-use abscissa_core::{Command, Options, Runnable};
+use abscissa_core::{Command, Runnable};
+use clap::Parser;
 use std::{
     fs,
     os::unix::fs::PermissionsExt,
@@ -32,16 +33,13 @@ macro_rules! abort {
 }
 
 /// `init` subcommand
-#[derive(Command, Debug, Options)]
+#[derive(Command, Debug, Parser)]
 pub struct InitCommand {
-    #[options(
-        short = "n",
-        long = "networks",
-        help = "Tendermint networks to configure (comma separated)"
-    )]
+    /// Tendermint networks to configure (comma separated)
+    #[clap(short = 'n', long = "networks")]
     networks: Option<String>,
 
-    #[options(free, help = "path where config files should be generated")]
+    /// path where config files should be generated
     output_paths: Vec<PathBuf>,
 }
 
