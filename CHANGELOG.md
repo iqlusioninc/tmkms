@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.11.0 (2022-02-11)
+### Added
+- Sentinel config ([#351])
+- Osmosis config ([#370])
+- Persistence config ([#373])
+- New `key_format` type: `cosmos-json` ([#407])
+
+### Changed
+- Rust 2021 edition upgrade ([#465])
+- Dependency updates:
+  - `abscissa` framework v0.6 upgrade: includes new `clap` v3 argument parser ([#478])
+  - `k256` to v0.10 ([#457])
+  - `signature` v1.3.2 ([#417])
+  - `stdtx` v0.6 ([#457])
+  - `tendermint.rs` v0.23.3 ([#457])
+  - `yubishm.rs` v0.40 ([#457])
+
+### Fixed
+- Sporadic deadlocks when using the YubiHSM2 backend ([#37])
+- `tmkms keys import -t priv_validator` ([#350])
+
+[#37]: https://github.com/iqlusioninc/tmkms/pull/37
+[#350]: https://github.com/iqlusioninc/tmkms/pull/350
+[#351]: https://github.com/iqlusioninc/tmkms/pull/351
+[#370]: https://github.com/iqlusioninc/tmkms/pull/370
+[#373]: https://github.com/iqlusioninc/tmkms/pull/373
+[#407]: https://github.com/iqlusioninc/tmkms/pull/407
+[#417]: https://github.com/iqlusioninc/tmkms/pull/417
+[#457]: https://github.com/iqlusioninc/tmkms/pull/457
+[#465]: https://github.com/iqlusioninc/tmkms/pull/465
+[#478]: https://github.com/iqlusioninc/tmkms/pull/478
+
 ## 0.10.1 (2021-04-22)
 ### Changed
 - Bump tendermint-rs crates to v0.19 ([#327])
