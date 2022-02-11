@@ -2598,7 +2598,7 @@ dependencies = [
  "cosmrs",
  "ed25519-dalek",
  "eyre",
- "getrandom 0.1.16",
+ "getrandom 0.2.4",
  "hkd32",
  "hkdf 0.11.0",
  "hyper",
