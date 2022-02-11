@@ -16,8 +16,8 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-abscissa_core = "=0.6.0-rc.1"
-abscissa_tokio = { version = "=0.6.0-rc.1", optional = true }
+abscissa_core = "0.6"
+abscissa_tokio = { version = "0.6", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
@@ -58,7 +58,7 @@ yubihsm = { version = "0.40", features = ["secp256k1", "setup", "usb"], optional
 zeroize = "1"
 
 [dev-dependencies]
-abscissa_core = { version = "=0.6.0-rc.1", features = ["testing"] }
+abscissa_core = { version = "0.6", features = ["testing"] }
 byteorder = "1"
 rand = "0.7"
 
