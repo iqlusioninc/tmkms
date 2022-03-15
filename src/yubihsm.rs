@@ -187,9 +187,8 @@ fn prompt_for_auth_key_password(auth_key_id: u16) -> yubihsm::Credentials {
         auth_key_id
     );
 
-    let password = Zeroizing::new(
-        rpassword::prompt_password(prompt).expect("error reading password"),
-    );
+    let password =
+        Zeroizing::new(rpassword::prompt_password(prompt).expect("error reading password"));
 
     yubihsm::Credentials::from_password(auth_key_id, password.as_bytes())
 }
