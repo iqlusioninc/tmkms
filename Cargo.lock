@@ -453,7 +453,7 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60e0c62ee1728512be390ff6eb5471f674e846de06feba800c8e926583878cf0"
 dependencies = [
- "prost",
+ "prost 0.9.0",
  "prost-types",
  "tendermint-proto",
 ]
@@ -470,7 +470,7 @@ dependencies = [
  "eyre",
  "getrandom 0.2.5",
  "k256",
- "prost",
+ "prost 0.9.0",
  "prost-types",
  "rand_core 0.6.3",
  "serde",
@@ -1663,7 +1663,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "444879275cb4fd84958b1a1d5420d15e6fcf7c235fe47f053c9c2a80aceb6001"
 dependencies = [
  "bytes 1.1.0",
- "prost-derive",
+ "prost-derive 0.9.0",
+]
+
+[[package]]
+name = "prost"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bd5316aa8f5c82add416dfbc25116b84b748a21153f512917e8143640a71bbd"
+dependencies = [
+ "bytes 1.1.0",
+ "prost-derive 0.10.0",
 ]
 
 [[package]]
@@ -1704,13 +1714,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df35198f0777b75e9ff669737c6da5136b59dba33cf5a010a6d1cc4d56defc6f"
+dependencies = [
+ "anyhow",
+ "itertools 0.10.3",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "prost-types"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "534b7a0e836e3c482d2693070f982e39e7611da9695d4d1f5a4b186b51faef0a"
 dependencies = [
  "bytes 1.1.0",
- "prost",
+ "prost 0.9.0",
 ]
 
 [[package]]
@@ -2322,7 +2345,7 @@ dependencies = [
  "k256",
  "num-traits",
  "once_cell",
- "prost",
+ "prost 0.9.0",
  "prost-types",
  "ripemd160",
  "serde",
@@ -2366,8 +2389,8 @@ dependencies = [
  "flume",
  "hkdf 0.10.0",
  "merlin",
- "prost",
- "prost-derive",
+ "prost 0.9.0",
+ "prost-derive 0.9.0",
  "rand_core 0.5.1",
  "sha2",
  "signature",
@@ -2389,7 +2412,7 @@ dependencies = [
  "flex-error",
  "num-derive",
  "num-traits",
- "prost",
+ "prost 0.9.0",
  "prost-types",
  "serde",
  "serde_bytes",
@@ -2558,10 +2581,10 @@ dependencies = [
  "k256",
  "ledger",
  "once_cell",
- "prost",
+ "prost 0.10.0",
  "prost-amino",
  "prost-amino-derive",
- "prost-derive",
+ "prost-derive 0.9.0",
  "rand",
  "rand_core 0.6.3",
  "rpassword",
