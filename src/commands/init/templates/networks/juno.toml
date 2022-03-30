@@ -1,6 +1,6 @@
 ### Juno Network
 
-[chain]]
+[[chain]]
 id = "juno-1"
 key_format = { type = "bech32", account_key_prefix = "junopub", consensus_key_prefix = "junovalconspub" }
 protocol_version = "v0.34"
