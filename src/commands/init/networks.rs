@@ -26,6 +26,9 @@ pub enum Network {
 
     /// Persistence `core` chain
     Persistence,
+
+    /// Juno `core` chain
+    Juno,
 }
 
 impl Display for Network {
@@ -37,6 +40,7 @@ impl Display for Network {
             Network::SentinelHub => "sentinelhub",
             Network::Osmosis => "osmosis",
             Network::Persistence => "core",
+            Network::Juno => "Juno",
         })
     }
 }
@@ -51,6 +55,7 @@ impl Network {
             Network::SentinelHub,
             Network::Osmosis,
             Network::Persistence,
+            Network::Juno,
         ]
     }
 
@@ -63,6 +68,7 @@ impl Network {
             "sentinelhub" => Network::SentinelHub,
             "osmosis" => Network::Osmosis,
             "core" => Network::Persistence,
+            "juno" => Network::Juno,
             other => {
                 status_err!("unknown Tendermint network: `{}`", other);
                 eprintln!("\nRegistered networks:");
@@ -85,6 +91,7 @@ impl Network {
             Network::SentinelHub => "sentinelhub-2",
             Network::Osmosis => "osmosis-1",
             Network::Persistence => "core-1",
+            Network::Juno => "juno-1",
         }
     }
 
@@ -97,6 +104,7 @@ impl Network {
             Network::SentinelHub => "sentinelhub.toml",
             Network::Osmosis => "osmosis.toml",
             Network::Persistence => "persistence.toml",
+            Network::Juno => "juno.toml",
         }
     }
 }
