@@ -27,7 +27,7 @@ pub enum Network {
     /// Persistence `core` chain
     Persistence,
 
-    /// Juno `core` chain
+    /// Juno `juno` chain
     Juno,
 }
 
@@ -40,7 +40,7 @@ impl Display for Network {
             Network::SentinelHub => "sentinelhub",
             Network::Osmosis => "osmosis",
             Network::Persistence => "core",
-            Network::Juno => "Juno",
+            Network::Juno => "juno",
         })
     }
 }
