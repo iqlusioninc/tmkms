@@ -5,9 +5,7 @@ use std::{ffi::OsStr, str};
 
 #[test]
 fn test_versionx() {
-    let result = cli::run(&[
-        OsStr::new("version"),
-    ]);
+    let result = cli::run(&[OsStr::new("version")]);
 
     assert!(result.status.success());
     let stdout = str::from_utf8(&result.stdout).unwrap().trim().to_owned();
