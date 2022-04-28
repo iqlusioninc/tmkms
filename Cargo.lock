@@ -468,7 +468,7 @@ dependencies = [
  "cosmos-sdk-proto",
  "ecdsa",
  "eyre",
- "getrandom 0.2.5",
+ "getrandom 0.2.6",
  "k256",
  "prost",
  "prost-types",
@@ -887,9 +887,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d39cd93900197114fa1fcb7ae84ca742095eed9442088988ae74fa744e930e77"
+checksum = "9be70c98951c83b8d2f8f60d7065fa6d5146873094452a1008da8c2f1e4205ad"
 dependencies = [
  "cfg-if 1.0.0",
  "js-sys",
@@ -1843,7 +1843,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 dependencies = [
- "getrandom 0.2.5",
+ "getrandom 0.2.6",
 ]
 
 [[package]]
@@ -2347,7 +2347,7 @@ checksum = "32ec69ed4fb770585fdd0e8525e4910aaf3801ba5d001c0a927c617c140f8824"
 dependencies = [
  "ecdsa",
  "eyre",
- "getrandom 0.2.5",
+ "getrandom 0.2.6",
  "k256",
  "prost-amino",
  "prost-amino-derive",
@@ -2518,7 +2518,7 @@ dependencies = [
  "bytes 1.1.0",
  "flex-error",
  "futures",
- "getrandom 0.2.5",
+ "getrandom 0.2.6",
  "http",
  "hyper",
  "hyper-proxy",
@@ -2663,7 +2663,7 @@ dependencies = [
  "ed25519-dalek",
  "elliptic-curve",
  "eyre",
- "getrandom 0.2.5",
+ "getrandom 0.2.6",
  "hkd32",
  "hkdf 0.11.0",
  "hyper",
@@ -2941,7 +2941,7 @@ version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 dependencies = [
- "getrandom 0.2.5",
+ "getrandom 0.2.6",
  "serde",
 ]
 
