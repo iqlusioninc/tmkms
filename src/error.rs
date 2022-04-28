@@ -37,6 +37,11 @@ pub enum ErrorKind {
     #[error("cryptographic error")]
     CryptoError,
 
+    /// Fortanix DSM related error
+    #[cfg(feature = "fortanixdsm")]
+    #[error("Fortanix DSM error")]
+    FortanixDsmError,
+
     /// Error running a subcommand to update chain state
     #[error("subcommand hook failed")]
     HookError,

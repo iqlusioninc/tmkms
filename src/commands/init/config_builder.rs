@@ -83,6 +83,9 @@ impl ConfigBuilder {
 
         #[cfg(feature = "softsign")]
         self.add_softsign_provider_config();
+
+        #[cfg(feature = "fortanixdsm")]
+        self.add_fortanixdsm_provider_config();
     }
 
     /// Add `[[validator]]` configurations
@@ -167,6 +170,13 @@ impl ConfigBuilder {
 
         #[cfg(feature = "tx-signer")]
         self.add_template_with_chain_id(include_str!("templates/keyring/softsign_account.toml"));
+    }
+
+    /// Add `[[provider.fortanixdsm]]` configuration
+    #[cfg(feature = "fortanixdsm")]
+    fn add_fortanixdsm_provider_config(&mut self) {
+        self.add_str("### Fortanix DSM Signer Configuration\n\n");
+        self.add_template_with_chain_id(include_str!("templates/keyring/fortanixdsm.toml"));
     }
 
     /// Append a template to the config file, substituting `$KMS_HOME`
