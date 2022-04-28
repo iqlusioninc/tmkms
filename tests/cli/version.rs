@@ -4,7 +4,7 @@ use crate::cli;
 use std::{ffi::OsStr, str};
 
 #[test]
-fn test_versionx() {
+fn test_version() {
     let result = cli::run(&[OsStr::new("version")]);
 
     assert!(result.status.success());
