@@ -22,7 +22,7 @@ bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
 clap = "3"
-cosmrs = "0.5"
+cosmrs = "0.6"
 ed25519-dalek = "1"
 elliptic-curve = { version = "0.11.12", features = ["pkcs8"], optional = true }
 eyre = "0.6"
