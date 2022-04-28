@@ -9,6 +9,7 @@ use std::{
 use super::KMS_EXE_PATH;
 
 mod init;
+mod version;
 
 #[cfg(feature = "yubihsm")]
 mod yubihsm;

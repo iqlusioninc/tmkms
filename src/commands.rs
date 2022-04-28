@@ -6,6 +6,7 @@ pub mod ledger;
 #[cfg(feature = "softsign")]
 pub mod softsign;
 pub mod start;
+pub mod version;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
@@ -16,7 +17,7 @@ pub use self::softsign::SoftsignCommand;
 #[cfg(feature = "yubihsm")]
 pub use self::yubihsm::YubihsmCommand;
 
-pub use self::{init::InitCommand, start::StartCommand};
+pub use self::{init::InitCommand, start::StartCommand, version::VersionCommand};
 
 use crate::config::{KmsConfig, CONFIG_ENV_VAR, CONFIG_FILE_NAME};
 use abscissa_core::{Command, Configurable, Runnable};
@@ -41,6 +42,9 @@ pub enum KmsCommand {
 
     /// start the KMS application"
     Start(StartCommand),
+
+    /// display the version
+    Version(VersionCommand),
 
     /// subcommands for YubiHSM2
     #[cfg(feature = "yubihsm")]
