@@ -458,9 +458,9 @@ checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
 
 [[package]]
 name = "cosmos-sdk-proto"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60e0c62ee1728512be390ff6eb5471f674e846de06feba800c8e926583878cf0"
+checksum = "339c77a6fbcca87ffeef15d8eb02a00889fbc63ef4fe708ea9493e94566c27f4"
 dependencies = [
  "prost",
  "prost-types",
@@ -469,9 +469,9 @@ dependencies = [
 
 [[package]]
 name = "cosmrs"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7389d72937808cb14c4a93873b070c31e418e7d23313150e9f3bcf34f1461d12"
+checksum = "dc4efc904b925ed57633ff7008eb19796bedd762e69a928fa3e7bb2fbb11e106"
 dependencies = [
  "bip32",
  "cosmos-sdk-proto",
@@ -2426,9 +2426,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint"
-version = "0.23.5"
+version = "0.23.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df8150cb636f400ead6de6f4893824d40ecf71214c5d9f8a1d445b5f38fff7b3"
+checksum = "16a3d617db287955b07e4bf1523b831bf5055e7d3ceab8504174181df40cb143"
 dependencies = [
  "async-trait",
  "bytes 1.1.0",
@@ -2498,9 +2498,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-proto"
-version = "0.23.5"
+version = "0.23.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10ba5f19afd52d69aa139cbf2a2ad129673a87aebeb66742b852a4d91b482e7b"
+checksum = "b8a65da26cc1f24cd53f40d1267372c22d6ce727d9fd40c6c61b879b26154994"
 dependencies = [
  "bytes 1.1.0",
  "flex-error",
