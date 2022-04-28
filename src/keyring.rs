@@ -187,5 +187,8 @@ pub fn load_config(registry: &mut chain::Registry, config: &ProviderConfig) -> R
     #[cfg(feature = "ledger")]
     providers::ledgertm::init(registry, &config.ledgertm)?;
 
+    #[cfg(feature = "fortanixdsm")]
+    providers::fortanixdsm::init(registry, &config.fortanixdsm)?;
+
     Ok(())
 }

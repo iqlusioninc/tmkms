@@ -9,6 +9,9 @@ pub mod softsign;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
+#[cfg(feature = "fortanixdsm")]
+pub mod fortanixdsm;
+
 use std::fmt::{self, Display};
 
 /// Enumeration of signing key providers
@@ -25,6 +28,10 @@ pub enum SigningProvider {
     /// Software signer (not intended for production use)
     #[cfg(feature = "softsign")]
     SoftSign,
+
+    /// Fortanix DSM signer
+    #[cfg(feature = "fortanixdsm")]
+    FortanixDsm,
 }
 
 impl Display for SigningProvider {
@@ -38,6 +45,9 @@ impl Display for SigningProvider {
 
             #[cfg(feature = "softsign")]
             SigningProvider::SoftSign => write!(f, "softsign"),
+
+            #[cfg(feature = "fortanixdsm")]
+            SigningProvider::FortanixDsm => write!(f, "fortanixdsm"),
         }
     }
 }
