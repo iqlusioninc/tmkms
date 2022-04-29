@@ -2471,9 +2471,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-p2p"
-version = "0.23.5"
+version = "0.23.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c39a39dd5a3e1946cd1b0a0df35418a25de0c7772440113f160d7a280eb4d9"
+checksum = "94b815d0d41f8769f1dd47c6296e3c67f81c406ab5fb5284fca8b0d389aacf93"
 dependencies = [
  "aead",
  "chacha20poly1305",
