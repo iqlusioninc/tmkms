@@ -47,7 +47,7 @@ instructions on how to build Tendermint KMS).
 The following signing backend providers are presently supported:
 
 #### Hardware Security Modules (recommended)
-
+- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature. See [README.fortanixdsm.md](./README.fortanixdsm.md) 
 - [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2] for more info)
 - [Ledger] (gated under the `ledger` cargo feature)
 
