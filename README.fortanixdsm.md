@@ -79,7 +79,7 @@ You can get the api key from the app that holds the security object(key) in DSM.
 1. Create a security group on DSM, example 'TMKMS group'.
 2. Create a APP under the same security group on DSM, example 'TMKMS'. Select Authentication method to be 'API Key' and copy the API key for use in config fie (tmkms.toml).
 
-3. Create a security Object under the same app, so that the API key for the app can be used to access the key. The type of key is `EC CurveEd25519`. The same key ID has to be passed in the config file.
+3. Create a security Object under the same group in DSM, so that the API key for the app can be used to access the key under the same group. The type of key must be `EC CurveEd25519` for consensus key and `Secp256k1` for account key. Proceed with creation of these keys on DSM and the same required key ID has to be passed in the config file.
 4. To import an existing tendermint key use the following script to convert a tendermint key to Fortanix DSM accepted key format.
 ```
 #!/bin/bash
