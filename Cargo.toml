@@ -56,7 +56,7 @@ tendermint-proto = "0.23.7"
 tendermint-p2p = { version = "0.23.7", features = ["amino"] }
 thiserror = "1"
 url = { version = "2.2.2", features = ["serde"], optional = true }
-uuid = { version = "0.8.2", features = ["serde"], optional = true }
+uuid = { version = "1.0.0", features = ["serde"], optional = true }
 wait-timeout = "0.2"
 yubihsm = { version = "0.40", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
