@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.12.0 (2022-05-24)
+### Added
+- Fortanix DSM signer ([#469])
+- `version` command ([#487])
+
+### Changed
+- Bump `cosmrs` to v0.7 ([#537])
+- Bump `prost` to v0.10 ([#523], [#537])
+- Bump tendermint-rs crates to v0.23.7 ([#537])
+
+[#469]: https://github.com/iqlusioninc/tmkms/pull/469
+[#487]: https://github.com/iqlusioninc/tmkms/pull/487
+[#523]: https://github.com/iqlusioninc/tmkms/pull/523
+[#537]: https://github.com/iqlusioninc/tmkms/pull/537
+
 ## 0.11.0 (2022-02-11)
 ### Added
 - Sentinel config ([#351])
