@@ -24,7 +24,7 @@ chrono = "0.4"
 clap = "3"
 cosmrs = "0.7"
 ed25519-dalek = "1"
-elliptic-curve = { version = "0.11.12", features = ["pkcs8"], optional = true }
+elliptic-curve = { version = "0.12.0", features = ["pkcs8"], optional = true }
 eyre = "0.6"
 getrandom = "0.2"
 hkd32 = { version = "0.6", default-features = false, features = ["mnemonic"] }
