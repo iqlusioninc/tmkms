@@ -2098,7 +2098,7 @@ dependencies = [
  "time 0.3.9",
  "tokio-native-tls",
  "url 1.7.2",
- "uuid",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -2535,7 +2535,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url 2.2.2",
- "uuid",
+ "uuid 0.8.2",
  "walkdir",
 ]
 
@@ -2692,7 +2692,7 @@ dependencies = [
  "tendermint-rpc",
  "thiserror",
  "url 2.2.2",
- "uuid",
+ "uuid 1.1.0",
  "wait-timeout",
  "yubihsm",
  "zeroize",
@@ -2947,6 +2947,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 dependencies = [
  "getrandom 0.2.6",
+ "serde",
+]
+
+[[package]]
+name = "uuid"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93bbc61e655a4833cf400d0d15bf3649313422fa7572886ad6dab16d79886365"
+dependencies = [
  "serde",
 ]
 
@@ -3240,7 +3249,7 @@ dependencies = [
  "thiserror",
  "time 0.3.9",
  "tiny_http",
- "uuid",
+ "uuid 0.8.2",
  "zeroize",
 ]
 
