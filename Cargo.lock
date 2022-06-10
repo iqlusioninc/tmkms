@@ -469,9 +469,9 @@ dependencies = [
 
 [[package]]
 name = "cosmrs"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8413275b23cb5a0734d9d1e3e33f0b5b94547c1e94776dbc3149dbf46588a533"
+checksum = "6989fdb6267eccb52762530b79ce0b385f4eaeb8b786522a95512e9bebb268c2"
 dependencies = [
  "bip32",
  "cosmos-sdk-proto",
