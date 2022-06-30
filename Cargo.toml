@@ -28,7 +28,7 @@ elliptic-curve = { version = "0.11.12", features = ["pkcs8"], optional = true }
 eyre = "0.6"
 getrandom = "0.2"
 hkd32 = { version = "0.6", default-features = false, features = ["mnemonic"] }
-hkdf = "0.11"
+hkdf = "0.12"
 hyper = { version = "0.14", optional = true }
 hyper-rustls = { version = "0.23", optional = true, features = ["webpki-roots"] }
 k256 = { version = "0.10", features = ["ecdsa", "sha256"] }
