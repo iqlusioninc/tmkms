@@ -27,7 +27,7 @@ ed25519-dalek = "1"
 elliptic-curve = { version = "0.11.12", features = ["pkcs8"], optional = true }
 eyre = "0.6"
 getrandom = "0.2"
-hkd32 = { version = "0.6", default-features = false, features = ["mnemonic"] }
+hkd32 = { version = "0.7", default-features = false, features = ["mnemonic"] }
 hkdf = "0.11"
 hyper = { version = "0.14", optional = true }
 hyper-rustls = { version = "0.23", optional = true, features = ["webpki-roots"] }
