@@ -2084,9 +2084,9 @@ dependencies = [
 
 [[package]]
 name = "sdkms"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dfbb44b25c630c07855c0cdd211a8a6716ce62ab37a8764014acab9c2516920"
+checksum = "474a033e7cb7c343a496026464a55bee3d98bc308d2f2ed53a9d8a21c68e1419"
 dependencies = [
  "base64",
  "bitflags",
@@ -2098,7 +2098,7 @@ dependencies = [
  "time 0.3.10",
  "tokio-native-tls",
  "url 1.7.2",
- "uuid",
+ "uuid 1.1.2",
 ]
 
 [[package]]
@@ -2535,7 +2535,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url 2.2.2",
- "uuid",
+ "uuid 0.8.2",
  "walkdir",
 ]
 
@@ -2693,7 +2693,7 @@ dependencies = [
  "tendermint-rpc",
  "thiserror",
  "url 2.2.2",
- "uuid",
+ "uuid 0.8.2",
  "wait-timeout",
  "yubihsm",
  "zeroize",
@@ -2946,6 +2946,15 @@ name = "uuid"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "uuid"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd6469f4314d5f1ffec476e05f17cc9a78bc7a27a6a857842170bdf8d6f98d2f"
 dependencies = [
  "getrandom 0.2.7",
  "serde",
@@ -3241,7 +3250,7 @@ dependencies = [
  "thiserror",
  "time 0.3.10",
  "tiny_http",
- "uuid",
+ "uuid 0.8.2",
  "zeroize",
 ]
 
