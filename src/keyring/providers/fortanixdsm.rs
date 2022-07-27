@@ -209,7 +209,7 @@ fn add_key(
 }
 
 // See RFC 8410 section 3
-const ED_25519_OID: ObjectIdentifier = ObjectIdentifier::new("1.3.101.112");
+const ED_25519_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.101.112");
 
 struct Ed25519PublicKey(Ed25519);
 
