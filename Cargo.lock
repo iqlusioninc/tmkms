@@ -1757,7 +1757,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71adf41db68aa0daaefc69bb30bcd68ded9b9abaad5d1fbb6304c4fb390e083e"
 dependencies = [
  "bytes 1.2.1",
- "prost-derive",
+ "prost-derive 0.10.1",
 ]
 
 [[package]]
@@ -1789,6 +1789,19 @@ name = "prost-derive"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b670f45da57fb8542ebdbb6105a925fe571b67f9e7ed9f47a06a84e72b4e7cc"
+dependencies = [
+ "anyhow",
+ "itertools 0.10.3",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7345d5f0e08c0536d7ac7229952590239e77abf0a0100a1b1d890add6ea96364"
 dependencies = [
  "anyhow",
  "itertools 0.10.3",
@@ -2517,7 +2530,7 @@ dependencies = [
  "hkdf 0.10.0",
  "merlin",
  "prost",
- "prost-derive",
+ "prost-derive 0.10.1",
  "rand_core 0.5.1",
  "sha2 0.9.9",
  "signature",
@@ -2715,7 +2728,7 @@ dependencies = [
  "prost",
  "prost-amino",
  "prost-amino-derive",
- "prost-derive",
+ "prost-derive 0.11.0",
  "rand",
  "rand_core 0.6.3",
  "rpassword",
