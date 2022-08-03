@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.12.1 (2022-08-03)
+### Changed
+- MSRV 1.57 ([#557])
+- Updated dependencies ([#577])
+  - `cosmrs` v0.8
+  - `elliptic-curve` v0.12
+  - `hkd32` v0.7
+  - `hkdf` v0.12
+  - `k256` v0.11
+  - `sdkms` v0.5
+  - `sha2` v0.10
+  - `signtature` v1.5
+  - `stdtx` v0.7
+  - `tendermint-*` v0.23.8
+  - `uuid` v1
+  - `yubihsm` v0.41
+
+[#557]: https://github.com/iqlusioninc/tmkms/pull/557
+[#577]: https://github.com/iqlusioninc/tmkms/pull/577
+
 ## 0.12.0 (2022-05-24)
 ### Added
 - Fortanix DSM signer ([#469])
