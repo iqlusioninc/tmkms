@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.12.2 (2022-08-08)
+### Changed
+- Bump `cosmrs` to v0.9 ([#591])
+- Bump `tendermint` to v0.23.9 ([#591])
+
+[#591]: https://github.com/iqlusioninc/tmkms/pull/591
+
+
 ## 0.12.1 (2022-08-03)
 ### Changed
 - MSRV 1.57 ([#557])
@@ -24,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#557]: https://github.com/iqlusioninc/tmkms/pull/557
 [#577]: https://github.com/iqlusioninc/tmkms/pull/577
 
+
 ## 0.12.0 (2022-05-24)
 ### Added
 - Fortanix DSM signer ([#469])
@@ -38,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#487]: https://github.com/iqlusioninc/tmkms/pull/487
 [#523]: https://github.com/iqlusioninc/tmkms/pull/523
 [#537]: https://github.com/iqlusioninc/tmkms/pull/537
+
 
 ## 0.11.0 (2022-02-11)
 ### Added
@@ -71,11 +81,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#465]: https://github.com/iqlusioninc/tmkms/pull/465
 [#478]: https://github.com/iqlusioninc/tmkms/pull/478
 
+
 ## 0.10.1 (2021-04-22)
 ### Changed
 - Bump tendermint-rs crates to v0.19 ([#327])
 
 [#327]: https://github.com/iqlusioninc/tmkms/pull/327
+
 
 ## 0.10.0 (2021-02-16)
 
@@ -121,6 +133,7 @@ You'll need the old state file if a chain rollback is required!
 [#249]: https://github.com/iqlusioninc/tmkms/pull/249
 [#289]: https://github.com/iqlusioninc/tmkms/pull/289
 [#290]: https://github.com/iqlusioninc/tmkms/pull/290
+
 
 ## 0.9.0 (2020-10-22)
 
@@ -179,6 +192,7 @@ Notable breaking changes:
 [#115]: https://github.com/iqlusioninc/tmkms/pull/115
 [#104]: https://github.com/iqlusioninc/tmkms/pull/104
 
+
 ## 0.8.0 (2020-07-02)
 
 This release adds initial support for [tendermint v0.33].
@@ -211,6 +225,7 @@ This release adds initial support for [tendermint v0.33].
 [#60]: https://github.com/iqlusioninc/tmkms/pull/60
 [#58]: https://github.com/iqlusioninc/tmkms/pull/58
 
+
 ## 0.7.3 (2020-05-12)
 
 - Bump `tendermint` crate to v0.13 ([#36])
@@ -218,6 +233,7 @@ This release adds initial support for [tendermint v0.33].
 - Bump `yubihsm` crate to v0.33 ([#36])
 
 [#36]: https://github.com/iqlusioninc/tmkms/pull/36
+
 
 ## 0.7.2 (2020-03-03)
 
@@ -229,6 +245,7 @@ This release adds initial support for [tendermint v0.33].
 [#10]: https://github.com/iqlusioninc/tmkms/pull/10
 [#6]: https://github.com/iqlusioninc/tmkms/pull/6
 
+
 ## 0.7.1 (2020-01-23)
 
 - Remove explicit dependency on the `log` crate
@@ -239,6 +256,7 @@ This release adds initial support for [tendermint v0.33].
 - Upgrade `x25519-dalek` to v0.6; remove `rand_os`
 - Remove `failure`
 - Update to `tendermint-rs` 0.12.0-rc0; `prost-amino` v0.5; `signatory v0.18`
+
 
 ## 0.7.0 (2019-12-16)
 
@@ -253,13 +271,16 @@ This release adds initial support for [tendermint v0.33].
 - Double signing detection and logging improvements
 - Log signing message type during attempted double sign events
 
+
 ## 0.6.3 (2019-08-07)
 
 - Detect and don't attempt to recover from PoisonError
 
+
 ## 0.6.2 (2019-08-07)
 
 - chain/state: Avoid panicking in update_consensus_state
+
 
 ## 0.6.1 (2019-08-06)
 
@@ -270,6 +291,7 @@ This release adds initial support for [tendermint v0.33].
 - Consider signed `<nil>` votes to be double signs
 
 [`abscissa` crate v0.3]: https://github.com/iqlusioninc/abscissa/pull/127
+
 
 ## 0.6.0 (2019-07-30)
 
@@ -353,6 +375,7 @@ section in the Tendermint KMS YubiHSM docs:
 [`abscissa` crate v0.2]: https://github.com/iqlusioninc/abscissa/pull/98
 [`tendermint` crate v0.10.0]: https://crates.io/crates/tendermint/0.10.0
 
+
 ## 0.5.0 (2019-03-13)
 
 - [`tendermint` crate v0.5.0]
@@ -366,6 +389,7 @@ section in the Tendermint KMS YubiHSM docs:
 
 [`tendermint` crate v0.5.0]: https://crates.io/crates/tendermint/0.5.0
 
+
 ## 0.4.0 (2019-03-05)
 
 - [`tendermint` crate v0.3.0]
@@ -375,23 +399,28 @@ section in the Tendermint KMS YubiHSM docs:
 
 [`tendermint` crate v0.3.0]: https://crates.io/crates/tendermint/0.3.0
 
+
 ## 0.3.0 (2019-01-23)
 
 - Add ability to terminate on SIGTERM or SIGINT
 - Remove `PoisonPillMsg` 
+
 
 ## 0.2.4 (2019-01-18)
 
 - Refactor client/tests to always dial out to tendermint/gaiad
 - Migrate to rust 2018 edition
 
+
 ## 0.2.3 (2018-12-08)
 
 - Lower reconnect delay to 1s
 
+
 ## 0.2.2 (2018-12-03)
 
 - Allow empty BlockIds in validation method
+
 
 ## 0.2.1 (2018-11-27)
 
@@ -399,11 +428,13 @@ section in the Tendermint KMS YubiHSM docs:
 - Add integration tests for yubihsm subcommands
 - Fix `tmkms yubihsm keys import` command
 
+
 ## 0.2.0 (2018-11-20)
 
 - Add `tmkms yubihsm keys import` command
 - Simplify `tmkms.toml` syntax
 - Minor clarifications/fixes
+
 
 ## 0.1.0 (2018-11-13)
 
@@ -411,6 +442,7 @@ section in the Tendermint KMS YubiHSM docs:
 - Extract `tendermint` crate as a reusable Rust library
 - Support for Bech32-formatted Cosmos keys/addresses
 - Validator signing via Unix domain socket IPC
+
 
 ## 0.0.1 (2018-10-16)
 
