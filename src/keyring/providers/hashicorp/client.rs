@@ -1,21 +1,19 @@
 use std::collections::HashMap;
 
 use super::error::Error;
+use hashicorp_vault::{
+    client::TokenData,
+    client::{EndpointResponse, HttpVerb::GET},
+    Client,
+};
 use serde::Deserialize;
-use ureq::{Agent, AgentBuilder};
-use url::Url;
-
-const VAULT_TOKEN_NAME: &str = "X-Vault-Token";
 
 const VAULT_BACKEND_NAME: &str = "transit";
 const USER_MESSAGE_CHUNK_SIZE: usize = 250;
 
-#[derive(Clone)]
 pub(super) struct TendermintValidatorApp {
-    agent: Agent,
-    host: Url,
+    client: Client<TokenData>,
     key_name: String,
-    token: String,
 }
 
 // TODO(tarcieri): check this is actually sound?!
@@ -30,52 +28,56 @@ struct GetSecretResponse {
 
 impl TendermintValidatorApp {
     pub fn connect(host: &str, token: &str, key_name: &str) -> Result<Self, Error> {
-        let agent = AgentBuilder::new().build();
+        //token self lookup
+        let mut client = Client::new(host, token)?;
+        client.secret_backend(VAULT_BACKEND_NAME);
 
         let app = TendermintValidatorApp {
-            agent,
-            host: Url::parse(host)?,
+            client,
             key_name: key_name.to_owned(),
-            token: token.to_owned(),
         };
-
-        app.lookup_self()?;
-        app.public_key()?;
-
         Ok(app)
-    }
-
-    //vault token lookup
-    fn lookup_self(&self) -> Result<String, Error> {
-        let response: String = self
-            .agent
-            //.get(Url::parse(format!("{}/auth/token/lookup-self", self.host))?)
-            .get(self.host.join("v1/auth/token/lookup-self")?.as_str())
-            .set(VAULT_TOKEN_NAME, &self.token)
-            .set("Content-Type", "application/json")
-            .call()?
-            .into_string()?;
-
-        Ok(response)
     }
 
     //vault read transit/keys/cosmoshub-sign-key
     //GET http://0.0.0.0:8200/v1/transit/keys/cosmoshub-sign-key
     /// Get public key
     pub fn public_key(&self) -> Result<[u8; 32], Error> {
-        let data = self
-            .agent
-            .post(
-                self.host
-                    .join(&format!("v1/transit/keys/{}", self.key_name))?
-                    .as_str(),
-            )
-            .set(VAULT_TOKEN_NAME, &self.token)
-            .set("Content-Type", "application/json")
-            .call()?
-            .into_json::<GetSecretResponse>()?;
+        let data = self.client.call_endpoint::<GetSecretResponse>(
+            GET,
+            &format!("transit/keys/{}", self.key_name),
+            None,
+            None,
+        )?;
 
-        println!("->{:#?}", data.keys);
+        let data = if let EndpointResponse::VaultResponse(data) = data {
+            if let Some(data) = data.data {
+                data
+            } else {
+                return Err(Error::InvalidPubKey("Unavailable".into()));
+            }
+        } else {
+            return Err(Error::InvalidPubKey("Unable to retrieve".into()));
+        };
+
+        //is it #1 version? TODO - get the last version
+        let pubk = if let Some(map) = data.keys.get(&1) {
+            if let Some(pubk) = map.get("public_key") {
+                pubk
+            } else {
+                return Err(Error::InvalidPubKey(
+                    "Unable to retrieve - \"public_key\" key is not found!".into(),
+                ));
+            }
+        } else {
+            return Err(Error::InvalidPubKey(
+                "Unable to retrieve - version 1 is not found!".into(),
+            ));
+        };
+
+        println!("public key: {} len: {}", pubk, pubk.len());
+        let pubk = pubk.as_bytes();
+        println!("public key len: {} {:#?}", pubk.len(), pubk);
 
         let array = [0u8; 32];
         Ok(array)
