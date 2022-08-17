@@ -1,0 +1,29 @@
+# Tendermint KMS configuration file
+
+## Chain Configuration
+
+### Cosmos Hub Network
+
+# [[chain]]
+# id = "cosmoshub-3"
+# key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }
+# state_file = "/home/soleinik/work/rust/tmkms/state/cosmoshub-3-consensus.json"
+
+## Signing Provider Configuration
+
+## Validator Configuration
+
+# [[validator]]
+# chain_id = "cosmoshub-3"
+# addr = "tcp://deadbeefdeadbeefdeadbeefdeadbeefdeadbeef@example1.example.com:26658"
+# secret_key = "/home/soleinik/work/rust/tmkms/secrets/kms-identity.key"
+# protocol_version = "legacy"
+# reconnect = true
+
+
+
+[[providers.hashicorp]]
+chain_id = "cosmoshub-4"
+api_endpoint= "http://127.0.0.1:8200"
+access_token=""
+pk_key_name="cosmoshub-4-sign-key"

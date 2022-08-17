@@ -61,6 +61,9 @@ wait-timeout = "0.2"
 yubihsm = { version = "0.41", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 
+#hashicorp_vault ={ version = "2.1.0", optional = true }
+ureq = { version = "2.5.0", default-features = false, features = ["tls", "json", "gzip"], optional = true }
+
 [dev-dependencies]
 abscissa_core = { version = "0.6", features = ["testing"] }
 byteorder = "1"
@@ -72,6 +75,10 @@ tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
+hashicorp = ["ureq", "url"]
+default = ["hashicorp"]
+#default = ["ledger"]
+#default = ["tx-signer"]
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]

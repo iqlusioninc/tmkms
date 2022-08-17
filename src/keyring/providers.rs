@@ -12,6 +12,9 @@ pub mod yubihsm;
 #[cfg(feature = "fortanixdsm")]
 pub mod fortanixdsm;
 
+#[cfg(feature = "hashicorp")]
+pub mod hashicorp;
+
 use std::fmt::{self, Display};
 
 /// Enumeration of signing key providers
@@ -32,6 +35,10 @@ pub enum SigningProvider {
     /// Fortanix DSM signer
     #[cfg(feature = "fortanixdsm")]
     FortanixDsm,
+
+    /// HashiCorp Vault provider
+    #[cfg(feature = "hashicorp")]
+    HashiCorp,
 }
 
 impl Display for SigningProvider {
@@ -48,6 +55,9 @@ impl Display for SigningProvider {
 
             #[cfg(feature = "fortanixdsm")]
             SigningProvider::FortanixDsm => write!(f, "fortanixdsm"),
+
+            #[cfg(feature = "hashicorp")]
+            SigningProvider::HashiCorp => write!(f, "hashicorp"),
         }
     }
 }
