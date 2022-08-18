@@ -39,9 +39,11 @@ pub fn init(
         let token = &config.access_token;
         let key = &config.pk_key_name;
 
-        let a = client::TendermintValidatorApp::connect(url, token, &key).unwrap();
+        let mut a = client::TendermintValidatorApp::connect(url, token, &key).unwrap();
 
         a.public_key().unwrap();
+
+        a.sign("message".as_bytes()).unwrap();
 
         // if key_already_loaded {
         //     fail!(

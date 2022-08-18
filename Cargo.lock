@@ -2963,6 +2963,7 @@ version = "0.12.1"
 dependencies = [
  "abscissa_core",
  "abscissa_tokio",
+ "base64 0.13.0",
  "byteorder",
  "bytes 0.5.6",
  "bytes 1.2.1",

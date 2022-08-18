@@ -1,29 +1,44 @@
+use abscissa_core::prelude::*;
 use std::collections::HashMap;
 
 use super::error::Error;
 use hashicorp_vault::{
     client::TokenData,
-    client::{EndpointResponse, HttpVerb::GET},
+    client::{EndpointResponse, HttpVerb},
     Client,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const VAULT_BACKEND_NAME: &str = "transit";
 const USER_MESSAGE_CHUNK_SIZE: usize = 250;
+//TODO - confirm size
+const PUBLIC_KEY_SIZE: usize = 32;
 
 pub(super) struct TendermintValidatorApp {
     client: Client<TokenData>,
     key_name: String,
+    public_key_value: Option<[u8; PUBLIC_KEY_SIZE]>,
 }
 
 // TODO(tarcieri): check this is actually sound?!
 #[allow(unsafe_code)]
 unsafe impl Send for TendermintValidatorApp {}
 
+///
 #[derive(Debug, Deserialize)]
-struct GetSecretResponse {
-    r#type: String,
+struct PublicKeyResponse {
+    //r#type: String, //ed25519
     keys: HashMap<usize, HashMap<String, String>>,
+}
+
+#[derive(Debug, Serialize)]
+struct SignRequest {
+    input: String, //Base64 encoded
+}
+
+#[derive(Debug, Deserialize)]
+struct SignResponse {
+    signature: String, //Base64 encoded
 }
 
 impl TendermintValidatorApp {
@@ -35,21 +50,30 @@ impl TendermintValidatorApp {
         let app = TendermintValidatorApp {
             client,
             key_name: key_name.to_owned(),
+            public_key_value: None,
         };
+
+        info!("Initialized with Vault host at {}", host);
         Ok(app)
     }
 
     //vault read transit/keys/cosmoshub-sign-key
     //GET http://0.0.0.0:8200/v1/transit/keys/cosmoshub-sign-key
+    //TODO: is it possible for keys to change? should we cashe it?
     /// Get public key
-    pub fn public_key(&self) -> Result<[u8; 32], Error> {
-        let data = self.client.call_endpoint::<GetSecretResponse>(
-            GET,
+    pub fn public_key(&mut self) -> Result<[u8; PUBLIC_KEY_SIZE], Error> {
+        if let Some(v) = self.public_key_value {
+            return Ok(v.clone());
+        }
+
+        let data = self.client.call_endpoint::<PublicKeyResponse>(
+            HttpVerb::GET,
             &format!("transit/keys/{}", self.key_name),
             None,
             None,
         )?;
 
+        //{ keys: {1: {"name": "ed25519", "public_key": "R5n8OFaknb/3sCTx/aegNzYukwVx0uNtzzK/2RclIOE=", "creation_time": "2022-08-18T12:44:02.136328217Z"}} }
         let data = if let EndpointResponse::VaultResponse(data) = data {
             if let Some(data) = data.data {
                 data
@@ -59,6 +83,7 @@ impl TendermintValidatorApp {
         } else {
             return Err(Error::InvalidPubKey("Unable to retrieve".into()));
         };
+        println!("{:?}", data);
 
         //is it #1 version? TODO - get the last version
         let pubk = if let Some(map) = data.keys.get(&1) {
@@ -75,57 +100,55 @@ impl TendermintValidatorApp {
             ));
         };
 
-        println!("public key: {} len: {}", pubk, pubk.len());
-        let pubk = pubk.as_bytes();
-        println!("public key len: {} {:#?}", pubk.len(), pubk);
+        let pubk = base64::decode(pubk)?;
 
-        let array = [0u8; 32];
+        let mut array = [0u8; PUBLIC_KEY_SIZE];
+        array.copy_from_slice(&pubk[..PUBLIC_KEY_SIZE]);
+
+        //cache it...
+        self.public_key_value = Some(array.clone());
+
         Ok(array)
     }
 
-    //     /// Sign message
-    //     pub fn sign(&self, message: &[u8]) -> Result<[u8; 64], Error> {
-    //         let chunks = message.chunks(USER_MESSAGE_CHUNK_SIZE);
+    //"https://127.0.0.1:8200/v1/transit/sign/cosmoshub-sign-key"
+    /// Sign message
+    pub fn sign(&self, message: &[u8]) -> Result<[u8; 64], Error> {
+        let body = SignRequest {
+            input: base64::encode(message),
+        };
 
-    //         if chunks.len() > 255 {
-    //             return Err(Error::InvalidMessageSize);
-    //         }
+        let data = self.client.call_endpoint::<SignResponse>(
+            HttpVerb::POST,
+            &format!("transit/sign/{}", self.key_name),
+            None,
+            Some(&serde_json::to_string(&body)?),
+        )?;
 
-    //         if chunks.len() == 0 {
-    //             return Err(Error::InvalidEmptyMessage);
-    //         }
+        let data = if let EndpointResponse::VaultResponse(data) = data {
+            if let Some(data) = data.data {
+                data
+            } else {
+                return Err(Error::InvalidPubKey("Unavailable".into()));
+            }
+        } else {
+            return Err(Error::InvalidPubKey("Unable to retrieve".into()));
+        };
 
-    //         let packet_count = chunks.len() as u8;
-    //         let mut response: ApduAnswer = ApduAnswer {
-    //             data: vec![],
-    //             retcode: 0,
-    //         };
+        //signature: "vault:v1:/bcnnk4p8Uvidrs1/IX9s66UCOmmfdJudcV1/yek9a2deMiNGsVRSjirz6u+ti2wqUZfG6UukaoSHIDSSRV5Cw=="
+        let sign = if let Some(sign) = data.signature.split(":").last() {
+            sign.to_owned()
+        } else {
+            return Err(Error::InvalidPubKey("Unable to retrieve".into()));
+        };
 
-    //         // Send message chunks
-    //         for (packet_idx, chunk) in chunks.enumerate() {
-    //             let _command = ApduCommand {
-    //                 cla: CLA,
-    //                 ins: INS_SIGN_ED25519,
-    //                 p1: (packet_idx + 1) as u8,
-    //                 p2: packet_count,
-    //                 length: chunk.len() as u8,
-    //                 data: chunk.to_vec(),
-    //             };
+        let sign = base64::decode(sign)?;
+        if sign.len() != 64 {
+            return Err(Error::InvalidSignature);
+        }
 
-    //             response = self.app.exchange(_command)?;
-    //         }
-
-    //         if response.data.is_empty() && response.retcode == 0x9000 {
-    //             return Err(Error::NoSignature);
-    //         }
-
-    //         // Last response should contain the answer
-    //         if response.data.len() != 64 {
-    //             return Err(Error::InvalidSignature);
-    //         }
-
-    //         let mut array = [0u8; 64];
-    //         array.copy_from_slice(&response.data[..64]);
-    //         Ok(array)
-    //     }
+        let mut array = [0u8; 64];
+        array.copy_from_slice(&sign[..64]);
+        Ok(array)
+    }
 }

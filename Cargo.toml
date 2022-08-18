@@ -61,7 +61,9 @@ wait-timeout = "0.2"
 yubihsm = { version = "0.41", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 
-hashicorp_vault ={ version = "2.1.0", optional = true }
+hashicorp_vault = { version = "2.1.0", optional = true }
+base64 = { version = "0.13.0", optional = true}
+
 
 [dev-dependencies]
 abscissa_core = { version = "0.6", features = ["testing"] }
@@ -74,7 +76,7 @@ tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
-hashicorp = ["hashicorp_vault"]
+hashicorp = ["hashicorp_vault", "base64"]
 default = ["hashicorp"]
 #default = ["ledger"]
 #default = ["tx-signer"]

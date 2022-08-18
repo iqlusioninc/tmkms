@@ -27,10 +27,28 @@ pub enum Error {
 
     #[error("ApiClient error")]
     ApiClientError(hashicorp_vault::Error),
+
+    #[error("Base64 decode error")]
+    DecodeError(base64::DecodeError),
+
+    #[error("SerDe error")]
+    SerDeError(serde_json::Error),
 }
 
 impl From<hashicorp_vault::Error> for Error {
     fn from(err: hashicorp_vault::Error) -> Error {
         Error::ApiClientError(err)
+    }
+}
+
+impl From<base64::DecodeError> for Error {
+    fn from(err: base64::DecodeError) -> Error {
+        Error::DecodeError(err)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Error {
+        Error::SerDeError(err)
     }
 }
