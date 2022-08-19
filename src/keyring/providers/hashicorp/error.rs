@@ -31,8 +31,11 @@ pub enum Error {
     #[error("Base64 decode error")]
     DecodeError(base64::DecodeError),
 
-    #[error("SerDe error")]
+    #[error("Serde error")]
     SerDeError(serde_json::Error),
+
+    #[error("Signature error")]
+    SignatureError(signature::Error),
 }
 
 impl From<hashicorp_vault::Error> for Error {
@@ -50,5 +53,10 @@ impl From<base64::DecodeError> for Error {
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
         Error::SerDeError(err)
+    }
+}
+impl From<signature::Error> for Error {
+    fn from(err: signature::Error) -> Error {
+        Error::SignatureError(err)
     }
 }

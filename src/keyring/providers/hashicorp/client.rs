@@ -83,7 +83,6 @@ impl TendermintValidatorApp {
         } else {
             return Err(Error::InvalidPubKey("Unable to retrieve".into()));
         };
-        println!("{:?}", data);
 
         //is it #1 version? TODO - get the last version
         let pubk = if let Some(map) = data.keys.get(&1) {
@@ -111,6 +110,7 @@ impl TendermintValidatorApp {
         Ok(array)
     }
 
+    //vault write transit/sign/cosmoshub-sign-key plaintext=$(base64 <<< "some-data")
     //"https://127.0.0.1:8200/v1/transit/sign/cosmoshub-sign-key"
     /// Sign message
     pub fn sign(&self, message: &[u8]) -> Result<[u8; 64], Error> {
@@ -135,20 +135,24 @@ impl TendermintValidatorApp {
             return Err(Error::InvalidPubKey("Unable to retrieve".into()));
         };
 
+        //TODO: check prefix to be "vault:v", maybe regex?
+        let parts = data.signature.split(":").collect::<Vec<&str>>();
+        //TODO: check length == 3
+
         //signature: "vault:v1:/bcnnk4p8Uvidrs1/IX9s66UCOmmfdJudcV1/yek9a2deMiNGsVRSjirz6u+ti2wqUZfG6UukaoSHIDSSRV5Cw=="
-        let sign = if let Some(sign) = data.signature.split(":").last() {
+        let base64_signature = if let Some(sign) = parts.last() {
             sign.to_owned()
         } else {
             return Err(Error::InvalidPubKey("Unable to retrieve".into()));
         };
 
-        let sign = base64::decode(sign)?;
-        if sign.len() != 64 {
+        let signature = base64::decode(base64_signature)?;
+        if signature.len() != 64 {
             return Err(Error::InvalidSignature);
         }
 
         let mut array = [0u8; 64];
-        array.copy_from_slice(&sign[..64]);
+        array.copy_from_slice(&signature[..64]);
         Ok(array)
     }
 }
