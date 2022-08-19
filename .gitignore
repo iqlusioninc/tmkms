@@ -8,3 +8,4 @@ tmkms.toml
 
 \.idea/
 /state
+/secrets

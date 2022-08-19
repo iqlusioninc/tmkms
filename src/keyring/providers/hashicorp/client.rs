@@ -13,7 +13,7 @@ const VAULT_BACKEND_NAME: &str = "transit";
 const PUBLIC_KEY_SIZE: usize = 32;
 const SIGNATURE_SIZE: usize = 64;
 
-pub(super) struct TendermintValidatorApp {
+pub(crate) struct TendermintValidatorApp {
     client: Client<TokenData>,
     key_name: String,
     public_key_value: Option<[u8; PUBLIC_KEY_SIZE]>,
@@ -129,7 +129,9 @@ impl TendermintValidatorApp {
     /// Sign message
     pub fn sign(&self, message: &[u8]) -> Result<[u8; SIGNATURE_SIZE], Error> {
         debug!("signing request: received");
-        //TODO: check for empty message...
+        if message.is_empty() {
+            return Err(Error::InvalidEmptyMessage);
+        }
 
         let body = SignRequest {
             input: base64::encode(message),
@@ -150,26 +152,35 @@ impl TendermintValidatorApp {
             if let Some(data) = data.data {
                 data
             } else {
-                return Err(Error::InvalidPubKey("signing request: Unavailable".into()));
+                return Err(Error::NoSignature);
             }
         } else {
-            return Err(Error::InvalidPubKey("Unable to retrieve".into()));
+            return Err(Error::NoSignature);
         };
 
-        //TODO: check prefix to be "vault:v", maybe regex?
         let parts = data.signature.split(":").collect::<Vec<&str>>();
-        //TODO: check length == 3
+        if parts.len() != 3 {
+            return Err(Error::InvalidSignature(format!(
+                "expected 3 parts, received:{} full:{}",
+                parts.len(),
+                data.signature
+            )));
+        }
 
         //signature: "vault:v1:/bcnnk4p8Uvidrs1/IX9s66UCOmmfdJudcV1/yek9a2deMiNGsVRSjirz6u+ti2wqUZfG6UukaoSHIDSSRV5Cw=="
         let base64_signature = if let Some(sign) = parts.last() {
             sign.to_owned()
         } else {
-            return Err(Error::InvalidPubKey("Unable to retrieve".into()));
+            //this should never happen
+            return Err(Error::InvalidSignature("last part is not available".into()));
         };
 
         let signature = base64::decode(base64_signature)?;
         if signature.len() != 64 {
-            return Err(Error::InvalidSignature);
+            return Err(Error::InvalidSignature(format!(
+                "invalid signature length! 64 == {}",
+                signature.len()
+            )));
         }
 
         let mut array = [0u8; SIGNATURE_SIZE];

@@ -1,9 +1,8 @@
 //! HashiCorp Vault provider
-mod client;
+pub(crate) mod client;
 mod error;
-mod signer;
+pub(crate) mod signer;
 
-use std::sync::{Arc, Mutex};
 
 use crate::{
     chain,

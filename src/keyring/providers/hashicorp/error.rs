@@ -4,9 +4,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("This version is not supported")]
-    InvalidVersion,
-
+    // #[error("This version is not supported")]
+    // InvalidVersion,
     #[error("message cannot be empty")]
     InvalidEmptyMessage,
 
@@ -16,14 +15,13 @@ pub enum Error {
     #[error("Public Key Error:{0}")]
     InvalidPubKey(String),
 
-    #[error("received an invalid PK")]
-    InvalidPk(),
-
+    // #[error("received an invalid PK")]
+    // InvalidPk(),
     #[error("received no signature back")]
     NoSignature,
 
-    #[error("received an invalid signature")]
-    InvalidSignature,
+    #[error("received an invalid signature: {0}")]
+    InvalidSignature(String),
 
     #[error("ApiClient error")]
     ApiClientError(hashicorp_vault::Error),

@@ -79,7 +79,8 @@ fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 hashicorp = ["hashicorp_vault", "base64"]
 default = ["hashicorp"]
 #default = ["ledger"]
-#default = ["tx-signer"]
+#default = ["softsign"]
+#default = ["yubihsm"]
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]

@@ -6,7 +6,7 @@ use crate::keyring::providers::hashicorp::client::TendermintValidatorApp;
 use signature::{Error, Signer};
 
 /// ed25519 signature provider for the Ledger Tendermint Validator app
-pub(super) struct Ed25519HashiCorpAppSigner {
+pub(crate) struct Ed25519HashiCorpAppSigner {
     app: Arc<Mutex<TendermintValidatorApp>>,
 }
 

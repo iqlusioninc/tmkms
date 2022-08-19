@@ -1,15 +1,18 @@
 # Tendermint KMS configuration file
 
 ## Chain Configuration
-
 ### Cosmos Hub Network
-
-# [[chain]]
-# id = "cosmoshub-3"
-# key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }
-# state_file = "/home/soleinik/work/rust/tmkms/state/cosmoshub-3-consensus.json"
+[[chain]]
+id = "cosmoshub-4"
+key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }
+state_file = "/home/soleinik/work/rust/tmkms/state/cosmoshub-4-consensus.json"
 
 ## Signing Provider Configuration
+[[providers.hashicorp]]
+chain_id = "cosmoshub-4"
+api_endpoint= "http://127.0.0.1:8200"
+access_token="hvs.CAESINi91lCOFj-_dOGiUfpdZUPKk93LD8YyHz-qZcYLVwH_Gh4KHGh2cy5kdXV1T2tpcXliakFFblU1SUpqanczYjU"
+pk_key_name="cosmoshub-sign-key"
 
 ## Validator Configuration
 
@@ -22,8 +25,3 @@
 
 
 
-[[providers.hashicorp]]
-chain_id = "cosmoshub-4"
-api_endpoint= "http://127.0.0.1:8200"
-access_token=""
-pk_key_name="cosmoshub-4-sign-key"
