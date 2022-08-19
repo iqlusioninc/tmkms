@@ -16,8 +16,6 @@ use crate::{
     prelude::*,
 };
 
-use k256::ecdsa;
-
 use tendermint::TendermintKey;
 
 use self::signer::Ed25519HashiCorpAppSigner;
@@ -63,28 +61,4 @@ pub fn init(
     }
 
     Ok(())
-}
-
-/// Load a secp256k1 (ECDSA) key according to the provided configuration
-fn load_secp256k1_key(config: &HashiCorpConfig) -> Result<ecdsa::SigningKey, Error> {
-    // if config.key_format.unwrap_or_default() != KeyFormat::Base64 {
-    //     fail!(
-    //         ConfigError,
-    //         "[[providers.softsign]] account keys must be `base64` encoded"
-    //     );
-    // }
-
-    // let key_bytes = key_utils::load_base64_secret(&config.path)?;
-    let key_bytes = vec![];
-
-    let secret_key = ecdsa::SigningKey::from_bytes(key_bytes.as_slice()).map_err(|e| {
-        format_err!(
-            ConfigError,
-            "can't decode account key base64 from {}: {}",
-            "", //config.path.as_ref().display(),
-            e
-        )
-    })?;
-
-    Ok(secret_key)
 }

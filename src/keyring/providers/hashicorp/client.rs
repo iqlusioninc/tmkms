@@ -1,5 +1,5 @@
 use abscissa_core::prelude::*;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use super::error::Error;
 use hashicorp_vault::{
@@ -10,9 +10,8 @@ use hashicorp_vault::{
 use serde::{Deserialize, Serialize};
 
 const VAULT_BACKEND_NAME: &str = "transit";
-const USER_MESSAGE_CHUNK_SIZE: usize = 250;
-//TODO - confirm size
 const PUBLIC_KEY_SIZE: usize = 32;
+const SIGNATURE_SIZE: usize = 64;
 
 pub(super) struct TendermintValidatorApp {
     client: Client<TokenData>,
@@ -28,7 +27,7 @@ unsafe impl Send for TendermintValidatorApp {}
 #[derive(Debug, Deserialize)]
 struct PublicKeyResponse {
     //r#type: String, //ed25519
-    keys: HashMap<usize, HashMap<String, String>>,
+    keys: BTreeMap<usize, HashMap<String, String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -53,7 +52,7 @@ impl TendermintValidatorApp {
             public_key_value: None,
         };
 
-        info!("Initialized with Vault host at {}", host);
+        debug!("Initialized with Vault host at {}", host);
         Ok(app)
     }
 
@@ -63,8 +62,10 @@ impl TendermintValidatorApp {
     /// Get public key
     pub fn public_key(&mut self) -> Result<[u8; PUBLIC_KEY_SIZE], Error> {
         if let Some(v) = self.public_key_value {
+            debug!("using cached public key {}...", self.key_name);
             return Ok(v.clone());
         }
+        debug!("fetching public key for {}...", self.key_name);
 
         let data = self.client.call_endpoint::<PublicKeyResponse>(
             HttpVerb::GET,
@@ -78,10 +79,14 @@ impl TendermintValidatorApp {
             if let Some(data) = data.data {
                 data
             } else {
-                return Err(Error::InvalidPubKey("Unavailable".into()));
+                return Err(Error::InvalidPubKey(
+                    "Public key: response \"data\" unavailable".into(),
+                ));
             }
         } else {
-            return Err(Error::InvalidPubKey("Unable to retrieve".into()));
+            return Err(Error::InvalidPubKey(
+                "Public key: Vault response unavailable".into(),
+            ));
         };
 
         //is it #1 version? TODO - get the last version
@@ -90,22 +95,31 @@ impl TendermintValidatorApp {
                 pubk
             } else {
                 return Err(Error::InvalidPubKey(
-                    "Unable to retrieve - \"public_key\" key is not found!".into(),
+                    "Public key: unable to retrieve - \"public_key\" key is not found!".into(),
                 ));
             }
         } else {
             return Err(Error::InvalidPubKey(
-                "Unable to retrieve - version 1 is not found!".into(),
+                "Public key: unable to retrieve - version 1 is not found!".into(),
             ));
         };
 
+        debug!("Public key: fetched {}={}...", self.key_name, pubk);
+
         let pubk = base64::decode(pubk)?;
+
+        debug!(
+            "Public key: base64 decoded {}, size:{}",
+            self.key_name,
+            pubk.len()
+        );
 
         let mut array = [0u8; PUBLIC_KEY_SIZE];
         array.copy_from_slice(&pubk[..PUBLIC_KEY_SIZE]);
 
         //cache it...
         self.public_key_value = Some(array.clone());
+        debug!("Public key: value cached {}", self.key_name,);
 
         Ok(array)
     }
@@ -113,10 +127,15 @@ impl TendermintValidatorApp {
     //vault write transit/sign/cosmoshub-sign-key plaintext=$(base64 <<< "some-data")
     //"https://127.0.0.1:8200/v1/transit/sign/cosmoshub-sign-key"
     /// Sign message
-    pub fn sign(&self, message: &[u8]) -> Result<[u8; 64], Error> {
+    pub fn sign(&self, message: &[u8]) -> Result<[u8; SIGNATURE_SIZE], Error> {
+        debug!("signing request: received");
+        //TODO: check for empty message...
+
         let body = SignRequest {
             input: base64::encode(message),
         };
+
+        debug!("signing request: base64 encoded and about to submit for signing...");
 
         let data = self.client.call_endpoint::<SignResponse>(
             HttpVerb::POST,
@@ -125,11 +144,13 @@ impl TendermintValidatorApp {
             Some(&serde_json::to_string(&body)?),
         )?;
 
+        debug!("signing request: about to submit for signing...");
+
         let data = if let EndpointResponse::VaultResponse(data) = data {
             if let Some(data) = data.data {
                 data
             } else {
-                return Err(Error::InvalidPubKey("Unavailable".into()));
+                return Err(Error::InvalidPubKey("signing request: Unavailable".into()));
             }
         } else {
             return Err(Error::InvalidPubKey("Unable to retrieve".into()));
@@ -151,8 +172,8 @@ impl TendermintValidatorApp {
             return Err(Error::InvalidSignature);
         }
 
-        let mut array = [0u8; 64];
-        array.copy_from_slice(&signature[..64]);
+        let mut array = [0u8; SIGNATURE_SIZE];
+        array.copy_from_slice(&signature[..SIGNATURE_SIZE]);
         Ok(array)
     }
 }

@@ -7,3 +7,4 @@ tmkms.toml
 *.swp
 
 \.idea/
+/state
