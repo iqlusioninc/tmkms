@@ -5,9 +5,10 @@ mod test;
 pub use self::test::TestCommand;
 
 use abscissa_core::{Command, Runnable};
-use clap::{Parser, Subcommand};
-use std::{path::PathBuf, process};
+use clap::Subcommand;
+use std::path::PathBuf;
 
+/// `hashicorp` subcommand
 #[derive(Command, Debug, Runnable, Subcommand)]
 pub enum HashicorpCommand {
     /// perform a signing test
@@ -23,10 +24,7 @@ impl HashicorpCommand {
 
     pub(super) fn verbose(&self) -> bool {
         match self {
-            //HashicorpCommand::Detect(detect) => detect.verbose,
-            //HashicorpCommand::Setup(setup) => setup.verbose,
             HashicorpCommand::Test(test) => test.verbose,
-            _ => false,
         }
     }
 }

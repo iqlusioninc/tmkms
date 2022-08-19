@@ -17,5 +17,5 @@ pub struct HashiCorpConfig {
     pub access_token: String,
 
     /// Vault's key name with ed25519 pk
-    pub pk_key_name: String,
+    pub pk_name: String,
 }

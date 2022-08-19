@@ -6,4 +6,4 @@ api_endpoint= "http://127.0.0.1:8200"
 #Vault's access token - vault token create -policy=<tmkms-transit-sign-policy>
 access_token="hvs.CAESINi91lCOFj-_dOGiUfpdZUPKk93LD8YyHz-qZcYLVwH_Gh4KHGh2cy5kdXV1T2tpcXliakFFblU1SUpqanczYjU"
 #Vault's transit secret engine key - vault write transit/keys/<cosmoshub-sign-key> type=ed25519
-pk_key_name="cosmoshub-sign-key"
+pk_name="cosmoshub-sign-key"

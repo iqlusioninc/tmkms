@@ -3,7 +3,6 @@ pub(crate) mod client;
 mod error;
 pub(crate) mod signer;
 
-
 use crate::{
     chain,
     config::provider::hashicorp::HashiCorpConfig,
@@ -34,18 +33,19 @@ pub fn init(
     //let mut key_already_loaded = false;
 
     for config in configs {
-        let url = &config.api_endpoint;
-        let token = &config.access_token;
-        let key = &config.pk_key_name;
-
-        let mut app = client::TendermintValidatorApp::connect(url, token, &key).unwrap();
+        let mut app = client::TendermintValidatorApp::connect(
+            &config.api_endpoint,
+            &config.access_token,
+            &config.pk_name,
+        )
+        .unwrap();
 
         let public_key = app.public_key().unwrap();
 
-        let provider = Ed25519HashiCorpAppSigner::new(app);
-
         let public_key =
             ed25519::PublicKey::from_bytes(&public_key).expect("invalid Ed25519 public key");
+
+        let provider = Ed25519HashiCorpAppSigner::new(app);
 
         let signer = Signer::new(
             SigningProvider::HashiCorp,

@@ -4,11 +4,7 @@ use crate::prelude::*;
 use abscissa_core::{Command, Runnable};
 use clap::Parser;
 use signature::SignerMut;
-use std::{
-    path::PathBuf,
-    process, thread,
-    time::{Duration, Instant},
-};
+use std::{path::PathBuf, process, time::Instant};
 
 /// The `hashicorp test` subcommand
 #[derive(Command, Debug, Default, Parser)]
@@ -27,7 +23,7 @@ pub struct TestCommand {
 
     /// Ed25519 signing key ID in Hashicorp Vault
     #[clap(help = "Vault's transit secret engine signing key")]
-    pk_key_name: String,
+    pk_name: String,
 
     ///test message
     #[clap(help = "message to sign")]
@@ -37,8 +33,8 @@ pub struct TestCommand {
 impl Runnable for TestCommand {
     /// Perform a signing test using the current HSM configuration
     fn run(&self) {
-        if self.pk_key_name.is_empty() {
-            status_err!("pk_key_name cannot be empty!");
+        if self.pk_name.is_empty() {
+            status_err!("pk_name cannot be empty!");
             process::exit(1);
         }
 
@@ -48,11 +44,11 @@ impl Runnable for TestCommand {
             .providers
             .hashicorp
             .iter()
-            .find(|c| c.pk_key_name == self.pk_key_name)
+            .find(|c| c.pk_name == self.pk_name)
         {
             c
         } else {
-            status_err!("pk_key_name is not configured in provided \"tmkms.toml\"!");
+            status_err!("pk_name is not configured in provided \"tmkms.toml\"!");
             process::exit(1);
         };
 
@@ -61,7 +57,7 @@ impl Runnable for TestCommand {
         let app = crate::keyring::providers::hashicorp::client::TendermintValidatorApp::connect(
             &config.api_endpoint,
             &config.access_token,
-            &self.pk_key_name,
+            &self.pk_name,
         )
         .unwrap();
 
