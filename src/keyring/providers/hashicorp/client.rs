@@ -89,8 +89,11 @@ impl TendermintValidatorApp {
             ));
         };
 
+        let key_data = data.keys.iter().last();
+
         //is it #1 version? TODO - get the last version
-        let pubk = if let Some(map) = data.keys.get(&1) {
+        let pubk = if let Some((version, map)) = key_data {
+            debug!("public key vetion:{}", version);
             if let Some(pubk) = map.get("public_key") {
                 pubk
             } else {
@@ -100,7 +103,7 @@ impl TendermintValidatorApp {
             }
         } else {
             return Err(Error::InvalidPubKey(
-                "Public key: unable to retrieve - version 1 is not found!".into(),
+                "Public key: unable to retrieve last version - not available!".into(),
             ));
         };
 
