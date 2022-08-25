@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 const VAULT_BACKEND_NAME: &str = "transit";
 const PUBLIC_KEY_SIZE: usize = 32;
 const SIGNATURE_SIZE: usize = 64;
+pub const CONSENUS_KEY_TYPE: &str = "ed25519";
 
 pub(crate) struct TendermintValidatorApp {
     client: Client<TokenData>,
@@ -26,7 +27,6 @@ unsafe impl Send for TendermintValidatorApp {}
 ///
 #[derive(Debug, Deserialize)]
 struct PublicKeyResponse {
-    //r#type: String, //ed25519
     keys: BTreeMap<usize, HashMap<String, String>>,
 }
 
@@ -58,7 +58,6 @@ impl TendermintValidatorApp {
 
     //vault read transit/keys/cosmoshub-sign-key
     //GET http://0.0.0.0:8200/v1/transit/keys/cosmoshub-sign-key
-    //TODO: is it possible for keys to change? should we cashe it?
     /// Get public key
     pub fn public_key(&mut self) -> Result<[u8; PUBLIC_KEY_SIZE], Error> {
         if let Some(v) = self.public_key_value {
@@ -89,12 +88,25 @@ impl TendermintValidatorApp {
             ));
         };
 
+        //latest version
         let key_data = data.keys.iter().last();
 
-        //is it #1 version? TODO - get the last version
         let pubk = if let Some((version, map)) = key_data {
             debug!("public key vetion:{}", version);
             if let Some(pubk) = map.get("public_key") {
+                if let Some(key_type) = map.get("name") {
+                    if CONSENUS_KEY_TYPE != key_type {
+                        return Err(Error::InvalidPubKey(format!(
+                            "Public key \"{}\": expected key type:{}, received:{}",
+                            self.key_name, CONSENUS_KEY_TYPE, key_type
+                        )));
+                    }
+                } else {
+                    return Err(Error::InvalidPubKey(format!(
+                        "Public key \"{}\": expected key type:{}, unable to determine type",
+                        self.key_name, CONSENUS_KEY_TYPE
+                    )));
+                }
                 pubk
             } else {
                 return Err(Error::InvalidPubKey(
@@ -190,6 +202,61 @@ impl TendermintValidatorApp {
         array.copy_from_slice(&signature[..SIGNATURE_SIZE]);
         Ok(array)
     }
+
+    // ///used by tmkms subcommand "upload"
+    // pub fn random_bytes(&self, len: Option<i32>) -> Result<String, Error> {
+    //     //curl --header "X-Vault-Token: ..." --request POST --data @payload.json http://127.0.0.1:8200/v1/transit/random
+    //     //defaults to 32 bytes, base64 encoded
+    //     #[derive(Debug, Deserialize)]
+    //     struct Data {
+    //         random_bytes: String,
+    //     }
+
+    //     #[derive(Debug, Deserialize)]
+    //     struct Response {
+    //         data: Data,
+    //     }
+
+    //     let data = self.client.call_endpoint::<Response>(
+    //         HttpVerb::POST,
+    //         &format!(
+    //             "transit/random{}",
+    //             len.and_then(|v| Some(format!("/{}", v)))
+    //                 .unwrap_or_default()
+    //         ),
+    //         None,
+    //         None, //all defaults:format:base64, source:platform
+    //     )?;
+
+    //     if let EndpointResponse::VaultResponse(vr) = data {
+    //         if let Some(data) = vr.data {
+    //             return Ok(data.data.random_bytes);
+    //         }
+    //     }
+
+    //     Err(Error::NoRandomBytes)
+    // }
+
+    // pub fn create_key(&self, key_name: &str, r#type: &str) -> Result<(), Error> {
+    //     #[derive(Debug, Serialize)]
+    //     struct CreateRequest {
+    //         //#[serde(default = "aes256-gcm96")]
+    //         r#type: String, //EPHEMERAL_KEY_TYPE
+    //     }
+
+    //     let req = CreateRequest {
+    //         r#type: r#type.to_string(),
+    //     };
+
+    //     let _ = self.client.call_endpoint::<()>(
+    //         HttpVerb::POST,
+    //         &format!("transit/keys/{}", key_name),
+    //         None,
+    //         Some(&serde_json::to_string(&req)?),
+    //     )?;
+
+    //     Ok(())
+    // }
 }
 
 #[cfg(feature = "hashicorp")]

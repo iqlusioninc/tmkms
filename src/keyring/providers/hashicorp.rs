@@ -30,20 +30,36 @@ pub fn init(
         );
     }
 
-    //let mut key_already_loaded = false;
-
+    let mut chains = Vec::<String>::new();
     for config in configs {
+        if chains.contains(&config.chain_id.to_string()) {
+            fail!(
+                ConfigError,
+                format!("already configured! chain id:{}", config.chain_id)
+            )
+        } else {
+            chains.push(config.chain_id.to_string())
+        }
+
         let mut app = client::TendermintValidatorApp::connect(
             &config.api_endpoint,
             &config.access_token,
             &config.pk_name,
         )
-        .unwrap();
+        .expect(&format!(
+            "Failed to authenticate to Vault for chain id:{}",
+            config.chain_id
+        ));
 
-        let public_key = app.public_key().unwrap();
+        let public_key = app.public_key().expect(&format!(
+            "Failed to get public key for chain id:{}",
+            config.chain_id
+        ));
 
-        let public_key =
-            ed25519::PublicKey::from_bytes(&public_key).expect("invalid Ed25519 public key");
+        let public_key = ed25519::PublicKey::from_bytes(&public_key).expect(&format!(
+            "invalid Ed25519 public key for chain id:{}",
+            config.chain_id
+        ));
 
         let provider = Ed25519HashiCorpAppSigner::new(app);
 
@@ -53,10 +69,7 @@ pub fn init(
             Box::new(provider),
         );
 
-        chain_registry.add_consensus_key(
-            &chain::Id::try_from(config.chain_id.clone()).unwrap(),
-            signer.clone(),
-        )?;
+        chain_registry.add_consensus_key(&config.chain_id, signer.clone())?;
     }
 
     Ok(())
