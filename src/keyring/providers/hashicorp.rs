@@ -31,7 +31,9 @@ pub fn init(
     }
 
     let mut chains = Vec::<String>::new();
+
     for config in configs {
+        //misconfiguration check
         if chains.contains(&config.chain_id.to_string()) {
             fail!(
                 ConfigError,
@@ -63,13 +65,15 @@ pub fn init(
 
         let provider = Ed25519HashiCorpAppSigner::new(app);
 
-        let signer = Signer::new(
-            SigningProvider::HashiCorp,
-            TendermintKey::ConsensusKey(public_key.into()),
-            Box::new(provider),
-        );
-
-        chain_registry.add_consensus_key(&config.chain_id, signer.clone())?;
+        chain_registry.add_consensus_key(
+            &config.chain_id,
+            //avoiding need for clone
+            Signer::new(
+                SigningProvider::HashiCorp,
+                TendermintKey::ConsensusKey(public_key.into()),
+                Box::new(provider),
+            ),
+        )?;
     }
 
     Ok(())

@@ -20,23 +20,13 @@ pub(crate) struct TendermintValidatorApp {
     public_key_value: Option<[u8; PUBLIC_KEY_SIZE]>,
 }
 
-// TODO(tarcieri): check this is actually sound?!
+// TODO(tarcieri): check this is actually sound?! :-)
 #[allow(unsafe_code)]
 unsafe impl Send for TendermintValidatorApp {}
 
-#[derive(Debug, Serialize)]
-struct SignRequest {
-    input: String, //Base64 encoded
-}
-
-#[derive(Debug, Deserialize)]
-struct SignResponse {
-    signature: String, //Base64 encoded
-}
-
 impl TendermintValidatorApp {
     pub fn connect(host: &str, token: &str, key_name: &str) -> Result<Self, Error> {
-        //token self lookup
+        //this call performs token self lookup, to fail fast
         let mut client = Client::new(host, token)?;
         client.secret_backend(VAULT_BACKEND_NAME);
 
@@ -61,7 +51,7 @@ impl TendermintValidatorApp {
 
         debug!("fetching public key for {}...", self.key_name);
 
-        ///
+        ///Response struct
         #[derive(Debug, Deserialize)]
         struct PublicKeyResponse {
             keys: BTreeMap<usize, HashMap<String, String>>,
@@ -86,7 +76,7 @@ impl TendermintValidatorApp {
             ));
         };
 
-        //latest version
+        //latest key version
         let key_data = data.keys.iter().last();
 
         let pubk = if let Some((version, map)) = key_data {
@@ -144,6 +134,18 @@ impl TendermintValidatorApp {
         debug!("signing request: received");
         if message.is_empty() {
             return Err(Error::InvalidEmptyMessage);
+        }
+
+        ///Request Struct
+        #[derive(Debug, Serialize)]
+        struct SignRequest {
+            input: String, //Base64 encoded
+        }
+
+        ///Response Struct
+        #[derive(Debug, Deserialize)]
+        struct SignResponse {
+            signature: String, //Base64 encoded
         }
 
         let body = SignRequest {

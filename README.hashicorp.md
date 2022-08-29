@@ -1,7 +1,3 @@
-A HashiCorp Vault plugin that supports secp256k1 based signing
-https://pkg.go.dev/github.com/kaleido-io/vault-plugin-secrets-ethsign
-
-
 # HashiCorp Vault + TMKMS
 
 HashiCorp Vault's `transit` engine mainly designed for data-in-transit encryption, it also provides additional features (sign and verify data, generate hashes and HMACs of data, and act as a source of random bytes).
@@ -17,8 +13,8 @@ Start vault instance as per Hashicorp tutorial
 following script sets up Vault's configuration. Script designed for single chain signing... Extend it with additional keys+policies for additional chains. These are steps for `admin`
 ```
 #!/bin/bash
-vault login
 #login with root token 
+vault login
 
 echo "\nenabling transit engine..."
 vault secrets enable transit
@@ -55,7 +51,7 @@ this is the token example to be used onward
 `hvs.CAESIPb9syz_Rso8tLcXIjKc9_mHHwxWXVuHsdC7Fo02OyiSGh4KHGh2cy5pNmtSdTZFUmxWZ0xGa1ByWkFlSFV4ZTY`
 to get policy token and verify that signing works
 ```
-VAULT_TOKEN=<...> vault write transit/sign/cosmoshub-sign-key plaintext=$(base64 <<< "some-data")
+VAULT_TOKEN=<...> vault write transit/sign/<...sign key...> plaintext=$(base64 <<< "some-data")
 ```
 
 
@@ -108,23 +104,17 @@ please build from source code instead.
 
 to run
 ```
-cargo run --features=hashicorp -- -c /path/to/tmkms-hashicorp.toml 
-
+cargo run --features=hashicorp -- -c /path/to/tmkms.toml 
 ```
 
+## Production HashiCorp Vault setup
 
-
-TTTTTTTTTTTTTTTTTTTTTTTTTOOOOOOOOOOOOOOOOOOOOOOOOOOOOODDDDDDDDDDDDDDDDDDDDDOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-
-
-## Production Fortanix DSM setup
-
-`tmkms` contains support for Fortanix DSM backend, which enables tmkms to access the secure keys on DSM. This requires creation of the keys on the DSM which can be done by referring to this [guide](https://support.fortanix.com/hc/en-us/articles/360038354592-User-s-Guide-Fortanix-Data-Security-Manager-Key-Lifecycle-Management). Creating, enabling and marking the key for signing and export should enable tmkms to use the keys on DSM.
+`tmkms` contains support for HashiCorp Vault service, which enables tmkms to access the secure keys, stored in HashiCorp Vault's transit engine. This requires creation of the keys in Vault which can be done by referring to this [guide](https://www.vaultproject.io/docs/secrets/transit). Creating the key for signing and export should enable tmkms to use the keys on HashiCorp Vault.
 
 ### Configuring `tmkms` for initial setup
 
 In order to perform setup, `tmkms` needs a  configuration file which
-contains the authentication details needed to authenticate to the DSM with an API key.
+contains the authentication details needed to authenticate to the HashiCorp Vault with an access token.
 
 This configuration should be placed in a file called: `tmkms.toml`.
 You can specifty the path to the config with either `-c /path/to/tmkms.toml` or else tmkms will look in the current working directory for the same file.
@@ -132,28 +122,46 @@ You can specifty the path to the config with either `-c /path/to/tmkms.toml` or 
 example: 
 ```toml
 [[providers.hashicorp]]
-chain_id = "cosmoshub-4"
-api_endpoint= "http://127.0.0.1:8200"
-access_token=""
-pk_key_name="cosmoshub-4-sign-key"
+chain_id = "<...chain id...>"
+api_endpoint= "https://<...host...>:8200"
+access_token="<...token...>"
+pk_key_name="<...ed25519 signing key...>"
 ```
 
+You can [get](https://learn.hashicorp.com/tutorials/vault/tokens) the access token from the HashiCorp Vault.
 
-
-
-You can get the api key from the app that holds the security object(key) in DSM. Key can be identified by either using the key-id or the key name, which are available in the details of the security object created on DSM. If you already have the key, you can import the key on DSM following the same DSM user guide mentioned above.
-
-### Generating keys on DSM
-1. Create a security group on DSM, example 'TMKMS group'.
-2. Create a APP under the same security group on DSM, example 'TMKMS'. Select Authentication method to be 'API Key' and copy the API key for use in config fie (tmkms.toml).
-
-3. Create a security Object under the same group in DSM, so that the API key for the app can be used to access the key under the same group. The type of key must be `EC CurveEd25519` for consensus key and `Secp256k1` for account key. Proceed with creation of these keys on DSM and the required key ID has to be passed in the config file, this can be obtained from the details on the security object section on DSM.
-4. To import an existing tendermint key use the following script to convert a tendermint key to Fortanix DSM accepted key format.
+### Generating keys in HashiCorp Vault, transit engine
+1. Enable transit engine 
+```bash
+vault secrets enable transit
 ```
-#!/bin/bash
-# Usage: tendermint-ed25519.sh <input-tendermint> <output-private-p8der> <output-public-p8der>
-
-gokey=$(jq -r .priv_key.value $1 | base64 -d| xxd -p -c 64)
-echo 302e 0201 0030 0506 032b 6570 0422 0420 "${gokey:0:64}" | xxd -p -r > $2
-echo 302a 3005 0603 2b65 7003 2100 "${gokey:64}" | xxd -p -r > $3
+2. Enable sign path on transit engine 
+```bash
+vault secrets enable -path=sign transit
+```
+3. Create a key 
+```bash
+vault write transit/keys/<..key-name...> type=ed25519
+```
+4. Create a policy for the key 
+ ```bash
+vault policy write tmkms-transit-sign-policy -
+path "transit/sign/<...key name...>" {
+  capabilities = [ "update"]
+}
+#used by HashiCorp API to verify connectivity on startup
+path "auth/token/lookup-self" {
+  capabilities = [ "read" ]
+}
+```
+5. Create access token for the policy above
+```bash
+vault token create \
+ -policy=tmkms-transit-sign-policy \
+ -no-default-policy  \
+ -non-interactive \
+ -renewable=false \
+ -period=0 
+```
+6.  To import an existing tendermint key (this is TODO).
 ```
