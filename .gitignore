@@ -7,3 +7,5 @@ tmkms.toml
 *.swp
 
 \.idea/
+/state
+/secrets

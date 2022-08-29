@@ -86,6 +86,9 @@ impl ConfigBuilder {
 
         #[cfg(feature = "fortanixdsm")]
         self.add_fortanixdsm_provider_config();
+
+        #[cfg(feature = "hashicorp")]
+        self.add_hashicorp_provider_config();
     }
 
     /// Add `[[validator]]` configurations
@@ -177,6 +180,13 @@ impl ConfigBuilder {
     fn add_fortanixdsm_provider_config(&mut self) {
         self.add_str("### Fortanix DSM Signer Configuration\n\n");
         self.add_template_with_chain_id(include_str!("templates/keyring/fortanixdsm.toml"));
+    }
+
+    /// Add `[[provider.hashicorp]]` configuration
+    #[cfg(feature = "hashicorp")]
+    fn add_hashicorp_provider_config(&mut self) {
+        self.add_str("### HashiCorp Vault Signer Configuration\n\n");
+        self.add_template_with_chain_id(include_str!("templates/keyring/hashicorp.toml"));
     }
 
     /// Append a template to the config file, substituting `$KMS_HOME`
