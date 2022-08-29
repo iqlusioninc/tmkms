@@ -24,6 +24,18 @@ pub(crate) struct TendermintValidatorApp {
 #[allow(unsafe_code)]
 unsafe impl Send for TendermintValidatorApp {}
 
+///Sign Request Struct
+#[derive(Debug, Serialize)]
+struct SignRequest {
+    input: String, //Base64 encoded
+}
+
+///Sign Response Struct
+#[derive(Debug, Deserialize)]
+struct SignResponse {
+    signature: String, //Base64 encoded
+}
+
 impl TendermintValidatorApp {
     pub fn connect(host: &str, token: &str, key_name: &str) -> Result<Self, Error> {
         //this call performs token self lookup, to fail fast
@@ -134,18 +146,6 @@ impl TendermintValidatorApp {
         debug!("signing request: received");
         if message.is_empty() {
             return Err(Error::InvalidEmptyMessage);
-        }
-
-        ///Request Struct
-        #[derive(Debug, Serialize)]
-        struct SignRequest {
-            input: String, //Base64 encoded
-        }
-
-        ///Response Struct
-        #[derive(Debug, Deserialize)]
-        struct SignResponse {
-            signature: String, //Base64 encoded
         }
 
         let body = SignRequest {
