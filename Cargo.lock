@@ -97,6 +97,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "aes-kw"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69fa2b352dcefb5f7f3a5fb840e02665d311d878955380515e4fd50095dd3d8c"
+dependencies = [
+ "aes",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3029,6 +3038,7 @@ version = "0.12.1"
 dependencies = [
  "abscissa_core",
  "abscissa_tokio",
+ "aes-kw",
  "base64 0.13.0",
  "byteorder",
  "bytes 0.5.6",

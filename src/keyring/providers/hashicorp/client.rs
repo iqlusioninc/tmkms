@@ -3,10 +3,10 @@ use std::collections::{BTreeMap, HashMap};
 
 use super::error::Error;
 use hashicorp_vault::{
-    client::TokenData,
-    client::{EndpointResponse, HttpVerb},
+    client::{EndpointResponse, HttpVerb, TokenData, VaultResponse},
     Client,
 };
+
 use serde::{Deserialize, Serialize};
 
 const VAULT_BACKEND_NAME: &str = "transit";
@@ -23,12 +23,6 @@ pub(crate) struct TendermintValidatorApp {
 // TODO(tarcieri): check this is actually sound?!
 #[allow(unsafe_code)]
 unsafe impl Send for TendermintValidatorApp {}
-
-///
-#[derive(Debug, Deserialize)]
-struct PublicKeyResponse {
-    keys: BTreeMap<usize, HashMap<String, String>>,
-}
 
 #[derive(Debug, Serialize)]
 struct SignRequest {
@@ -64,7 +58,14 @@ impl TendermintValidatorApp {
             debug!("using cached public key {}...", self.key_name);
             return Ok(v.clone());
         }
+
         debug!("fetching public key for {}...", self.key_name);
+
+        ///
+        #[derive(Debug, Deserialize)]
+        struct PublicKeyResponse {
+            keys: BTreeMap<usize, HashMap<String, String>>,
+        }
 
         let data = self.client.call_endpoint::<PublicKeyResponse>(
             HttpVerb::GET,
@@ -74,14 +75,11 @@ impl TendermintValidatorApp {
         )?;
 
         //{ keys: {1: {"name": "ed25519", "public_key": "R5n8OFaknb/3sCTx/aegNzYukwVx0uNtzzK/2RclIOE=", "creation_time": "2022-08-18T12:44:02.136328217Z"}} }
-        let data = if let EndpointResponse::VaultResponse(data) = data {
-            if let Some(data) = data.data {
-                data
-            } else {
-                return Err(Error::InvalidPubKey(
-                    "Public key: response \"data\" unavailable".into(),
-                ));
-            }
+        let data = if let EndpointResponse::VaultResponse(VaultResponse {
+            data: Some(data), ..
+        }) = data
+        {
+            data
         } else {
             return Err(Error::InvalidPubKey(
                 "Public key: Vault response unavailable".into(),
@@ -163,12 +161,11 @@ impl TendermintValidatorApp {
 
         debug!("signing request: about to submit for signing...");
 
-        let data = if let EndpointResponse::VaultResponse(data) = data {
-            if let Some(data) = data.data {
-                data
-            } else {
-                return Err(Error::NoSignature);
-            }
+        let data = if let EndpointResponse::VaultResponse(VaultResponse {
+            data: Some(data), ..
+        }) = data
+        {
+            data
         } else {
             return Err(Error::NoSignature);
         };
@@ -203,61 +200,79 @@ impl TendermintValidatorApp {
         Ok(array)
     }
 
-    // ///used by tmkms subcommand "upload"
-    // pub fn random_bytes(&self, len: Option<i32>) -> Result<String, Error> {
-    //     //curl --header "X-Vault-Token: ..." --request POST --data @payload.json http://127.0.0.1:8200/v1/transit/random
-    //     //defaults to 32 bytes, base64 encoded
-    //     #[derive(Debug, Deserialize)]
-    //     struct Data {
-    //         random_bytes: String,
-    //     }
+    //The returned key will be a 4096-bit RSA public key.
+    pub fn wrapping_key(&self) -> Result<String, Error> {
+        #[derive(Debug, Deserialize)]
+        struct PublicKeyResponse {
+            public_key: String,
+        }
 
-    //     #[derive(Debug, Deserialize)]
-    //     struct Response {
-    //         data: Data,
-    //     }
+        let data = self.client.call_endpoint::<PublicKeyResponse>(
+            HttpVerb::GET,
+            "transit/wrapping_key",
+            None,
+            None,
+        )?;
 
-    //     let data = self.client.call_endpoint::<Response>(
-    //         HttpVerb::POST,
-    //         &format!(
-    //             "transit/random{}",
-    //             len.and_then(|v| Some(format!("/{}", v)))
-    //                 .unwrap_or_default()
-    //         ),
-    //         None,
-    //         None, //all defaults:format:base64, source:platform
-    //     )?;
+        Ok(
+            if let EndpointResponse::VaultResponse(VaultResponse { data: Some(d), .. }) = data {
+                debug!("wrapping key:\n{}", d.public_key);
+                if let Some(key) = d.public_key.lines().nth(1) {
+                    key.to_owned()
+                } else {
+                    return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
+                }
+            } else {
+                return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
+            },
+        )
+    }
 
-    //     if let EndpointResponse::VaultResponse(vr) = data {
-    //         if let Some(data) = vr.data {
-    //             return Ok(data.data.random_bytes);
-    //         }
-    //     }
+    //vault read transit/export/encryption-key/ephemeral-wrapping-key
+    pub fn export_key(&self, key_type: &str, key_name: &str) -> Result<String, Error> {
+        #[derive(Debug, Deserialize)]
+        struct ExportKeyResponse {
+            name: String,
+            r#type: String,
+            keys: BTreeMap<usize, String>,
+        }
 
-    //     Err(Error::NoRandomBytes)
-    // }
+        let data = self.client.call_endpoint::<ExportKeyResponse>(
+            HttpVerb::GET,
+            &format!("transit/export/{}/{}", key_type, key_name),
+            None,
+            None,
+        )?;
 
-    // pub fn create_key(&self, key_name: &str, r#type: &str) -> Result<(), Error> {
-    //     #[derive(Debug, Serialize)]
-    //     struct CreateRequest {
-    //         //#[serde(default = "aes256-gcm96")]
-    //         r#type: String, //EPHEMERAL_KEY_TYPE
-    //     }
-
-    //     let req = CreateRequest {
-    //         r#type: r#type.to_string(),
-    //     };
-
-    //     let _ = self.client.call_endpoint::<()>(
-    //         HttpVerb::POST,
-    //         &format!("transit/keys/{}", key_name),
-    //         None,
-    //         Some(&serde_json::to_string(&req)?),
-    //     )?;
-
-    //     Ok(())
-    // }
+        Ok(
+            if let EndpointResponse::VaultResponse(VaultResponse {
+                data: Some(data), ..
+            }) = data
+            {
+                if let Some((_, key)) = data.keys.into_iter().last() {
+                    key
+                } else {
+                    return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
+                }
+            } else {
+                return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
+            },
+        )
+    }
 }
+
+// pub(super) enum ExportKeyTypeEnum {
+//     ENCRYPTION_KEY,
+//     SIGNING_KEY,
+//     HMAC_KEY,
+// }
+
+// impl TryFrom<&str> for ExportKeyTypeEnum {
+//     type Error = Error;
+//     fn try_from(value: &str) -> Result<Self, Self::Error> {
+
+//     }
+// }
 
 #[cfg(feature = "hashicorp")]
 #[cfg(test)]

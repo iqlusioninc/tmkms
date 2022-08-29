@@ -63,7 +63,7 @@ zeroize = "1"
 
 hashicorp_vault = { version = "2.1.0", optional = true }
 base64 = { version = "0.13.0", optional = true}
-
+aes-kw = { version = "0.2.1", features = ["std"], optional = true}
 
 [dev-dependencies]
 abscissa_core = { version = "0.6", features = ["testing"] }
@@ -71,15 +71,13 @@ byteorder = "1"
 rand = "0.7"
 mockito = "0.31.0"
 
-
-
 [features]
 softsign = []
 tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc"]
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
-hashicorp = ["hashicorp_vault", "base64", "uuid"]
+hashicorp = ["hashicorp_vault", "base64", "aes-kw"]
 default = ["hashicorp"]
 #default = ["ledger"]
 #default = ["softsign"]
