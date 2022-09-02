@@ -9,3 +9,5 @@ tmkms.toml
 \.idea/
 /state
 /secrets
+/.vscode
+**/*.bin

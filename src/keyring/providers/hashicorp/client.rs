@@ -10,14 +10,16 @@ use hashicorp_vault::{
 use serde::{Deserialize, Serialize};
 
 const VAULT_BACKEND_NAME: &str = "transit";
-const PUBLIC_KEY_SIZE: usize = 32;
-const SIGNATURE_SIZE: usize = 64;
+//const SIGNATURE_SIZE: usize = 64;
 pub const CONSENUS_KEY_TYPE: &str = "ed25519";
+
+// use ed25519_dalek::{PUBLIC_KEY_LENGTH as
+//     , SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 
 pub(crate) struct TendermintValidatorApp {
     client: Client<TokenData>,
     key_name: String,
-    public_key_value: Option<[u8; PUBLIC_KEY_SIZE]>,
+    public_key_value: Option<[u8; ed25519_dalek::PUBLIC_KEY_LENGTH]>,
 }
 
 // TODO(tarcieri): check this is actually sound?! :-)
@@ -34,6 +36,61 @@ struct SignRequest {
 #[derive(Debug, Deserialize)]
 struct SignResponse {
     signature: String, //Base64 encoded
+}
+
+pub(crate) enum ExportKeyType {
+    EncryptionKey,
+    SigningKey,
+    HmacKey,
+}
+impl std::fmt::Display for ExportKeyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExportKeyType::EncryptionKey => write!(f, "encryption-key"),
+            ExportKeyType::SigningKey => write!(f, "signing-key"),
+            ExportKeyType::HmacKey => write!(f, "hmac-key"),
+        }
+    }
+}
+
+pub(crate) enum CreateKeyType {
+    ///AES-128 wrapped with GCM using a 96-bit nonce size AEAD (symmetric, supports derivation and convergent encryption)
+    Aes128Gcm96,
+    ///AES-256 wrapped with GCM using a 96-bit nonce size AEAD (symmetric, supports derivation and convergent encryption, default)
+    Aes256Gcm96,
+    ///ChaCha20-Poly1305 AEAD (symmetric, supports derivation and convergent encryption)
+    Chacha20Poly1305,
+    ///ED25519 (asymmetric, supports derivation). When using derivation, a sign operation with the same context will derive the same key and signature; this is a signing analogue to convergent_encryption.
+    Ed25519,
+    ///ECDSA using the P-256 elliptic curve (asymmetric)
+    EcdsaP256,
+    ///ECDSA using the P-384 elliptic curve (asymmetric)
+    EcdsaP384,
+    ///ECDSA using the P-521 elliptic curve (asymmetric)
+    EcdsaP521,
+    ///RSA with bit size of 2048 (asymmetric)
+    Rsa2048,
+    ///RSA with bit size of 3072 (asymmetric)
+    Rsa3072,
+    ///RSA with bit size of 4096 (asymmetric)
+    Rsa4096,
+}
+
+impl std::fmt::Display for CreateKeyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CreateKeyType::Aes128Gcm96 => write!(f, "aes128-gcm96"),
+            CreateKeyType::Aes256Gcm96 => write!(f, "aes256-gcm96"),
+            CreateKeyType::Chacha20Poly1305 => write!(f, "chacha20-poly1305"),
+            CreateKeyType::Ed25519 => write!(f, "ed25519"),
+            CreateKeyType::EcdsaP256 => write!(f, "ecdsa-p256"),
+            CreateKeyType::EcdsaP384 => write!(f, "ecdsa-p384"),
+            CreateKeyType::EcdsaP521 => write!(f, "ecdsa-p521"),
+            CreateKeyType::Rsa2048 => write!(f, "rsa-2048"),
+            CreateKeyType::Rsa3072 => write!(f, "rsa-3072"),
+            CreateKeyType::Rsa4096 => write!(f, "rsa-4096"),
+        }
+    }
 }
 
 impl TendermintValidatorApp {
@@ -55,7 +112,7 @@ impl TendermintValidatorApp {
     //vault read transit/keys/cosmoshub-sign-key
     //GET http://0.0.0.0:8200/v1/transit/keys/cosmoshub-sign-key
     /// Get public key
-    pub fn public_key(&mut self) -> Result<[u8; PUBLIC_KEY_SIZE], Error> {
+    pub fn public_key(&mut self) -> Result<[u8; ed25519_dalek::PUBLIC_KEY_LENGTH], Error> {
         if let Some(v) = self.public_key_value {
             debug!("using cached public key {}...", self.key_name);
             return Ok(v.clone());
@@ -129,8 +186,8 @@ impl TendermintValidatorApp {
             pubk.len()
         );
 
-        let mut array = [0u8; PUBLIC_KEY_SIZE];
-        array.copy_from_slice(&pubk[..PUBLIC_KEY_SIZE]);
+        let mut array = [0u8; ed25519_dalek::PUBLIC_KEY_LENGTH];
+        array.copy_from_slice(&pubk[..ed25519_dalek::PUBLIC_KEY_LENGTH]);
 
         //cache it...
         self.public_key_value = Some(array.clone());
@@ -142,7 +199,7 @@ impl TendermintValidatorApp {
     //vault write transit/sign/cosmoshub-sign-key plaintext=$(base64 <<< "some-data")
     //"https://127.0.0.1:8200/v1/transit/sign/cosmoshub-sign-key"
     /// Sign message
-    pub fn sign(&self, message: &[u8]) -> Result<[u8; SIGNATURE_SIZE], Error> {
+    pub fn sign(&self, message: &[u8]) -> Result<[u8; ed25519_dalek::SIGNATURE_LENGTH], Error> {
         debug!("signing request: received");
         if message.is_empty() {
             return Err(Error::InvalidEmptyMessage);
@@ -197,13 +254,14 @@ impl TendermintValidatorApp {
             )));
         }
 
-        let mut array = [0u8; SIGNATURE_SIZE];
-        array.copy_from_slice(&signature[..SIGNATURE_SIZE]);
+        let mut array = [0u8; ed25519_dalek::SIGNATURE_LENGTH];
+        array.copy_from_slice(&signature[..ed25519_dalek::SIGNATURE_LENGTH]);
         Ok(array)
     }
 
     //The returned key will be a 4096-bit RSA public key.
-    pub fn wrapping_key(&self) -> Result<String, Error> {
+    pub fn wrapping_key_pem(&self) -> Result<String, Error> {
+        debug!("getting wraping key...");
         #[derive(Debug, Deserialize)]
         struct PublicKeyResponse {
             public_key: String,
@@ -219,11 +277,7 @@ impl TendermintValidatorApp {
         Ok(
             if let EndpointResponse::VaultResponse(VaultResponse { data: Some(d), .. }) = data {
                 debug!("wrapping key:\n{}", d.public_key);
-                if let Some(key) = d.public_key.lines().nth(1) {
-                    key.to_owned()
-                } else {
-                    return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
-                }
+                d.public_key.trim().to_owned()
             } else {
                 return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
             },
@@ -231,17 +285,16 @@ impl TendermintValidatorApp {
     }
 
     //vault read transit/export/encryption-key/ephemeral-wrapping-key
-    pub fn export_key(&self, key_type: &str, key_name: &str) -> Result<String, Error> {
+    pub fn export_key(&self, key_type: ExportKeyType, key_name: &str) -> Result<String, Error> {
+        debug!("exporting key:{}, type:{}...", key_name, key_type);
         #[derive(Debug, Deserialize)]
         struct ExportKeyResponse {
-            name: String,
-            r#type: String,
             keys: BTreeMap<usize, String>,
         }
 
         let data = self.client.call_endpoint::<ExportKeyResponse>(
             HttpVerb::GET,
-            &format!("transit/export/{}/{}", key_type, key_name),
+            &format!("transit/export/{}/{}/latest", key_type, key_name),
             None,
             None,
         )?;
@@ -261,20 +314,81 @@ impl TendermintValidatorApp {
             },
         )
     }
+
+    pub fn import_key(
+        &self,
+        key_name: &str,
+        key_type: CreateKeyType,
+        ciphertext: &str,
+    ) -> Result<(), Error> {
+        #[derive(Debug, Serialize)]
+        struct ImportRequest {
+            r#type: String,
+            ciphertext: String,
+            hash_function: String,
+        }
+
+        let body = ImportRequest {
+            r#type: key_type.to_string(),
+            ciphertext: ciphertext.into(),
+            hash_function: "SHA256".into(),
+        };
+
+        let _ = self.client.call_endpoint::<()>(
+            HttpVerb::POST,
+            &format!("transit/keys/{}/import", key_name),
+            None,
+            Some(&serde_json::to_string(&body)?),
+        )?;
+
+        Ok(())
+    }
+
+    pub fn create_key(
+        &self,
+        key_type: CreateKeyType,
+        exportable: bool,
+        wrap_ttl: i32,
+        key_name: &str,
+    ) -> Result<(), Error> {
+        debug!(
+            "Creating key:{}, type:{}, wrap_ttl:{}...",
+            key_name, key_type, wrap_ttl
+        );
+
+        #[derive(Debug, Serialize)]
+        struct CreateKeyRequest {
+            r#type: String,
+            exportable: bool,
+        }
+
+        let body = CreateKeyRequest {
+            r#type: key_type.to_string(),
+            exportable,
+        };
+
+        let _ = self.client.call_endpoint::<()>(
+            HttpVerb::POST,
+            &format!("transit/keys/{}", key_name),
+            Some(&wrap_ttl.to_string()),
+            Some(&serde_json::to_string(&body)?),
+        )?;
+
+        Ok(())
+    }
+
+    pub fn delete_key(&self, key_name: &str) -> Result<(), Error> {
+        debug!("Deleting key:{}...", key_name);
+        let _ = self.client.call_endpoint::<()>(
+            HttpVerb::DELETE,
+            &format!("transit/keys/{}", key_name),
+            None,
+            None,
+        )?;
+
+        Ok(())
+    }
 }
-
-// pub(super) enum ExportKeyTypeEnum {
-//     ENCRYPTION_KEY,
-//     SIGNING_KEY,
-//     HMAC_KEY,
-// }
-
-// impl TryFrom<&str> for ExportKeyTypeEnum {
-//     type Error = Error;
-//     fn try_from(value: &str) -> Result<Self, Self::Error> {
-
-//     }
-// }
 
 #[cfg(feature = "hashicorp")]
 #[cfg(test)]

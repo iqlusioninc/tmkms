@@ -16,8 +16,8 @@ pub enum Error {
     #[error("received an invalid signature: {0}")]
     InvalidSignature(String),
 
-    #[error("ApiClient error")]
-    ApiClientError(hashicorp_vault::Error),
+    #[error("ApiClient error:{0}")]
+    ApiClientError(String),
 
     #[error("Base64 decode error")]
     DecodeError(base64::DecodeError),
@@ -31,7 +31,7 @@ pub enum Error {
 
 impl From<hashicorp_vault::Error> for Error {
     fn from(err: hashicorp_vault::Error) -> Error {
-        Error::ApiClientError(err)
+        Error::ApiClientError(err.to_string())
     }
 }
 
