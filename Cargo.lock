@@ -221,7 +221,7 @@ dependencies = [
  "pbkdf2",
  "rand_core 0.6.3",
  "ripemd",
- "sha2 0.10.2",
+ "sha2 0.10.5",
  "subtle",
  "zeroize",
 ]
@@ -1040,7 +1040,7 @@ dependencies = [
  "hmac 0.12.1",
  "once_cell",
  "rand_core 0.6.3",
- "sha2 0.10.2",
+ "sha2 0.10.5",
  "zeroize",
 ]
 
@@ -1311,7 +1311,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "ecdsa",
  "elliptic-curve",
- "sha2 0.10.2",
+ "sha2 0.10.5",
  "sha3",
 ]
 
@@ -1606,7 +1606,7 @@ checksum = "51f44edd08f51e2ade572f141051021c5af22677e42b7dd28a88155151c33594"
 dependencies = [
  "ecdsa",
  "elliptic-curve",
- "sha2 0.10.2",
+ "sha2 0.10.5",
 ]
 
 [[package]]
@@ -1617,7 +1617,7 @@ checksum = "dfc8c5bf642dde52bb9e87c0ecd8ca5a76faac2eeed98dedb7c717997e1080aa"
 dependencies = [
  "ecdsa",
  "elliptic-curve",
- "sha2 0.10.2",
+ "sha2 0.10.5",
 ]
 
 [[package]]
@@ -2284,9 +2284,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.10.2"
+version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55deaec60f81eefe3cce0dc50bda92d6d8e88f2a27df7c5033b42afeb1ed2676"
+checksum = "cf9db03534dff993187064c4e0c05a5708d2a9728ace9a8959b77bedf415dac5"
 dependencies = [
  "cfg-if 1.0.0",
  "cpufeatures 0.2.2",
@@ -2415,7 +2415,7 @@ dependencies = [
  "rust_decimal",
  "serde",
  "serde_json",
- "sha2 0.10.2",
+ "sha2 0.10.5",
  "subtle-encoding",
  "thiserror",
  "toml",
@@ -2743,7 +2743,7 @@ dependencies = [
  "sdkms",
  "serde",
  "serde_json",
- "sha2 0.10.2",
+ "sha2 0.10.5",
  "signature",
  "stdtx",
  "subtle",
@@ -3305,7 +3305,7 @@ dependencies = [
  "rusb",
  "serde",
  "serde_json",
- "sha2 0.10.2",
+ "sha2 0.10.5",
  "signature",
  "subtle",
  "thiserror",
