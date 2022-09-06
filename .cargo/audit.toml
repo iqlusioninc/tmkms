@@ -1,9 +1,0 @@
-# https://github.com/RustSec/cargo-audit/blob/master/audit.toml.example
-
-[advisories]
-ignore = [
-    "RUSTSEC-2019-0036", # failure: type confusion if __private_get_type_id__ is overridden
-    "RUSTSEC-2020-0036", # failure is officially deprecated/unmaintained
-    "RUSTSEC-2020-0071", # time: potential segfault in `localtime_r` invocations
-    "RUSTSEC-2020-0159", # chrono: potential segfault in `localtime_r` invocations
-] # advisory IDs to ignore e.g. ["RUSTSEC-2019-0001", ...]
