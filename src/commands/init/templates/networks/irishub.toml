@@ -1,6 +1,0 @@
-### Iris Hub Network
-
-[[chain]]
-id = "irishub"
-key_format = { type = "bech32", account_key_prefix = "iap", consensus_key_prefix = "icp" }
-state_file = "$KMS_HOME/state/irishub-consensus.json"

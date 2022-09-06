@@ -1,6 +1,0 @@
-### Osmosis Network
-
-[[chain]]
-id = "osmosis-1"
-key_format = { type = "bech32", account_key_prefix = "osmopub", consensus_key_prefix = "osmovalconspub" }
-state_file = "$KMS_HOME/state/osmosis-1-consensus.json"

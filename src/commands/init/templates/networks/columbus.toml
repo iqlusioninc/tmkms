@@ -1,6 +1,0 @@
-### Terra Columbus Network
-
-[[chain]]
-id = "columbus-3"
-key_format = { type = "bech32", account_key_prefix = "terra", consensus_key_prefix = "terravalconspub" }
-state_file = "$KMS_HOME/state/columbus-3-consensus.json"

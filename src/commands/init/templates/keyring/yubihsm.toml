@@ -1,4 +1,0 @@
-[[providers.yubihsm]]
-adapter = { type = "usb" }
-auth = { key = 1, password_file = "$KMS_HOME/secrets/yubihsm-password.txt" }
-#serial_number = "0123456789" # serial number of a specific YubiHSM to connect to (optional)

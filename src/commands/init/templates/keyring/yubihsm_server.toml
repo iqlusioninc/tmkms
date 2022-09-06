@@ -1,1 +1,0 @@
-#connector_server = { laddr = "tcp://127.0.0.1:12345", cli = { auth_key = 2 } }

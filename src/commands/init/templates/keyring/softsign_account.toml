@@ -1,4 +1,0 @@
-[[providers.softsign]]
-chain_ids = ["$CHAIN_ID"]
-key_type = "account"
-path = "$KMS_HOME/secrets/$CHAIN_ID-account.key"

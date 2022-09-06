@@ -1,6 +1,0 @@
-### Persistence Network
-
-[[chain]]
-id = "core-1"
-key_format = { type = "bech32", account_key_prefix = "persistencepub", consensus_key_prefix = "persistencevalconspub" }
-state_file = "$KMS_HOME/state/core-1-consensus.json"

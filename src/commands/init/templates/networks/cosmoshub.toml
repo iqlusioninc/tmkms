@@ -1,6 +1,0 @@
-### Cosmos Hub Network
-
-[[chain]]
-id = "cosmoshub-3"
-key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }
-state_file = "$KMS_HOME/state/cosmoshub-3-consensus.json"
