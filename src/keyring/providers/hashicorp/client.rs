@@ -10,11 +10,7 @@ use hashicorp_vault::{
 use serde::{Deserialize, Serialize};
 
 const VAULT_BACKEND_NAME: &str = "transit";
-//const SIGNATURE_SIZE: usize = 64;
 pub const CONSENUS_KEY_TYPE: &str = "ed25519";
-
-// use ed25519_dalek::{PUBLIC_KEY_LENGTH as
-//     , SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 
 pub(crate) struct TendermintValidatorApp {
     client: Client<TokenData>,
@@ -38,6 +34,8 @@ struct SignResponse {
     signature: String, //Base64 encoded
 }
 
+#[allow(dead_code)]
+#[derive(Debug)]
 pub(crate) enum ExportKeyType {
     EncryptionKey,
     SigningKey,
@@ -52,7 +50,8 @@ impl std::fmt::Display for ExportKeyType {
         }
     }
 }
-
+#[allow(dead_code)]
+#[derive(Debug)]
 pub(crate) enum CreateKeyType {
     ///AES-128 wrapped with GCM using a 96-bit nonce size AEAD (symmetric, supports derivation and convergent encryption)
     Aes128Gcm96,
@@ -259,7 +258,7 @@ impl TendermintValidatorApp {
         Ok(array)
     }
 
-    //The returned key will be a 4096-bit RSA public key.
+    ///fetch RSA wraping key from Vault/Transit. Returned key will be a 4096-bit RSA public key.
     pub fn wrapping_key_pem(&self) -> Result<String, Error> {
         debug!("getting wraping key...");
         #[derive(Debug, Deserialize)]
@@ -278,37 +277,6 @@ impl TendermintValidatorApp {
             if let EndpointResponse::VaultResponse(VaultResponse { data: Some(d), .. }) = data {
                 debug!("wrapping key:\n{}", d.public_key);
                 d.public_key.trim().to_owned()
-            } else {
-                return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
-            },
-        )
-    }
-
-    //vault read transit/export/encryption-key/ephemeral-wrapping-key
-    pub fn export_key(&self, key_type: ExportKeyType, key_name: &str) -> Result<String, Error> {
-        debug!("exporting key:{}, type:{}...", key_name, key_type);
-        #[derive(Debug, Deserialize)]
-        struct ExportKeyResponse {
-            keys: BTreeMap<usize, String>,
-        }
-
-        let data = self.client.call_endpoint::<ExportKeyResponse>(
-            HttpVerb::GET,
-            &format!("transit/export/{}/{}/latest", key_type, key_name),
-            None,
-            None,
-        )?;
-
-        Ok(
-            if let EndpointResponse::VaultResponse(VaultResponse {
-                data: Some(data), ..
-            }) = data
-            {
-                if let Some((_, key)) = data.keys.into_iter().last() {
-                    key
-                } else {
-                    return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
-                }
             } else {
                 return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
             },
@@ -339,51 +307,6 @@ impl TendermintValidatorApp {
             &format!("transit/keys/{}/import", key_name),
             None,
             Some(&serde_json::to_string(&body)?),
-        )?;
-
-        Ok(())
-    }
-
-    pub fn create_key(
-        &self,
-        key_type: CreateKeyType,
-        exportable: bool,
-        wrap_ttl: i32,
-        key_name: &str,
-    ) -> Result<(), Error> {
-        debug!(
-            "Creating key:{}, type:{}, wrap_ttl:{}...",
-            key_name, key_type, wrap_ttl
-        );
-
-        #[derive(Debug, Serialize)]
-        struct CreateKeyRequest {
-            r#type: String,
-            exportable: bool,
-        }
-
-        let body = CreateKeyRequest {
-            r#type: key_type.to_string(),
-            exportable,
-        };
-
-        let _ = self.client.call_endpoint::<()>(
-            HttpVerb::POST,
-            &format!("transit/keys/{}", key_name),
-            Some(&wrap_ttl.to_string()),
-            Some(&serde_json::to_string(&body)?),
-        )?;
-
-        Ok(())
-    }
-
-    pub fn delete_key(&self, key_name: &str) -> Result<(), Error> {
-        debug!("Deleting key:{}...", key_name);
-        let _ = self.client.call_endpoint::<()>(
-            HttpVerb::DELETE,
-            &format!("transit/keys/{}", key_name),
-            None,
-            None,
         )?;
 
         Ok(())

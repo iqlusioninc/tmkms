@@ -1,6 +1,6 @@
 //! HashiCorp Vault provider
 pub(crate) mod client;
-mod error;
+pub(crate) mod error;
 pub(crate) mod signer;
 
 use crate::{

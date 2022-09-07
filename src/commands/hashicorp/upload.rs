@@ -5,14 +5,15 @@ use abscissa_core::{Command, Runnable};
 use aes_kw;
 use clap::Parser;
 use serde::Serialize;
-use std::{path::PathBuf, process, time::Instant};
+use std::{path::PathBuf, process};
 
-use crate::keyring::providers::hashicorp::client;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use crate::keyring::providers::hashicorp::{client, error};
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
+///AES256 key length
 const KEY_SIZE_AES256: usize = 32; //256 bits
+///PKCS8 header
+const PKCS8_HEADER: &[u8; 16] = b"\x30\x2e\x02\x01\x00\x30\x05\x06\x03\x2b\x65\x70\x04\x22\x04\x20";
 
 /// The `hashicorp test` subcommand
 #[derive(Command, Debug, Default, Parser)]
@@ -80,7 +81,6 @@ impl Runnable for UploadCommand {
             );
             process::exit(1);
         };
-        let started_at = Instant::now();
 
         //https://www.vaultproject.io/docs/secrets/transit#bring-your-own-key-byok
         //https://learn.hashicorp.com/tutorials/vault/eaas-transit
@@ -89,29 +89,8 @@ impl Runnable for UploadCommand {
         let vault_token = std::env::var("VAULT_TOKEN")
             .expect("root token \"VAULT_TOKEN\" is not set (confg token is NOT used)!");
 
-        //println!("payload:{}", &self.payload);
-        let input_key = base64::decode(&self.payload)
-            .expect("input key error: imported key must be base64 encoded!");
-
-        debug!(
-            "input key length:{}, expected:{}",
-            input_key.len(),
-            ed25519_dalek::SECRET_KEY_LENGTH
-        );
-
-        // // // ed25519_dalek::SecretKey::
-        // let expanded_secret_key: ed25519_dalek::ExpandedSecretKey =
-        //     ed25519_dalek::ExpandedSecretKey::from_bytes(input_key.as_slice()).unwrap();
-
-        let secret_key = ed25519_dalek::SecretKey::generate(&mut rand_v7::rngs::OsRng {});
-        //write_to_file("ed25519.bin", &secret_key.to_bytes());
-        //let secret_key = ed25519_dalek::ExpandedSecretKey::from(&secret_key);
-
-        debug!(
-            "=============>>>>>> input key length:{}, expected:{}",
-            secret_key.to_bytes().len(),
-            ed25519_dalek::SECRET_KEY_LENGTH
-        );
+        let ed25519_input_key = input_key(&self.payload)
+            .expect("secret: error converting \"key-to-upload\"[ed25519] with PKCS8 wrapping");
 
         //create app instance
         let app = client::TendermintValidatorApp::connect(
@@ -124,154 +103,67 @@ impl Runnable for UploadCommand {
             config.api_endpoint
         ));
 
-        let ephemeral_key_name = random_name(12, "ephemeral");
-
-        info!(
-            "about to create ephemeral key:{} type:{}...",
-            ephemeral_key_name,
-            client::CreateKeyType::Aes256Gcm96
-        );
-        // //create ephemeral key
-        // let _ = app
-        //     .create_key(
-        //         client::CreateKeyType::Aes256Gcm96,
-        //         true,
-        //         0,
-        //         &ephemeral_key_name,
-        //     )
-        //     .expect("aes key error: create error!");
-
-        // //get ephemeral key with delayed error eval
-        // info!("Created! fetching...");
-        // let aes_key = app.export_key(client::ExportKeyType::EncryptionKey, &ephemeral_key_name);
-
-        // //delete ephemeral key - to delete a key, policy has to account for that...
-        // info!(
-        //     "Cleaning up... About to delete ephemeral key:{} [policy has to allow deleting keys]...",
-        //     ephemeral_key_name
-        // );
-        // if let Err(e) = app.delete_key(&ephemeral_key_name) {
-        //     //not critical, unique name and admin can delete afterwards
-        //     warn!("aes key error: delete error! Error:{}", e);
-        // }
-
-        // info!("Evaluating ephemeral key fetch result...");
-        // let aes_key = match aes_key {
-        //     Ok(aes_key) => aes_key,
-        //     Err(e) => {
-        //         status_err!("aes key error: {}", e);
-        //         process::exit(1);
-        //     }
-        // };
-
-        // debug!("ephemeral aes_key (base64):{}", aes_key);
-
-        // let aes_key =
-        //     base64::decode(aes_key).expect("aes key error: imported key must be base64 encoded!");
-
-        use aes_gcm::{
-            aead::{Aead, KeyInit, OsRng},
-            Aes256Gcm,
-        };
-
-        let aes_key = Aes256Gcm::generate_key(&mut OsRng);
-
-        info!(
-            "Success! Will use ephemeral key to wrap target key(\"{}\") for upload!",
-            self.pk_name
-        );
-
-        assert_eq!(
+        use aes_gcm::KeyInit;
+        let v_aes_key = aes_gcm::Aes256Gcm::generate_key(&mut aes_gcm::aead::OsRng);
+        debug_assert_eq!(
             KEY_SIZE_AES256,
-            aes_key.len(),
-            "expected aes key length 32, actual:{}",
-            aes_key.len()
+            v_aes_key.len(),
+            "expected aes key length {}, actual:{}",
+            KEY_SIZE_AES256,
+            v_aes_key.len()
         );
 
-        // let aes_key: [u8; KEY_SIZE_AES256] = aes_key
-        //     .try_into()
-        //     .expect("aes wrapping key: byte array conversion error");
+        let mut aes_key = [0u8; KEY_SIZE_AES256];
+        aes_key.copy_from_slice(&v_aes_key[..KEY_SIZE_AES256]);
 
-        let kek = aes_kw::KekAes256::from(aes_key);
+        let kek = aes_kw::KekAes256::from(aes_key.clone());
         let wrapped_input_key = kek
-            .wrap_vec(&secret_key.to_bytes())
+            .wrap_with_padding_vec(&ed25519_input_key)
             .expect("input key wrapping error!");
-
-        // let wrapped_input_key =
-        //     aes_keywrap_rs::aes_wrap_key(&aes_key, &secret_key.to_bytes()).unwrap();
-
-        // let kek = aes_keywrap::Aes256KeyWrap::new(&aes_key);
-        // let wrapped_input_key = kek.encapsulate(&secret_key.to_bytes()).unwrap();
 
         let wrapping_key_pem = app
             .wrapping_key_pem()
             .expect("wrapping key error: fetching error!");
 
         let pub_key = RsaPublicKey::from_public_key_pem(&wrapping_key_pem).unwrap();
-        let mut rng = thread_rng();
-        //crypto/rsa: decryption error
-        let padding = PaddingScheme::new_oaep::<sha2::Sha256>();
-        let mut wrapped_aes = pub_key.encrypt(&mut rng, padding, &aes_key).unwrap();
-        println!("aes key:{:?}", aes_key);
-        assert_eq!(
-            512,
-            wrapped_aes.len(),
-            "expected wrapped_aes key length 512, actual:{}",
-            wrapped_aes.len()
-        );
 
-        wrapped_aes.extend(wrapped_input_key);
+        //wrap AES256 into RSA4096
+        let wrapped_aes = pub_key
+            .encrypt(
+                &mut rand::thread_rng(),
+                PaddingScheme::new_oaep::<sha2::Sha256>(),
+                &aes_key,
+            )
+            .expect("failed to encrypt");
 
-        let ciphertext = base64::encode(&wrapped_aes.as_slice());
-        //println!("{}", ciphertext);
+        debug_assert_eq!(wrapped_aes.len(), 512);
+        let wrapped_aes: Vec<u8> = [wrapped_aes.as_slice(), wrapped_input_key.as_slice()].concat();
 
-        app.import_key(&config.pk_name, client::CreateKeyType::Ed25519, &ciphertext)
-            .expect("import key error!");
-
-        /*
-        ciphertext (string: <required>) - A base64-encoded string that contains two values:
-        an ephemeral 256-bit AES key wrapped using the wrapping key returned by Vault
-        and
-        the encryption of the import key material under the provided AES key.
-
-        The wrapped AES key should be the first 512 bytes of the ciphertext, and the encrypted key material should be the remaining bytes.
-        */
-
-        /*
-        Wrap the target key using the ephemeral AES key with AES-KWP.
-        //curl  --header "X-Vault-Token: ..." --request GET http://127.0.0.1:8200/v1/transit/wrapping_key
-
-        //Wrap the AES key under the Vault wrapping key using RSAES-OAEP with MGF1 and either SHA-1, SHA-224, SHA-256, SHA-384, or SHA-512.
-
-        //Append the wrapped target key to the wrapped AES key.
-
-        //Base64 encode the result.
-        */
-
-        println!(
-            "Elapsed:{} ms. Result: {}",
-            started_at.elapsed().as_millis(),
-            "key_base64"
-        );
+        app.import_key(
+            &self.pk_name,
+            client::CreateKeyType::Ed25519,
+            &base64::encode(wrapped_aes),
+        )
+        .expect("import key error!");
     }
 }
 
-///generate random string. Used for ephemeral key name generator
-fn random_name(n: usize, pref: &str) -> String {
-    format!(
-        "{}-{}",
-        pref,
-        thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(n)
-            .map(char::from)
-            .collect::<String>()
-    )
-}
+//https://docs.rs/ed25519/latest/ed25519/pkcs8/index.html
+fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
+    let bytes = base64::decode(input_key)?;
 
-use std::io::Write;
-fn write_to_file(file_name: &str, data: &[u8]) {
-    // Write the modified data.
-    let mut f = std::fs::File::create(format!("./{}", file_name)).unwrap();
-    f.write_all(data).unwrap();
+    //let pair = ed25519_dalek::Keypair::from_bytes(&bytes)?;
+    let pair = ed25519_dalek::Keypair::generate(&mut rand_v7::rngs::OsRng {});
+
+    let mut secret_key: Vec<u8> = pair.secret.to_bytes().into_iter().collect::<Vec<u8>>();
+
+    if secret_key.len() == ed25519_dalek::SECRET_KEY_LENGTH {
+        let mut pkcs8_key = Vec::from(*PKCS8_HEADER);
+        pkcs8_key.extend_from_slice(&secret_key);
+        secret_key = pkcs8_key;
+    }
+
+    debug_assert!(secret_key.len() == ed25519_dalek::SECRET_KEY_LENGTH + PKCS8_HEADER.len());
+
+    Ok(secret_key)
 }

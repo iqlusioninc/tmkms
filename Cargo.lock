@@ -2748,17 +2748,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha1"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cf2781a4ca844dd4f9b608a1791eea19830df0ad3cdd9988cd05f1c66ccb63a"
-dependencies = [
- "cfg-if 1.0.0",
- "cpufeatures 0.2.2",
- "digest 0.10.3",
-]
-
-[[package]]
 name = "sha2"
 version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3266,7 +3255,6 @@ dependencies = [
  "sdkms",
  "serde",
  "serde_json",
- "sha1",
  "sha2 0.10.2",
  "signature",
  "stdtx",
