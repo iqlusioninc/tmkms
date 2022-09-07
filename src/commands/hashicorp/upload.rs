@@ -153,10 +153,10 @@ fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
     let bytes = base64::decode(input_key)?;
 
     let pair = ed25519_dalek::Keypair::from_bytes(&bytes)?;
-    //let pair = ed25519_dalek::Keypair::generate(&mut rand_v7::rngs::OsRng {});
 
     let mut secret_key: Vec<u8> = pair.secret.to_bytes().into_iter().collect::<Vec<u8>>();
 
+    //HashiCorp Vault Transit engine expects PKCS8
     if secret_key.len() == ed25519_dalek::SECRET_KEY_LENGTH {
         let mut pkcs8_key = Vec::from(*PKCS8_HEADER);
         pkcs8_key.extend_from_slice(&secret_key);
@@ -166,4 +166,14 @@ fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
     debug_assert!(secret_key.len() == ed25519_dalek::SECRET_KEY_LENGTH + PKCS8_HEADER.len());
 
     Ok(secret_key)
+}
+
+//#[cfg(feature = "hashicorp")]
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn upload_test() {
+        println!("===================== upload test=====================");
+    }
 }

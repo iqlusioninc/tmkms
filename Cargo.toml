@@ -65,7 +65,6 @@ hashicorp_vault = { version = "2.1.0", optional = true }
 base64 = { version = "0.13.0", optional = true}
 aes-kw = { version = "0.2.1", features = ["std"], optional = true}
 rsa = { version = "0.6.1", default = true, optional = true}
-#rand_v7 = { version = "0.7", features= ["std"], optional = true, package="rand"} 
 rand = { version = "0.8", optional = true} 
 aes-gcm = { version = "0.10.1", optional = true}
 
@@ -81,8 +80,8 @@ tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
-hashicorp = ["hashicorp_vault", "base64", "aes-kw", "rsa", "rand", "aes-gcm"] #, "rand_v7" 
-default = ["hashicorp"]
+hashicorp = ["hashicorp_vault", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
+#default = ["hashicorp"]
 #default = ["ledger"]
 #default = ["softsign"]
 #default = ["yubihsm"]
