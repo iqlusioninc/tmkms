@@ -152,8 +152,8 @@ impl Runnable for UploadCommand {
 fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
     let bytes = base64::decode(input_key)?;
 
-    //let pair = ed25519_dalek::Keypair::from_bytes(&bytes)?;
-    let pair = ed25519_dalek::Keypair::generate(&mut rand_v7::rngs::OsRng {});
+    let pair = ed25519_dalek::Keypair::from_bytes(&bytes)?;
+    //let pair = ed25519_dalek::Keypair::generate(&mut rand_v7::rngs::OsRng {});
 
     let mut secret_key: Vec<u8> = pair.secret.to_bytes().into_iter().collect::<Vec<u8>>();
 
