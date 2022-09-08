@@ -34,6 +34,13 @@ struct SignResponse {
     signature: String, //Base64 encoded
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct ImportRequest {
+    pub r#type: String,
+    pub ciphertext: String,
+    pub hash_function: String,
+}
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum ExportKeyType {
@@ -289,13 +296,6 @@ impl TendermintValidatorApp {
         key_type: CreateKeyType,
         ciphertext: &str,
     ) -> Result<(), Error> {
-        #[derive(Debug, Serialize)]
-        struct ImportRequest {
-            r#type: String,
-            ciphertext: String,
-            hash_function: String,
-        }
-
         let body = ImportRequest {
             r#type: key_type.to_string(),
             ciphertext: ciphertext.into(),
@@ -331,7 +331,7 @@ mod tests {
     #[test]
     fn hashicorp_connect_ok() {
         //setup
-        let _lookup_self = mock("GET", "/v1/auth/token/lookup-self")
+        let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
             .match_header("X-Vault-Token", TEST_TOKEN)
             .with_body(TOKEN_DATA)
             .create();
@@ -344,12 +344,13 @@ mod tests {
         );
 
         assert!(app.is_ok());
+        lookup_self.assert();
     }
 
     #[test]
     fn hashicorp_public_key_ok() {
         //setup
-        let _lookup_self = mock("GET", "/v1/auth/token/lookup-self")
+        let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
             .match_header("X-Vault-Token", TEST_TOKEN)
             .with_body(TOKEN_DATA)
             .create();
@@ -389,12 +390,13 @@ mod tests {
         );
 
         read_key.assert();
+        lookup_self.assert();
     }
 
     #[test]
     fn hashicorp_sign_ok() {
         //setup
-        let _lookup_self = mock("GET", "/v1/auth/token/lookup-self")
+        let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
             .match_header("X-Vault-Token", TEST_TOKEN)
             .with_body(TOKEN_DATA)
             .create();
@@ -412,7 +414,7 @@ mod tests {
         })
         .unwrap();
 
-        let _sign_mock = mock(
+        let sign_mock = mock(
             "POST",
             format!("/v1/transit/sign/{}", TEST_KEY_NAME).as_str(),
         )
@@ -428,12 +430,15 @@ mod tests {
             res.unwrap(),
             base64::decode(TEST_SIGNATURE).unwrap().as_slice()
         );
+
+        lookup_self.assert();
+        sign_mock.assert();
     }
 
     #[test]
     fn hashicorp_sign_empty_payload_should_fail() {
         //setup
-        let _lookup_self = mock("GET", "/v1/auth/token/lookup-self")
+        let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
             .match_header("X-Vault-Token", TEST_TOKEN)
             .with_body(TOKEN_DATA)
             .create();
@@ -451,7 +456,7 @@ mod tests {
         })
         .unwrap();
 
-        let _sign_mock = mock(
+        let sign_mock = mock(
             "POST",
             format!("/v1/transit/sign/{}", TEST_KEY_NAME).as_str(),
         )
@@ -463,6 +468,9 @@ mod tests {
         //server call
         let res = app.sign(&[]);
         assert!(res.is_err());
+
+        lookup_self.assert();
+        sign_mock.expect(0);
     }
 
     //curl --header "X-Vault-Token: hvs.<...valid.token...>>" http://127.0.0.1:8200/v1/auth/token/lookup-self

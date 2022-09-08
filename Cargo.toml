@@ -71,7 +71,7 @@ aes-gcm = { version = "0.10.1", optional = true}
 [dev-dependencies]
 abscissa_core = { version = "0.6", features = ["testing"] }
 byteorder = "1"
-rand = "0.8"
+rand = "0.7"
 mockito = "0.31.0"
 
 [features]
@@ -81,10 +81,6 @@ yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 hashicorp = ["hashicorp_vault", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
-#default = ["hashicorp"]
-#default = ["ledger"]
-#default = ["softsign"]
-#default = ["yubihsm"]
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]

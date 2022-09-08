@@ -31,7 +31,7 @@ pub struct TestCommand {
 }
 
 impl Runnable for TestCommand {
-    /// Perform a signing test using the current HSM configuration
+    /// Perform a signing test using the current TMKMS configuration
     fn run(&self) {
         if self.pk_name.is_empty() {
             status_err!("pk_name cannot be empty!");
