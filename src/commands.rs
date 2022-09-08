@@ -1,5 +1,7 @@
 //! Subcommands of the `tmkms` command-line application
 
+#[cfg(feature = "hashicorp")]
+pub mod hashicorp;
 pub mod init;
 #[cfg(feature = "ledger")]
 pub mod ledger;
@@ -10,6 +12,8 @@ pub mod version;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
+#[cfg(feature = "hashicorp")]
+pub use self::hashicorp::HashicorpCommand;
 #[cfg(feature = "ledger")]
 pub use self::ledger::LedgerCommand;
 #[cfg(feature = "softsign")]
@@ -50,6 +54,11 @@ pub enum KmsCommand {
     #[cfg(feature = "yubihsm")]
     #[clap(subcommand)]
     Yubihsm(YubihsmCommand),
+
+    /// subcommands for HashiCorp
+    #[cfg(feature = "hashicorp")]
+    #[clap(subcommand)]
+    Hashicorp(HashicorpCommand),
 }
 
 impl KmsCommand {
@@ -59,6 +68,8 @@ impl KmsCommand {
             KmsCommand::Start(run) => run.verbose,
             #[cfg(feature = "yubihsm")]
             KmsCommand::Yubihsm(yubihsm) => yubihsm.verbose(),
+            #[cfg(feature = "hashicorp")]
+            KmsCommand::Hashicorp(hashicorp) => hashicorp.verbose(),
             _ => false,
         }
     }
@@ -74,6 +85,8 @@ impl Configurable<KmsConfig> for KmsCommand {
             KmsCommand::Yubihsm(yubihsm) => yubihsm.config_path(),
             #[cfg(feature = "ledger")]
             KmsCommand::Ledger(ledger) => ledger.config_path(),
+            #[cfg(feature = "hashicorp")]
+            KmsCommand::Hashicorp(hashicorp) => hashicorp.config_path(),
             _ => return None,
         };
 
