@@ -1,6 +1,6 @@
 # meka-dev/tmkms
 
-This fork of [iqlusion/tmkms](https://github.com/iqlusion/tmkms)
+This fork of [iqlusioninc/tmkms](https://github.com/iqlusioninc/tmkms)
 includes patches to support signing of requests needed by the
 [Mekatek builder API](https://api.mekatek.xyz).
 
