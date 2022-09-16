@@ -2314,9 +2314,9 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "1.6.0"
+version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0ea32af43239f0d353a7dd75a22d94c329c8cdaafdcb4c1c1335aa10c298a4a"
+checksum = "a622c5fc69cf2a070d3217981bded5071cdd1b1ac17ae906646debae83579b54"
 dependencies = [
  "digest 0.10.3",
  "rand_core 0.6.3",
@@ -2325,14 +2325,13 @@ dependencies = [
 
 [[package]]
 name = "signature_derive"
-version = "1.0.0-pre.5"
+version = "1.0.0-pre.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4b02d9abb9987dd17dc7a8ae2e00afa95aae4e946b188c4ea9fa3e16e3bf766"
+checksum = "48fa9899d06020eba99938bd40ce86b68f127806c7d1492fe6189c515d6b7ec9"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "synstructure",
 ]
 
 [[package]]
