@@ -7,6 +7,7 @@ use std::{
     path::Path,
 };
 
+use k256::ecdsa;
 use ed25519_dalek as ed25519;
 use ed25519_dalek::SECRET_KEY_LENGTH;
 use rand_core::{OsRng, RngCore};
@@ -55,6 +56,18 @@ pub fn load_base64_ed25519_key(path: impl AsRef<Path>) -> Result<ed25519::Keypai
 
     let public = ed25519::PublicKey::from(&secret);
     Ok(ed25519::Keypair { secret, public })
+}
+
+/// Load a Base64-encoded Secp256k1 secret key
+pub fn load_base64_secp256k1_key(path: impl AsRef<Path>) -> Result<(ecdsa::SigningKey, ecdsa::VerifyingKey), Error> {
+    let key_bytes = load_base64_secret(path)?;
+
+    let signing = ecdsa::SigningKey::from_bytes(&key_bytes)
+        .map_err(|e| format_err!(InvalidKey, "invalid ECDSA key: {}", e))?;
+
+    let veryfing = ecdsa::VerifyingKey::from(&signing);
+
+    Ok((signing, veryfing))
 }
 
 /// Store Base64-encoded secret data at the given path

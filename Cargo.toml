@@ -65,6 +65,7 @@ zeroize = "1"
 abscissa_core = { version = "0.7", features = ["testing"] }
 byteorder = "1"
 rand = "0.7"
+parameterized = "1.0.1"
 
 [features]
 softsign = []

@@ -1,7 +1,7 @@
 use super::validate;
 use crate::config::validator::ProtocolVersion;
+use crate::keyring::signature::Signature;
 use bytes::BufMut;
-use ed25519_dalek as ed25519;
 use prost_amino::{DecodeError, EncodeError};
 use tendermint::{chain, consensus};
 
@@ -15,8 +15,8 @@ pub trait SignableMsg {
         sign_bytes: &mut B,
     ) -> Result<bool, EncodeError>;
 
-    /// Set the Ed25519 signature on the underlying message
-    fn set_signature(&mut self, sig: &ed25519::Signature);
+    /// Set the signature on the underlying message
+    fn set_signature(&mut self, sig: &Signature);
     fn validate(&self) -> Result<(), validate::Error>;
     fn consensus_state(&self) -> Option<consensus::State>;
     fn height(&self) -> Option<i64>;

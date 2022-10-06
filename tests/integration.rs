@@ -17,9 +17,12 @@ use tempfile::NamedTempFile;
 use prost_amino::Message;
 use tendermint_p2p::secret_connection::{self, SecretConnection};
 
+use parameterized::parameterized;
+
 use tmkms::{
     amino_types::{self, *},
     config::validator::ProtocolVersion,
+    config::provider::KeyType,
     connection::unix::UnixConnection,
 };
 
@@ -30,7 +33,8 @@ mod cli;
 const KMS_EXE_PATH: &str = "target/debug/tmkms";
 
 /// Path to the example validator signing key
-const SIGNING_KEY_PATH: &str = "tests/support/signing.key";
+const SIGNING_ED25519_KEY_PATH: &str = "tests/support/signing_ed25519.key";
+const SIGNING_SECP256K1_KEY_PATH: &str = "tests/support/signing_secp256k1.key";
 
 enum KmsSocket {
     /// TCP socket type
@@ -84,10 +88,10 @@ struct KmsProcess {
 
 impl KmsProcess {
     /// Spawn the KMS process and wait for an incoming TCP connection
-    pub fn create_tcp() -> Self {
+    pub fn create_tcp(key_type: &KeyType) -> Self {
         // Generate a random port and a config file
         let port: u16 = rand::thread_rng().gen_range(60000, 65535);
-        let config = KmsProcess::create_tcp_config(port);
+        let config = KmsProcess::create_tcp_config(port, key_type);
 
         // Listen on a random port
         let listener = TcpListener::bind(format!("{}:{}", "127.0.0.1", port)).unwrap();
@@ -103,13 +107,13 @@ impl KmsProcess {
     }
 
     /// Spawn the KMS process and connect to the Unix listener
-    pub fn create_unix() -> Self {
+    pub fn create_unix(key_type: &KeyType) -> Self {
         // Create a random socket path and a config file
         let mut rng = rand::thread_rng();
         let letter: char = rng.gen_range(b'a', b'z') as char;
         let number: u32 = rng.gen_range(0, 999999);
         let socket_path = format!("/tmp/tmkms-{letter}{number:06}.sock");
-        let config = KmsProcess::create_unix_config(&socket_path);
+        let config = KmsProcess::create_unix_config(&socket_path, key_type);
 
         // Start listening for connections via the Unix socket
         let listener = UnixListener::bind(socket_path).unwrap();
@@ -126,7 +130,7 @@ impl KmsProcess {
     }
 
     /// Create a config file for a TCP KMS and return its path
-    fn create_tcp_config(port: u16) -> NamedTempFile {
+    fn create_tcp_config(port: u16, key_type: &KeyType) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
         let pub_key = test_ed25519_keypair().public;
         let peer_id = secret_connection::PublicKey::from(pub_key).peer_id();
@@ -150,8 +154,10 @@ impl KmsProcess {
             chain_ids = ["test_chain_id"]
             key_format = "base64"
             path = "{}"
+
+            key_type = "{}"
         "#,
-            &peer_id.to_string(), port, SIGNING_KEY_PATH
+            &peer_id.to_string(), port, signing_key_path(&key_type), key_type
         )
         .unwrap();
 
@@ -159,8 +165,9 @@ impl KmsProcess {
     }
 
     /// Create a config file for a UNIX KMS and return its path
-    fn create_unix_config(socket_path: &str) -> NamedTempFile {
+    fn create_unix_config(socket_path: &str, key_type: &KeyType) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
+        let key_path = signing_key_path(&key_type);
         writeln!(
             config_file,
             r#"
@@ -177,7 +184,8 @@ impl KmsProcess {
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
             key_format = "base64"
-            path = "{SIGNING_KEY_PATH}"
+            path = "{key_path}"
+            key_type = "{key_type}"
         "#
         )
         .unwrap();
@@ -223,13 +231,13 @@ struct ProtocolTester {
 }
 
 impl ProtocolTester {
-    pub fn apply<F>(functor: F)
+    pub fn apply<F>(key_type: &KeyType, functor: F)
     where
         F: FnOnce(ProtocolTester),
     {
-        let tcp_device = KmsProcess::create_tcp();
+        let tcp_device = KmsProcess::create_tcp(&key_type);
         let tcp_connection = tcp_device.create_connection();
-        let unix_device = KmsProcess::create_unix();
+        let unix_device = KmsProcess::create_unix(&key_type);
         let unix_connection = unix_device.create_connection();
 
         functor(Self {
@@ -290,8 +298,21 @@ impl io::Read for ProtocolTester {
 
 /// Get the Ed25519 signing keypair used by the tests
 fn test_ed25519_keypair() -> ed25519::Keypair {
-    tmkms::key_utils::load_base64_ed25519_key(SIGNING_KEY_PATH).unwrap()
+    tmkms::key_utils::load_base64_ed25519_key(signing_key_path(&KeyType::Consensus)).unwrap()
 }
+
+/// Get the Secp256k1 signing keypair used by the tests
+fn test_secp256k1_keypair() -> (k256::ecdsa::SigningKey, k256::ecdsa::VerifyingKey) {
+    tmkms::key_utils::load_base64_secp256k1_key(signing_key_path(&KeyType::Account)).unwrap()
+}
+
+fn signing_key_path(key_type: &KeyType) -> &'static str {
+    match key_type {
+        KeyType::Account => SIGNING_SECP256K1_KEY_PATH,
+        KeyType::Consensus => SIGNING_ED25519_KEY_PATH
+    }
+}
+
 
 /// Extract the actual length of an amino message
 pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
@@ -303,10 +324,10 @@ pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
     Ok(actual_len + (prost_amino::encoding::encoded_len_varint(actual_len) as u64))
 }
 
-#[test]
-fn test_handle_and_sign_proposal() {
+
+#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
+fn test_handle_and_sign_proposal(key_type: KeyType) {
     let chain_id = "test_chain_id";
-    let pub_key = test_ed25519_keypair().public;
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
     let t = TimeMsg {
@@ -314,7 +335,7 @@ fn test_handle_and_sign_proposal() {
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
-    ProtocolTester::apply(|mut pt| {
+    ProtocolTester::apply(&key_type, |mut pt| {
         let proposal = amino_types::proposal::Proposal {
             msg_type: amino_types::SignedMsgType::Proposal.to_u32(),
             height: 12345,
@@ -355,17 +376,25 @@ fn test_handle_and_sign_proposal() {
             .proposal
             .expect("proposal should be embedded but none was found");
 
-        let signature = ed25519::Signature::try_from(prop.signature.as_slice()).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
-        assert!(pub_key.verify(msg, &signature).is_ok());
+        let r = match key_type {
+            KeyType::Account => {
+                let signature = k256::ecdsa::Signature::try_from(prop.signature.as_slice()).unwrap();
+                test_secp256k1_keypair().1.verify(msg, &signature)
+            }
+            KeyType::Consensus => {
+                let signature = ed25519::Signature::try_from(prop.signature.as_slice()).unwrap();
+                test_ed25519_keypair().public.verify(msg, &signature)
+            }
+        };
+        assert!(r.is_ok());
     });
 }
 
-#[test]
-fn test_handle_and_sign_vote() {
+#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
+fn test_handle_and_sign_vote(key_type: KeyType) {
     let chain_id = "test_chain_id";
-    let pub_key = test_ed25519_keypair().public;
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
     let t = TimeMsg {
@@ -373,7 +402,7 @@ fn test_handle_and_sign_vote() {
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
-    ProtocolTester::apply(|mut pt| {
+    ProtocolTester::apply(&key_type, |mut pt| {
         let vote_msg = amino_types::vote::Vote {
             vote_type: 0x01,
             height: 12345,
@@ -425,18 +454,26 @@ fn test_handle_and_sign_vote() {
         let sig: Vec<u8> = vote_msg.signature;
         assert_ne!(sig.len(), 0);
 
-        let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
-        assert!(pub_key.verify(msg, &signature).is_ok());
+        let r = match key_type {
+            KeyType::Account => {
+                let signature = k256::ecdsa::Signature::try_from(sig.as_slice()).unwrap();
+                test_secp256k1_keypair().1.verify(msg, &signature)
+            }
+            KeyType::Consensus => {
+                let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
+                test_ed25519_keypair().public.verify(msg, &signature)
+            }
+        };
+        assert!(r.is_ok());
     });
 }
 
-#[test]
+#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
 #[should_panic]
-fn test_exceed_max_height() {
+fn test_exceed_max_height(key_type: KeyType) {
     let chain_id = "test_chain_id";
-    let pub_key = test_ed25519_keypair().public;
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
     let t = TimeMsg {
@@ -444,7 +481,7 @@ fn test_exceed_max_height() {
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
-    ProtocolTester::apply(|mut pt| {
+    ProtocolTester::apply(&key_type, |mut pt| {
         let vote_msg = amino_types::vote::Vote {
             vote_type: 0x01,
             height: 500001,
@@ -496,16 +533,25 @@ fn test_exceed_max_height() {
         let sig: Vec<u8> = vote_msg.signature;
         assert_ne!(sig.len(), 0);
 
-        let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
         let msg: &[u8] = sign_bytes.as_slice();
 
-        assert!(pub_key.verify(msg, &signature).is_ok());
+        let r = match key_type {
+            KeyType::Account => {
+                let signature = k256::ecdsa::Signature::try_from(sig.as_slice()).unwrap();
+                test_secp256k1_keypair().1.verify(msg, &signature)
+            }
+            KeyType::Consensus => {
+                let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
+                test_ed25519_keypair().public.verify(msg, &signature)
+            }
+        };
+        assert!(r.is_ok());
     });
 }
 
-#[test]
-fn test_handle_and_sign_get_publickey() {
-    ProtocolTester::apply(|mut pt| {
+#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
+fn test_handle_and_sign_get_publickey(key_type: KeyType) {
+    ProtocolTester::apply(&key_type, |mut pt| {
         let mut buf = vec![];
 
         PubKeyRequest {}.encode(&mut buf).unwrap();
@@ -521,13 +567,20 @@ fn test_handle_and_sign_get_publickey() {
         resp.copy_from_slice(&resp_buf[..actual_len as usize]);
 
         let pk_resp = PubKeyResponse::decode(resp.as_ref()).expect("decoding public key failed");
-        assert_ne!(pk_resp.pub_key_ed25519.len(), 0);
+        let pk_len = match key_type {
+            KeyType::Account => pk_resp.pub_key_secp256k1.len(),
+            KeyType::Consensus => pk_resp.pub_key_ed25519.len()
+        };
+
+        assert_ne!(pk_len, 0);
     });
 }
 
 #[test]
 fn test_handle_and_sign_ping_pong() {
-    ProtocolTester::apply(|mut pt| {
+    let key_type = KeyType::Consensus;
+
+    ProtocolTester::apply(&key_type, |mut pt| {
         let mut buf = vec![];
         PingRequest {}.encode(&mut buf).unwrap();
         pt.write_all(&buf).unwrap();
