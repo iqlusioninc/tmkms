@@ -6,4 +6,5 @@ ignore = [
     "RUSTSEC-2020-0036", # failure is officially deprecated/unmaintained
     "RUSTSEC-2020-0071", # time: potential segfault in `localtime_r` invocations
     "RUSTSEC-2020-0159", # chrono: potential segfault in `localtime_r` invocations
+    "RUSTSEC-2021-0139", # ansi_term: unmaintained
 ] # advisory IDs to ignore e.g. ["RUSTSEC-2019-0001", ...]
