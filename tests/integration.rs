@@ -154,7 +154,6 @@ impl KmsProcess {
             chain_ids = ["test_chain_id"]
             key_format = "base64"
             path = "{}"
-
             key_type = "{}"
         "#,
             &peer_id.to_string(), port, signing_key_path(&key_type), key_type

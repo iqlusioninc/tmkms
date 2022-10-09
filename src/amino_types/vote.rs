@@ -226,7 +226,7 @@ impl SignableMsg for SignVoteRequest {
 
         Ok(true)
     }
-    fn set_signature<>(&mut self, sig: &Signature) {
+    fn set_signature(&mut self, sig: &Signature) {
         if let Some(ref mut vt) = self.vote {
             vt.signature = sig.as_ref().to_vec();
         }

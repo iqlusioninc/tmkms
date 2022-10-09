@@ -106,18 +106,6 @@ impl KeyRing {
     }
 
     /// Get the default Ed25519 (i.e. consensus) public key for this keyring
-    pub fn default_ed25519_pubkey(&self) -> Result<TendermintKey, Error> {
-        let mut keys = self.ed25519_keys.keys();
-
-        if keys.len() == 1 {
-            Ok(*keys.next().unwrap())
-        } else {
-            fail!(InvalidKey, "expected only one key in keyring");
-        }
-    }
-
-
-    /// Get the default Ed25519 (i.e. consensus) public key for this keyring
     pub fn default_pubkey(&self) -> Result<TendermintKey, Error> {
         if self.ed25519_keys.len() > 0 {
             let mut keys = self.ed25519_keys.keys();
@@ -125,7 +113,7 @@ impl KeyRing {
             if keys.len() == 1 {
                 Ok(*keys.next().unwrap())
             } else {
-                fail!(InvalidKey, "expected only one key in keyring");
+                fail!(InvalidKey, "expected only one ed25519 key in keyring");
             }
         } else if self.ecdsa_keys.len() > 0 {
             let mut keys = self.ecdsa_keys.keys();
@@ -133,7 +121,7 @@ impl KeyRing {
             if keys.len() == 1 {
                 Ok(*keys.next().unwrap())
             } else {
-                fail!(InvalidKey, "expected only one key in keyring");
+                fail!(InvalidKey, "expected only one ecdsa key in keyring");
             }
         } else {
             fail!(InvalidKey, "keyring is empty");
@@ -192,7 +180,7 @@ impl KeyRing {
                 }),
                 None => {
                     self.ed25519_keys.values().next()
-                        .ok_or_else(|| format_err!(InvalidKey, "keyring is empty"))
+                        .ok_or_else(|| format_err!(InvalidKey, "ed25519 keyring is empty"))
                 }
             }?;
 
@@ -204,7 +192,7 @@ impl KeyRing {
                 }),
                 None => {
                     self.ecdsa_keys.values().next()
-                        .ok_or_else(|| format_err!(InvalidKey, "keyring is empty"))
+                        .ok_or_else(|| format_err!(InvalidKey, "ecdsa keyring is empty"))
                 }
             }?;
 
