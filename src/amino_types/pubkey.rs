@@ -5,8 +5,6 @@ use tendermint::public_key::{Ed25519, Secp256k1, PublicKey};
 
 // Note:On the golang side this is generic in the sense that it could everything that implements
 // github.com/tendermint/tendermint/crypto.PubKey
-// While this is meant to be used with different key-types, it currently only uses a PubKeyEd25519
-// version.
 // TODO(ismail): make this more generic (by modifying prost and adding a trait for PubKey)
 
 pub const AMINO_NAME: &str = "tendermint/remotesigner/PubKeyRequest";

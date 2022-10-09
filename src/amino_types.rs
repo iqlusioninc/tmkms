@@ -4,7 +4,7 @@
 #![allow(missing_docs)]
 
 pub mod block_id;
-pub mod ed25519;
+pub mod pubkey;
 pub mod message;
 pub mod ping;
 pub mod proposal;
@@ -17,7 +17,7 @@ pub mod vote;
 
 pub use self::{
     block_id::{BlockId, CanonicalBlockId, CanonicalPartSetHeader, PartsSetHeader},
-    ed25519::{
+    pubkey::{
         PubKeyRequest, PubKeyResponse, AMINO_NAME as PUBKEY_AMINO_NAME,
         AMINO_PREFIX as PUBKEY_PREFIX,
     },

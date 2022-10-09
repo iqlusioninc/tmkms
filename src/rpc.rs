@@ -95,7 +95,7 @@ impl Request {
             } else if amino_prefix == *amino_types::proposal::AMINO_PREFIX {
                 let req = amino_types::SignProposalRequest::decode(msg.as_ref())?;
                 Ok(Request::SignProposal(req))
-            } else if amino_prefix == *amino_types::ed25519::AMINO_PREFIX {
+            } else if amino_prefix == *amino_types::pubkey::AMINO_PREFIX {
                 let req = amino_types::PubKeyRequest::decode(msg.as_ref())?;
                 Ok(Request::ShowPublicKey(req))
             } else if amino_prefix == *amino_types::ping::AMINO_PREFIX {
