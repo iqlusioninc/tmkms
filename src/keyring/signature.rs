@@ -1,9 +1,14 @@
+//! Signing signature
 
 pub use k256::ecdsa;
 pub use ed25519_dalek as ed25519;
 
+/// Cryptographic signature used for block signing
 pub enum Signature {
+    ///  ED25519 signature
     ED25519(ed25519::Signature),
+
+    /// ECDSA signagure (e.g secp256k1)
     ECDSA(ecdsa::Signature)
 }
 

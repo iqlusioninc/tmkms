@@ -74,7 +74,7 @@ impl Runnable for InitCommand {
             )
             .unwrap();
 
-        let _sig = chain.keyring.sign_ed25519(None, &to_sign).unwrap();
+        let _sig = chain.keyring.sign(None, &to_sign).unwrap();
 
         println!(
             "Successfully called the init command with height {}, and round {}",

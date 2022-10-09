@@ -1,10 +1,10 @@
-//! Signing keyring. Presently specialized for Ed25519.
+//! Signing keyring. Presently specialized for Ed25519 and ECDSA.
 
 pub mod ecdsa;
 pub mod ed25519;
+pub mod signature;
 pub mod format;
 pub mod providers;
-pub mod signature;
 
 pub use self::{format::Format, providers::SigningProvider, signature::Signature};
 use crate::{
@@ -174,6 +174,8 @@ impl KeyRing {
         )
     }
 
+    /// Sign a message using the secret key associated with the given public key
+    /// (if it is in our keyring)
     pub fn sign(
         &self,
         public_key: Option<&TendermintKey>,
@@ -210,58 +212,6 @@ impl KeyRing {
         } else {
             Err(format_err!(InvalidKey, "keyring is empty").into())
         }
-    }
-
-    /// Sign a message using the secret key associated with the given public key
-    /// (if it is in our keyring)
-    pub fn sign_ecdsa_v2(
-        &self,
-        public_key: Option<&TendermintKey>,
-        msg: &[u8],
-    ) -> Result<k256::ecdsa::Signature, Error> {
-        let signer = match public_key {
-            Some(public_key) => self.ecdsa_keys.get(public_key).ok_or_else(|| {
-                format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
-            })?,
-            None => {
-                let mut vals = self.ecdsa_keys.values();
-
-                if vals.len() > 1 {
-                    fail!(SigningError, "expected only one key in keyring");
-                } else {
-                    vals.next()
-                        .ok_or_else(|| format_err!(InvalidKey, "keyring is empty"))?
-                }
-            }
-        };
-
-        signer.sign(msg)
-    }
-
-    /// Sign a message using the secret key associated with the given public key
-    /// (if it is in our keyring)
-    pub fn sign_ed25519(
-        &self,
-        public_key: Option<&TendermintKey>,
-        msg: &[u8],
-    ) -> Result<ed25519::Signature, Error> {
-        let signer = match public_key {
-            Some(public_key) => self.ed25519_keys.get(public_key).ok_or_else(|| {
-                format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
-            })?,
-            None => {
-                let mut vals = self.ed25519_keys.values();
-
-                if vals.len() > 1 {
-                    fail!(SigningError, "expected only one key in keyring");
-                } else {
-                    vals.next()
-                        .ok_or_else(|| format_err!(InvalidKey, "keyring is empty"))?
-                }
-            }
-        };
-
-        signer.sign(msg)
     }
 }
 

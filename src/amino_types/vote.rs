@@ -10,7 +10,6 @@ use super::{
 use crate::{config::validator::ProtocolVersion, rpc, keyring::signature::Signature};
 use bytes::BufMut;
 use bytes_v0_5::BytesMut as BytesMutV05;
-use ed25519_dalek as ed25519;
 use once_cell::sync::Lazy;
 use prost::Message as _;
 use prost_amino::{error::EncodeError, Message};
