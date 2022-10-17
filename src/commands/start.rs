@@ -29,6 +29,46 @@ impl Runnable for StartCommand {
             env!("CARGO_PKG_VERSION")
         );
 
+        // Start background thread with exporter http runtime...
+        #[cfg(feature = "prometheus")]
+        {
+            let cfg = APP.config().prometheus.clone().bind_address;
+            if let Some(bind_address) = cfg {
+                use std::str::FromStr;
+                APP.state()
+                    .threads_mut()
+                    .spawn(
+                        abscissa_core::thread::Name::from_str("prometheus-thread").unwrap(),
+                        move || {
+                            abscissa_tokio::run(&APP, async {
+                                crate::prometheus::PrometheusComponent
+                                    .run_and_block(
+                                        &bind_address,
+                                    )
+                                    .await
+                            })
+                            .unwrap_or_else(|e| {
+                                error!("Unable to async runtime! Error:{}", e);
+                                process::exit(1);
+                            })
+                            .unwrap_or_else(|e| {
+                                error!(
+                                "Unable to start Prometheus metrics export endpoint runtime! Error:{}",
+                                e
+                            );
+                                process::exit(1);
+                            })
+                        },
+                    )
+                    .unwrap_or_else(|e| {
+                        error!("Unable to start Prometheus metricrics thread! Error:{}", e);
+                        process::exit(1);
+                    });
+            } else {
+                warn!("Prometheus bind_addres is not configured! Not starting http exporter...")
+            }
+        } //[cfg(feature = "prometheus")]
+
         run_app(self.spawn_clients());
     }
 }
@@ -58,7 +98,6 @@ impl StartCommand {
 fn run_app(validator_clients: Vec<Client>) {
     blocking_wait(validator_clients);
 }
-
 /// Run the application, launching the Tokio executor if need be
 #[cfg(feature = "tx-signer")]
 fn run_app(validator_clients: Vec<Client>) {

@@ -143,6 +143,15 @@ impl Session {
 
         if let Some(remote_err) = self.update_consensus_state(chain, &request)? {
             // In the event of double signing we send a response to notify the validator
+            // Export double signing possibility Prometheuse's metric
+            #[cfg(feature = "prometheus")]
+            {
+                let label = crate::prometheus::Labels::double_sign(self.config.chain_id.as_str());
+                crate::prometheus::DOUBLE_SIGN_METRIC
+                    .get_or_create(&label)
+                    .inc();
+            }
+
             return Ok(request.build_response(Some(remote_err)));
         }
 
@@ -244,6 +253,29 @@ impl Session {
         R: TendermintRequest + Debug,
     {
         let (msg_type, request_state) = parse_request(request)?;
+
+        // Export signing activity metrices
+        #[cfg(feature = "prometheus")]
+        {
+            match msg_type {
+                SignedMsgType::PreVote => {
+                    let label =
+                        crate::prometheus::Labels::sign_pre_vote(self.config.chain_id.as_str());
+                    crate::prometheus::SIGN_PRE_VOTE_METRIC.get_or_create(&label)
+                }
+                SignedMsgType::PreCommit => {
+                    let label =
+                        crate::prometheus::Labels::sign_pre_commit(self.config.chain_id.as_str());
+                    crate::prometheus::SIGN_PRE_COMMIT_METRIC.get_or_create(&label)
+                }
+                SignedMsgType::Proposal => {
+                    let label =
+                        crate::prometheus::Labels::sign_proposal(self.config.chain_id.as_str());
+                    crate::prometheus::SIGN_PROPOSAL_METRIC.get_or_create(&label)
+                }
+            }
+            .inc();
+        }
 
         info!(
             "[{}@{}] signed {:?}:{} at h/r/s {} ({} ms)",

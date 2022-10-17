@@ -6,6 +6,9 @@ pub mod provider;
 pub mod tx_signer;
 pub mod validator;
 
+#[cfg(feature = "prometheus")]
+pub mod prometheus;
+
 pub use self::validator::*;
 
 #[cfg(feature = "tx-signer")]
@@ -39,4 +42,9 @@ pub struct KmsConfig {
     #[cfg(feature = "tx-signer")]
     #[serde(default)]
     pub tx_signer: Vec<TxSignerConfig>,
+
+    ///Prometheus's configuration
+    #[cfg(feature = "prometheus")]
+    #[serde(default)]
+    pub prometheus: self::prometheus::PrometheusConfig,
 }

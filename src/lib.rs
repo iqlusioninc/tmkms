@@ -34,6 +34,9 @@ pub mod tx_signer;
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
+#[cfg(feature = "prometheus")]
+pub mod prometheus;
+
 pub use crate::application::KmsApplication;
 
 // Map type used within this application

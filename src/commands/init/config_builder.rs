@@ -47,6 +47,9 @@ impl ConfigBuilder {
         #[cfg(feature = "tx-signer")]
         self.add_tx_signer_config();
 
+        #[cfg(feature = "prometheus")]
+        self.add_prometheus_config();
+
         self.contents
     }
 
@@ -177,6 +180,13 @@ impl ConfigBuilder {
     fn add_fortanixdsm_provider_config(&mut self) {
         self.add_str("### Fortanix DSM Signer Configuration\n\n");
         self.add_template_with_chain_id(include_str!("templates/keyring/fortanixdsm.toml"));
+    }
+
+    /// Add `[prometheus]` configuration
+    #[cfg(feature = "prometheus")]
+    fn add_prometheus_config(&mut self) {
+        self.add_str("### Prometheus exporter Configuration\n\n");
+        self.add_str(include_str!("templates/prometheus.toml"));
     }
 
     /// Append a template to the config file, substituting `$KMS_HOME`
