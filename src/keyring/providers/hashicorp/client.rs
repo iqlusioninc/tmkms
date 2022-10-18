@@ -44,16 +44,16 @@ pub(crate) struct ImportRequest {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum ExportKeyType {
-    EncryptionKey,
-    SigningKey,
-    HmacKey,
+    Encryption,
+    Signing,
+    Hmac,
 }
 impl std::fmt::Display for ExportKeyType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExportKeyType::EncryptionKey => write!(f, "encryption-key"),
-            ExportKeyType::SigningKey => write!(f, "signing-key"),
-            ExportKeyType::HmacKey => write!(f, "hmac-key"),
+            ExportKeyType::Encryption => write!(f, "encryption-key"),
+            ExportKeyType::Signing => write!(f, "signing-key"),
+            ExportKeyType::Hmac => write!(f, "hmac-key"),
         }
     }
 }
@@ -121,7 +121,7 @@ impl TendermintValidatorApp {
     pub fn public_key(&mut self) -> Result<[u8; ed25519_dalek::PUBLIC_KEY_LENGTH], Error> {
         if let Some(v) = self.public_key_value {
             debug!("using cached public key {}...", self.key_name);
-            return Ok(v.clone());
+            return Ok(v);
         }
 
         debug!("fetching public key for {}...", self.key_name);
@@ -196,7 +196,7 @@ impl TendermintValidatorApp {
         array.copy_from_slice(&pubk[..ed25519_dalek::PUBLIC_KEY_LENGTH]);
 
         //cache it...
-        self.public_key_value = Some(array.clone());
+        self.public_key_value = Some(array);
         debug!("Public key: value cached {}", self.key_name,);
 
         Ok(array)
@@ -235,7 +235,7 @@ impl TendermintValidatorApp {
             return Err(Error::NoSignature);
         };
 
-        let parts = data.signature.split(":").collect::<Vec<&str>>();
+        let parts = data.signature.split(':').collect::<Vec<&str>>();
         if parts.len() != 3 {
             return Err(Error::InvalidSignature(format!(
                 "expected 3 parts, received:{} full:{}",

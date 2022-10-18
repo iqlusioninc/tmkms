@@ -17,37 +17,34 @@ pub enum Error {
     InvalidSignature(String),
 
     #[error("ApiClient error:{0}")]
-    ApiClientError(String),
+    ApiClient(String),
 
     #[error("Base64 decode error")]
-    DecodeError(base64::DecodeError),
+    Decode(base64::DecodeError),
 
     #[error("Serde error")]
-    SerDeError(serde_json::Error),
-
-    #[error("Signature error")]
-    SignatureError(signature::Error),
+    SerDe(serde_json::Error),
 }
 
 impl From<hashicorp_vault::Error> for Error {
     fn from(err: hashicorp_vault::Error) -> Error {
-        Error::ApiClientError(err.to_string())
+        Error::ApiClient(err.to_string())
     }
 }
 
 impl From<base64::DecodeError> for Error {
     fn from(err: base64::DecodeError) -> Error {
-        Error::DecodeError(err)
+        Error::Decode(err)
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
-        Error::SerDeError(err)
+        Error::SerDe(err)
     }
 }
 impl From<signature::Error> for Error {
     fn from(err: signature::Error) -> Error {
-        Error::SignatureError(err)
+        Error::InvalidSignature(err.to_string())
     }
 }

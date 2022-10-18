@@ -24,10 +24,7 @@ pub fn init(
     configs: &[HashiCorpConfig],
 ) -> Result<(), Error> {
     if configs.is_empty() {
-        fail!(
-            ConfigError,
-            "expected at least one [providers.hashicorp] in config, found none!"
-        );
+        return Ok(());
     }
 
     let mut chains = Vec::<String>::new();
@@ -48,20 +45,23 @@ pub fn init(
             &config.access_token,
             &config.pk_name,
         )
-        .expect(&format!(
-            "Failed to authenticate to Vault for chain id:{}",
-            config.chain_id
-        ));
+        .unwrap_or_else(|_| {
+            panic!(
+                "Failed to authenticate to Vault for chain id:{}",
+                config.chain_id
+            )
+        });
 
-        let public_key = app.public_key().expect(&format!(
-            "Failed to get public key for chain id:{}",
-            config.chain_id
-        ));
+        let public_key = app.public_key().unwrap_or_else(|_| {
+            panic!("Failed to get public key for chain id:{}", config.chain_id,)
+        });
 
-        let public_key = ed25519::PublicKey::from_bytes(&public_key).expect(&format!(
-            "invalid Ed25519 public key for chain id:{}",
-            config.chain_id
-        ));
+        let public_key = ed25519::PublicKey::from_bytes(&public_key).unwrap_or_else(|_| {
+            panic!(
+                "invalid Ed25519 public key for chain id:{}",
+                config.chain_id
+            )
+        });
 
         let provider = Ed25519HashiCorpAppSigner::new(app);
 
