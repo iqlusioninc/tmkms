@@ -79,7 +79,7 @@ impl Runnable for UploadCommand {
             process::exit(1);
         };
 
-        self.upload(&config);
+        self.upload(config);
     }
 }
 
@@ -101,10 +101,7 @@ impl UploadCommand {
             &vault_token,
             &self.pk_name,
         )
-        .expect(&format!(
-            "Unable to connect to Vault at {}",
-            config.api_endpoint
-        ));
+        .unwrap_or_else(|_| panic!("Unable to connect to Vault at {}", config.api_endpoint));
 
         use aes_gcm::KeyInit;
         let v_aes_key = aes_gcm::Aes256Gcm::generate_key(&mut aes_gcm::aead::OsRng);
@@ -119,7 +116,7 @@ impl UploadCommand {
         let mut aes_key = [0u8; KEY_SIZE_AES256];
         aes_key.copy_from_slice(&v_aes_key[..KEY_SIZE_AES256]);
 
-        let kek = aes_kw::KekAes256::from(aes_key.clone());
+        let kek = aes_kw::KekAes256::from(aes_key);
         let wrapped_input_key = kek
             .wrap_with_padding_vec(&ed25519_input_key)
             .expect("input key wrapping error!");

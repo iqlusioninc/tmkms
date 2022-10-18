@@ -82,6 +82,7 @@ yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 hashicorp = ["hashicorp_vault", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
 
+
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]
 overflow-checks = true
