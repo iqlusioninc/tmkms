@@ -54,7 +54,9 @@ wait-timeout = "0.2"
 yubihsm = { version = "0.42", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 
-hashicorp_vault = { version = "2.1.0", optional = true }
+
+
+ureq = { version = "~2.5", default-features=false, features = ["tls", "json", "gzip"], optional = true}
 base64 = { version = "0.13.0", optional = true}
 aes-kw = { version = "0.2.1", features = ["std"], optional = true}
 rsa = { version = "0.6.1", default = true, optional = true}
@@ -72,8 +74,7 @@ softsign = []
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
-hashicorp = ["hashicorp_vault", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
-
+hashicorp = ["ureq", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]
