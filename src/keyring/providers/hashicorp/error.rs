@@ -24,10 +24,16 @@ pub enum Error {
 
     #[error("Serde error")]
     SerDe(serde_json::Error),
+
+    #[error("IO error")]
+    Io(std::io::Error),
+
+    #[error("Help:{0}, Error:{1} ")]
+    Combined(String, Box<Error>),
 }
 
-impl From<hashicorp_vault::Error> for Error {
-    fn from(err: hashicorp_vault::Error) -> Error {
+impl From<ureq::Error> for Error {
+    fn from(err: ureq::Error) -> Error {
         Error::ApiClient(err.to_string())
     }
 }
@@ -43,6 +49,13 @@ impl From<serde_json::Error> for Error {
         Error::SerDe(err)
     }
 }
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Error {
+        Error::Io(err)
+    }
+}
+
 impl From<signature::Error> for Error {
     fn from(err: signature::Error) -> Error {
         Error::InvalidSignature(err.to_string())

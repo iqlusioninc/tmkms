@@ -2,18 +2,21 @@ use abscissa_core::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
 use super::error::Error;
-use hashicorp_vault::{
-    client::{EndpointResponse, HttpVerb, TokenData, VaultResponse},
-    Client,
-};
+
+use super::vault_data;
+
+use std::time::Duration;
+use ureq::Agent;
 
 use serde::{Deserialize, Serialize};
 
-const VAULT_BACKEND_NAME: &str = "transit";
 pub const CONSENUS_KEY_TYPE: &str = "ed25519";
+const VAULT_TOKEN: &str = "X-Vault-Token";
 
 pub(crate) struct TendermintValidatorApp {
-    client: Client<TokenData>,
+    agent: Agent,
+    api_endpoint: String,
+    token: String,
     key_name: String,
     public_key_value: Option<[u8; ed25519_dalek::PUBLIC_KEY_LENGTH]>,
 }
@@ -100,19 +103,50 @@ impl std::fmt::Display for CreateKeyType {
 }
 
 impl TendermintValidatorApp {
-    pub fn connect(host: &str, token: &str, key_name: &str) -> Result<Self, Error> {
+    pub fn connect(api_endpoint: &str, token: &str, key_name: &str) -> Result<Self, Error> {
         //this call performs token self lookup, to fail fast
-        let mut client = Client::new(host, token)?;
-        client.secret_backend(VAULT_BACKEND_NAME);
+        //let mut client = Client::new(host, token)?;
+
+        //default conect timeout is 30s, this should be ok, since we block
+        let agent: Agent = ureq::AgentBuilder::new()
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .user_agent(&format!(
+                "{}/{}",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            ))
+            .build();
+
+        //client.secret_backend(VAULT_BACKEND_NAME);
 
         let app = TendermintValidatorApp {
-            client,
+            agent,
+            api_endpoint: api_endpoint.to_owned(),
+            token: token.to_owned(),
             key_name: key_name.to_owned(),
             public_key_value: None,
         };
 
-        debug!("Initialized with Vault host at {}", host);
+        debug!("Initialized with Vault host at {}", api_endpoint);
+        app.hand_shake()?;
+
         Ok(app)
+    }
+
+    fn hand_shake(&self) -> Result<vault_data::Root<vault_data::SelfLookupData>, Error> {
+        self.agent
+            .get(&format!("{}/v1/auth/token/lookup-self", self.api_endpoint))
+            .set(VAULT_TOKEN, &self.token)
+            .call()
+            .map_err(|e| {
+                super::error::Error::Combined(
+                    "Is \"access_token\" value correct?".into(),
+                    Box::new(e.into()),
+                )
+            })?
+            .into_json::<vault_data::Root<vault_data::SelfLookupData>>()
+            .map_err(super::error::Error::Io)
     }
 
     //vault read transit/keys/cosmoshub-sign-key
@@ -132,17 +166,17 @@ impl TendermintValidatorApp {
             keys: BTreeMap<usize, HashMap<String, String>>,
         }
 
-        let data = self.client.call_endpoint::<PublicKeyResponse>(
-            HttpVerb::GET,
-            &format!("transit/keys/{}", self.key_name),
-            None,
-            None,
-        )?;
-
-        //{ keys: {1: {"name": "ed25519", "public_key": "R5n8OFaknb/3sCTx/aegNzYukwVx0uNtzzK/2RclIOE=", "creation_time": "2022-08-18T12:44:02.136328217Z"}} }
-        let data = if let EndpointResponse::VaultResponse(VaultResponse {
-            data: Some(data), ..
-        }) = data
+        //TODO - explore "latest"
+        let data = if let Some(data) = self
+            .agent
+            .get(&format!(
+                "{}/v1/transit/keys/{}",
+                self.api_endpoint, self.key_name
+            ))
+            .set(VAULT_TOKEN, &self.token)
+            .call()?
+            .into_json::<vault_data::Root<PublicKeyResponse>>()?
+            .data
         {
             data
         } else {
@@ -217,18 +251,16 @@ impl TendermintValidatorApp {
 
         debug!("signing request: base64 encoded and about to submit for signing...");
 
-        let data = self.client.call_endpoint::<SignResponse>(
-            HttpVerb::POST,
-            &format!("transit/sign/{}", self.key_name),
-            None,
-            Some(&serde_json::to_string(&body)?),
-        )?;
-
-        debug!("signing request: about to submit for signing...");
-
-        let data = if let EndpointResponse::VaultResponse(VaultResponse {
-            data: Some(data), ..
-        }) = data
+        let data = if let Some(data) = self
+            .agent
+            .post(&format!(
+                "{}/v1/transit/sign/{}",
+                self.api_endpoint, self.key_name
+            ))
+            .set(VAULT_TOKEN, &self.token)
+            .send_json(body)?
+            .into_json::<vault_data::Root<SignResponse>>()?
+            .data
         {
             data
         } else {
@@ -273,21 +305,20 @@ impl TendermintValidatorApp {
             public_key: String,
         }
 
-        let data = self.client.call_endpoint::<PublicKeyResponse>(
-            HttpVerb::GET,
-            "transit/wrapping_key",
-            None,
-            None,
-        )?;
+        let data = if let Some(data) = self
+            .agent
+            .get(&format!("{}/v1/transit/wrapping_key", self.api_endpoint))
+            .set(VAULT_TOKEN, &self.token)
+            .call()?
+            .into_json::<vault_data::Root<PublicKeyResponse>>()?
+            .data
+        {
+            data
+        } else {
+            return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
+        };
 
-        Ok(
-            if let EndpointResponse::VaultResponse(VaultResponse { data: Some(d), .. }) = data {
-                debug!("wrapping key:\n{}", d.public_key);
-                d.public_key.trim().to_owned()
-            } else {
-                return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
-            },
-        )
+        Ok(data.public_key.trim().to_owned())
     }
 
     pub fn import_key(
@@ -302,12 +333,14 @@ impl TendermintValidatorApp {
             hash_function: "SHA256".into(),
         };
 
-        let _ = self.client.call_endpoint::<()>(
-            HttpVerb::POST,
-            &format!("transit/keys/{}/import", key_name),
-            None,
-            Some(&serde_json::to_string(&body)?),
-        )?;
+        let _ = self
+            .agent
+            .post(&format!(
+                "{}/v1/transit/keys/{}/import",
+                self.api_endpoint, key_name
+            ))
+            .set(VAULT_TOKEN, &self.token)
+            .send_json(body)?;
 
         Ok(())
     }
@@ -332,7 +365,7 @@ mod tests {
     fn hashicorp_connect_ok() {
         //setup
         let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
-            .match_header("X-Vault-Token", TEST_TOKEN)
+            .match_header(VAULT_TOKEN, TEST_TOKEN)
             .with_body(TOKEN_DATA)
             .create();
 

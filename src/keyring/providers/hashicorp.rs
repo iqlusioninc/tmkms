@@ -2,6 +2,7 @@
 pub(crate) mod client;
 pub(crate) mod error;
 pub(crate) mod signer;
+pub(crate) mod vault_data;
 
 use crate::{
     chain,
