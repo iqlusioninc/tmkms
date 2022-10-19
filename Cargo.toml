@@ -78,6 +78,7 @@ yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 prometheus = ["prometheus-client", "hyper", "abscissa_tokio", "tokio"]
 
+
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]
 overflow-checks = true

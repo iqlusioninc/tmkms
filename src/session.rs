@@ -203,45 +203,47 @@ impl Session {
 
         match chain_state.update_consensus_state(request_state.clone()) {
             Ok(()) => Ok(None),
-            Err(e) if e.kind() == StateErrorKind::DoubleSign => {
-                // Report double signing error back to the validator
-                let original_block_id = chain_state.consensus_state().block_id_prefix();
-
-                error!(
-                    "[{}@{}] attempted double sign {:?} at h/r/s: {} ({} != {})",
-                    &self.config.chain_id,
-                    &self.config.addr,
-                    msg_type,
-                    request_state,
-                    original_block_id,
-                    request_state.block_id_prefix()
-                );
-
-                // Export double signing possibility Prometheuse's metric
-                #[cfg(feature = "prometheus")]
-                {
-                    let label =
-                        crate::prometheus::Labels::double_sign(self.config.chain_id.as_str());
-                    crate::prometheus::DOUBLE_SIGN_METRIC
-                        .get_or_create(&label)
-                        .inc();
-                }
-
-                let remote_err = RemoteError::double_sign(request_state.height.into());
-                Ok(Some(remote_err))
-            }
             Err(e) => {
-                // Export state errors Prometheuse's metric
                 #[cfg(feature = "prometheus")]
                 {
-                    let label =
-                        crate::prometheus::Labels::state_errors(self.config.chain_id.as_str());
-                    crate::prometheus::STATE_ERRORS_METRIC
-                        .get_or_create(&label)
-                        .inc();
-                }
+                    //everything goes into state errors
+                    crate::prometheus::Labels::state_errors(
+                        self.config.chain_id.as_str(),
+                        e.kind().to_string(),
+                    );
 
-                Err(e.into())
+                    //all but SyncError goes into double sign
+                    match e.kind() {
+                        StateErrorKind::SyncError => (),
+                        _ => {
+                            crate::prometheus::Labels::double_sign(
+                                self.config.chain_id.as_str(),
+                                e.kind().to_string(),
+                            );
+                        }
+                    }
+                } //end of feature
+
+                //special handling for double sign
+                if e.kind() == StateErrorKind::DoubleSign {
+                    // Report double signing error back to the validator
+                    let original_block_id = chain_state.consensus_state().block_id_prefix();
+
+                    error!(
+                        "[{}@{}] attempted double sign {:?} at h/r/s: {} ({} != {})",
+                        &self.config.chain_id,
+                        &self.config.addr,
+                        msg_type,
+                        request_state,
+                        original_block_id,
+                        request_state.block_id_prefix()
+                    );
+
+                    let remote_err = RemoteError::double_sign(request_state.height.into());
+                    Ok(Some(remote_err))
+                } else {
+                    Err(e.into())
+                }
             }
         }
     }
@@ -273,22 +275,15 @@ impl Session {
         {
             match msg_type {
                 SignedMsgType::PreVote => {
-                    let label =
-                        crate::prometheus::Labels::sign_pre_vote(self.config.chain_id.as_str());
-                    crate::prometheus::SIGN_PRE_VOTE_METRIC.get_or_create(&label)
+                    crate::prometheus::Labels::sign_pre_vote(self.config.chain_id.as_str())
                 }
                 SignedMsgType::PreCommit => {
-                    let label =
-                        crate::prometheus::Labels::sign_pre_commit(self.config.chain_id.as_str());
-                    crate::prometheus::SIGN_PRE_COMMIT_METRIC.get_or_create(&label)
+                    crate::prometheus::Labels::sign_pre_commit(self.config.chain_id.as_str())
                 }
                 SignedMsgType::Proposal => {
-                    let label =
-                        crate::prometheus::Labels::sign_proposal(self.config.chain_id.as_str());
-                    crate::prometheus::SIGN_PROPOSAL_METRIC.get_or_create(&label)
+                    crate::prometheus::Labels::sign_proposal(self.config.chain_id.as_str())
                 }
-            }
-            .inc();
+            };
         }
 
         info!(

@@ -50,43 +50,55 @@ enum MetricType {
 pub struct Labels {
     method: MetricType,
     chain: String,
+    other: Vec<String>,
 }
 
 impl Labels {
     ///Create pre commit metric's label
-    pub fn sign_pre_commit(chain: &str) -> Self {
-        Labels {
+    pub fn sign_pre_commit(chain: &str){
+        let label_set = Labels {
             method: MetricType::PreCommits,
             chain: chain.to_owned(),
-        }
+            other: vec![],
+        };
+        SIGN_PRE_COMMIT_METRIC.get_or_create(&label_set).inc();
     }
     ///Create pre vote metric's label
-    pub fn sign_pre_vote(chain: &str) -> Self {
-        Labels {
+    pub fn sign_pre_vote(chain: &str){
+        let label_set = Labels {
             method: MetricType::PreVotes,
             chain: chain.to_owned(),
-        }
+            other: vec![],
+        };
+        SIGN_PRE_VOTE_METRIC.get_or_create(&label_set).inc();
     }
     ///Create proposal metric's label
-    pub fn sign_proposal(chain: &str) -> Self {
-        Labels {
+    pub fn sign_proposal(chain: &str){
+        let label_set = Labels {
             method: MetricType::Proposals,
             chain: chain.to_owned(),
-        }
+            other: vec![],
+        };
+        SIGN_PROPOSAL_METRIC.get_or_create(&label_set).inc();
     }
     ///Create double sign metric's label
-    pub fn double_sign(chain: &str) -> Self {
-        Labels {
+    pub fn double_sign(chain: &str, other: String){
+        let label_set = Labels {
             method: MetricType::DoubleSign,
             chain: chain.to_owned(),
-        }
+            other: vec![other],
+        };
+        DOUBLE_SIGN_METRIC.get_or_create(&label_set).inc();
     }
     ///Create double sign metric's label
-    pub fn state_errors(chain: &str) -> Self {
-        Labels {
+    pub fn state_errors(chain: &str, other: String) {
+        let label_set = Labels {
             method: MetricType::StateErrors,
             chain: chain.to_owned(),
-        }
+            other: vec![other],
+        };
+
+        STATE_ERRORS_METRIC.get_or_create(&label_set).inc();
     }
 }
 
