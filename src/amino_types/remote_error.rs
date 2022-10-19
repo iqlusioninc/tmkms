@@ -1,6 +1,6 @@
 use prost_amino_derive::Message;
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, PartialEq, Eq, Message)]
 pub struct RemoteError {
     #[prost_amino(sint32, tag = "1")]
     pub code: i32,

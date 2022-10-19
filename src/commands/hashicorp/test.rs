@@ -59,7 +59,7 @@ impl Runnable for TestCommand {
             &config.access_token,
             &self.pk_name,
         )
-        .unwrap_or_else(|_| panic!("Unable to connect to Vault at {}", config.api_endpoint));
+        .unwrap_or_else(|e| panic!("Unable to connect to Vault {} {}", config.api_endpoint, e));
 
         let mut app =
             crate::keyring::providers::hashicorp::signer::Ed25519HashiCorpAppSigner::new(app);
