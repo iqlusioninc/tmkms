@@ -118,8 +118,6 @@ impl TendermintValidatorApp {
             ))
             .build();
 
-        //client.secret_backend(VAULT_BACKEND_NAME);
-
         let app = TendermintValidatorApp {
             agent,
             api_endpoint: api_endpoint.to_owned(),
@@ -134,8 +132,9 @@ impl TendermintValidatorApp {
         Ok(app)
     }
 
-    fn hand_shake(&self) -> Result<vault_data::Root<vault_data::SelfLookupData>, Error> {
-        self.agent
+    fn hand_shake(&self) -> Result<(), Error> {
+        let _ = self
+            .agent
             .get(&format!("{}/v1/auth/token/lookup-self", self.api_endpoint))
             .set(VAULT_TOKEN, &self.token)
             .call()
@@ -144,9 +143,8 @@ impl TendermintValidatorApp {
                     "Is \"access_token\" value correct?".into(),
                     Box::new(e.into()),
                 )
-            })?
-            .into_json::<vault_data::Root<vault_data::SelfLookupData>>()
-            .map_err(super::error::Error::Io)
+            })?;
+        Ok(())
     }
 
     //vault read transit/keys/cosmoshub-sign-key
