@@ -143,14 +143,6 @@ impl Session {
 
         if let Some(remote_err) = self.update_consensus_state(chain, &request)? {
             // In the event of double signing we send a response to notify the validator
-            // Export double signing possibility Prometheuse's metric
-            #[cfg(feature = "prometheus")]
-            {
-                let label = crate::prometheus::Labels::double_sign(self.config.chain_id.as_str());
-                crate::prometheus::DOUBLE_SIGN_METRIC
-                    .get_or_create(&label)
-                    .inc();
-            }
 
             return Ok(request.build_response(Some(remote_err)));
         }
@@ -225,10 +217,32 @@ impl Session {
                     request_state.block_id_prefix()
                 );
 
+                // Export double signing possibility Prometheuse's metric
+                #[cfg(feature = "prometheus")]
+                {
+                    let label =
+                        crate::prometheus::Labels::double_sign(self.config.chain_id.as_str());
+                    crate::prometheus::DOUBLE_SIGN_METRIC
+                        .get_or_create(&label)
+                        .inc();
+                }
+
                 let remote_err = RemoteError::double_sign(request_state.height.into());
                 Ok(Some(remote_err))
             }
-            Err(e) => Err(e.into()),
+            Err(e) => {
+                // Export state errors Prometheuse's metric
+                #[cfg(feature = "prometheus")]
+                {
+                    let label =
+                        crate::prometheus::Labels::state_errors(self.config.chain_id.as_str());
+                    crate::prometheus::STATE_ERRORS_METRIC
+                        .get_or_create(&label)
+                        .inc();
+                }
+
+                Err(e.into())
+            }
         }
     }
 

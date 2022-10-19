@@ -18,19 +18,23 @@ use tokio::signal::unix::{signal, SignalKind};
 
 ///Proposal Metric
 pub static SIGN_PROPOSAL_METRIC: Lazy<Family<Labels, Counter>> =
-    Lazy::new(|| Family::<Labels, Counter<u64>>::default());
+    Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 /// Pre Vote metric
 pub static SIGN_PRE_VOTE_METRIC: Lazy<Family<Labels, Counter>> =
-    Lazy::new(|| Family::<Labels, Counter<u64>>::default());
+    Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 /// Pre Commit metric    
 pub static SIGN_PRE_COMMIT_METRIC: Lazy<Family<Labels, Counter>> =
-    Lazy::new(|| Family::<Labels, Counter<u64>>::default());
+    Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 /// Pre Commit metric    
 pub static DOUBLE_SIGN_METRIC: Lazy<Family<Labels, Counter>> =
-    Lazy::new(|| Family::<Labels, Counter<u64>>::default());
+    Lazy::new(Family::<Labels, Counter<u64>>::default);
+
+/// Pre Commit metric    
+pub static STATE_ERRORS_METRIC: Lazy<Family<Labels, Counter>> =
+    Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Encode)]
 enum MetricType {
@@ -38,6 +42,7 @@ enum MetricType {
     Proposals,
     PreVotes,
     DoubleSign,
+    StateErrors,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Encode)]
@@ -73,6 +78,13 @@ impl Labels {
     pub fn double_sign(chain: &str) -> Self {
         Labels {
             method: MetricType::DoubleSign,
+            chain: chain.to_owned(),
+        }
+    }
+    ///Create double sign metric's label
+    pub fn state_errors(chain: &str) -> Self {
+        Labels {
+            method: MetricType::StateErrors,
             chain: chain.to_owned(),
         }
     }
@@ -112,6 +124,11 @@ impl PrometheusComponent {
             "double-sign",
             "Counts double-signs, local knowledge, per chain",
             Box::new(DOUBLE_SIGN_METRIC.clone()),
+        );
+        registry.register(
+            "state-errors",
+            "Counts state-errors, local knowledge, per chain",
+            Box::new(STATE_ERRORS_METRIC.clone()),
         );
 
         info!("Starting Prometheus metrics endpoint at http://{addr} ...");
