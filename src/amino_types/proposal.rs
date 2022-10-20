@@ -7,7 +7,7 @@ use super::{
     validate::{self, ConsensusMessage, Error::*},
     ParseChainId, TendermintRequest,
 };
-use crate::{config::validator::ProtocolVersion, rpc, keyring::signature::Signature};
+use crate::{config::validator::ProtocolVersion, keyring::signature::Signature, rpc};
 use bytes::BufMut;
 use bytes_v0_5::BytesMut as BytesMutV05;
 use once_cell::sync::Lazy;

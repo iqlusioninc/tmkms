@@ -1,7 +1,7 @@
 use super::compute_prefix;
 use once_cell::sync::Lazy;
 use prost_amino_derive::Message;
-use tendermint::public_key::{Ed25519, Secp256k1, PublicKey};
+use tendermint::public_key::{Ed25519, PublicKey, Secp256k1};
 
 // Note:On the golang side this is generic in the sense that it could everything that implements
 // github.com/tendermint/tendermint/crypto.PubKey

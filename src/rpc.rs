@@ -162,14 +162,14 @@ impl Response {
                     let sum = if pk.pub_key_ed25519.len() > 0 {
                         Some(proto::crypto::public_key::Sum::Ed25519(pk.pub_key_ed25519))
                     } else if pk.pub_key_secp256k1.len() > 0 {
-                        Some(proto::crypto::public_key::Sum::Secp256k1(pk.pub_key_secp256k1))
+                        Some(proto::crypto::public_key::Sum::Secp256k1(
+                            pk.pub_key_secp256k1,
+                        ))
                     } else {
                         None
                     };
 
-                    let pk = proto::crypto::PublicKey {
-                        sum: sum,
-                    };
+                    let pk = proto::crypto::PublicKey { sum: sum };
 
                     proto::privval::message::Sum::PubKeyResponse(proto::privval::PubKeyResponse {
                         pub_key: Some(pk),

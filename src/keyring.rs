@@ -2,9 +2,9 @@
 
 pub mod ecdsa;
 pub mod ed25519;
-pub mod signature;
 pub mod format;
 pub mod providers;
+pub mod signature;
 
 pub use self::{format::Format, providers::SigningProvider, signature::Signature};
 use crate::{
@@ -164,11 +164,7 @@ impl KeyRing {
 
     /// Sign a message using the secret key associated with the given public key
     /// (if it is in our keyring)
-    pub fn sign(
-        &self,
-        public_key: Option<&TendermintKey>,
-        msg: &[u8],
-    ) -> Result<Signature, Error> {
+    pub fn sign(&self, public_key: Option<&TendermintKey>, msg: &[u8]) -> Result<Signature, Error> {
         if self.ed25519_keys.len() > 1 || self.ecdsa_keys.len() > 1 {
             fail!(SigningError, "expected only one key in keyring");
         }
@@ -178,10 +174,11 @@ impl KeyRing {
                 Some(public_key) => self.ed25519_keys.get(public_key).ok_or_else(|| {
                     format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
                 }),
-                None => {
-                    self.ed25519_keys.values().next()
-                        .ok_or_else(|| format_err!(InvalidKey, "ed25519 keyring is empty"))
-                }
+                None => self
+                    .ed25519_keys
+                    .values()
+                    .next()
+                    .ok_or_else(|| format_err!(InvalidKey, "ed25519 keyring is empty")),
             }?;
 
             Ok(Signature::ED25519(signer.sign(msg)?))
@@ -190,10 +187,11 @@ impl KeyRing {
                 Some(public_key) => self.ecdsa_keys.get(public_key).ok_or_else(|| {
                     format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
                 }),
-                None => {
-                    self.ecdsa_keys.values().next()
-                        .ok_or_else(|| format_err!(InvalidKey, "ecdsa keyring is empty"))
-                }
+                None => self
+                    .ecdsa_keys
+                    .values()
+                    .next()
+                    .ok_or_else(|| format_err!(InvalidKey, "ecdsa keyring is empty")),
             }?;
 
             Ok(Signature::ECDSA(signer.sign(msg)?))

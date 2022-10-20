@@ -21,8 +21,8 @@ use parameterized::parameterized;
 
 use tmkms::{
     amino_types::{self, *},
-    config::validator::ProtocolVersion,
     config::provider::KeyType,
+    config::validator::ProtocolVersion,
     connection::unix::UnixConnection,
 };
 
@@ -308,10 +308,9 @@ fn test_secp256k1_keypair() -> (k256::ecdsa::SigningKey, k256::ecdsa::VerifyingK
 fn signing_key_path(key_type: &KeyType) -> &'static str {
     match key_type {
         KeyType::Account => SIGNING_SECP256K1_KEY_PATH,
-        KeyType::Consensus => SIGNING_ED25519_KEY_PATH
+        KeyType::Consensus => SIGNING_ED25519_KEY_PATH,
     }
 }
-
 
 /// Extract the actual length of an amino message
 pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
@@ -322,7 +321,6 @@ pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
     }
     Ok(actual_len + (prost_amino::encoding::encoded_len_varint(actual_len) as u64))
 }
-
 
 #[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
 fn test_handle_and_sign_proposal(key_type: KeyType) {
@@ -379,7 +377,8 @@ fn test_handle_and_sign_proposal(key_type: KeyType) {
 
         let r = match key_type {
             KeyType::Account => {
-                let signature = k256::ecdsa::Signature::try_from(prop.signature.as_slice()).unwrap();
+                let signature =
+                    k256::ecdsa::Signature::try_from(prop.signature.as_slice()).unwrap();
                 test_secp256k1_keypair().1.verify(msg, &signature)
             }
             KeyType::Consensus => {
@@ -568,7 +567,7 @@ fn test_handle_and_sign_get_publickey(key_type: KeyType) {
         let pk_resp = PubKeyResponse::decode(resp.as_ref()).expect("decoding public key failed");
         let pk_len = match key_type {
             KeyType::Account => pk_resp.pub_key_secp256k1.len(),
-            KeyType::Consensus => pk_resp.pub_key_ed25519.len()
+            KeyType::Consensus => pk_resp.pub_key_ed25519.len(),
         };
 
         assert_ne!(pk_len, 0);
