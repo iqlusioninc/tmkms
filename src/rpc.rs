@@ -159,9 +159,9 @@ impl Response {
                     proto::privval::message::Sum::PingResponse(proto::privval::PingResponse {})
                 }
                 Response::PublicKey(pk) => {
-                    let sum = if pk.pub_key_ed25519.len() > 0 {
+                    let sum = if !pk.pub_key_ed25519.is_empty() {
                         Some(proto::crypto::public_key::Sum::Ed25519(pk.pub_key_ed25519))
-                    } else if pk.pub_key_secp256k1.len() > 0 {
+                    } else if !pk.pub_key_secp256k1.is_empty() {
                         Some(proto::crypto::public_key::Sum::Secp256k1(
                             pk.pub_key_secp256k1,
                         ))
@@ -169,7 +169,7 @@ impl Response {
                         None
                     };
 
-                    let pk = proto::crypto::PublicKey { sum: sum };
+                    let pk = proto::crypto::PublicKey { sum };
 
                     proto::privval::message::Sum::PubKeyResponse(proto::privval::PubKeyResponse {
                         pub_key: Some(pk),

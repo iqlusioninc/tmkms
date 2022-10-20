@@ -30,7 +30,7 @@ impl TryFrom<PubKeyResponse> for PublicKey {
     // This does not check if the underlying pub_key_ed25519 has the right size.
     // The caller needs to make sure that this is actually the case.
     fn try_from(response: PubKeyResponse) -> eyre::Result<PublicKey> {
-        if response.pub_key_ed25519.len() > 0 {
+        if !response.pub_key_ed25519.is_empty() {
             Ok(Ed25519::from_bytes(&response.pub_key_ed25519)?.into())
         } else {
             Ok(Secp256k1::from_sec1_bytes(&response.pub_key_secp256k1)?.into())

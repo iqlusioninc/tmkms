@@ -107,7 +107,7 @@ impl KeyRing {
 
     /// Get the default Ed25519 (i.e. consensus) public key for this keyring
     pub fn default_pubkey(&self) -> Result<TendermintKey, Error> {
-        if self.ed25519_keys.len() > 0 {
+        if !self.ed25519_keys.is_empty() {
             let mut keys = self.ed25519_keys.keys();
 
             if keys.len() == 1 {
@@ -115,7 +115,7 @@ impl KeyRing {
             } else {
                 fail!(InvalidKey, "expected only one ed25519 key in keyring");
             }
-        } else if self.ecdsa_keys.len() > 0 {
+        } else if !self.ecdsa_keys.is_empty() {
             let mut keys = self.ecdsa_keys.keys();
 
             if keys.len() == 1 {
@@ -169,7 +169,7 @@ impl KeyRing {
             fail!(SigningError, "expected only one key in keyring");
         }
 
-        if self.ed25519_keys.len() > 0 {
+        if !self.ed25519_keys.is_empty() {
             let signer = match public_key {
                 Some(public_key) => self.ed25519_keys.get(public_key).ok_or_else(|| {
                     format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
@@ -182,7 +182,7 @@ impl KeyRing {
             }?;
 
             Ok(Signature::ED25519(signer.sign(msg)?))
-        } else if self.ecdsa_keys.len() > 0 {
+        } else if !self.ecdsa_keys.is_empty() {
             let signer = match public_key {
                 Some(public_key) => self.ecdsa_keys.get(public_key).ok_or_else(|| {
                     format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
