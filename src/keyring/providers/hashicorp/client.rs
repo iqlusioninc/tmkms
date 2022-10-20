@@ -3,12 +3,11 @@ use std::collections::{BTreeMap, HashMap};
 
 use super::error::Error;
 
-use super::vault_data;
-
 use std::time::Duration;
 use ureq::Agent;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub const CONSENUS_KEY_TYPE: &str = "ed25519";
 const VAULT_TOKEN: &str = "X-Vault-Token";
@@ -24,6 +23,24 @@ pub(crate) struct TendermintValidatorApp {
 // TODO(tarcieri): check this is actually sound?! :-)
 #[allow(unsafe_code)]
 unsafe impl Send for TendermintValidatorApp {}
+
+///Vault message envelop
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Root<T> {
+    #[serde(rename = "request_id")]
+    pub request_id: String,
+    #[serde(rename = "lease_id")]
+    pub lease_id: String,
+    pub renewable: bool,
+    #[serde(rename = "lease_duration")]
+    pub lease_duration: i64,
+    pub data: Option<T>,
+    #[serde(rename = "wrap_info")]
+    pub wrap_info: Value,
+    pub warnings: Value,
+    pub auth: Value,
+}
 
 ///Sign Request Struct
 #[derive(Debug, Serialize)]
@@ -173,7 +190,7 @@ impl TendermintValidatorApp {
             ))
             .set(VAULT_TOKEN, &self.token)
             .call()?
-            .into_json::<vault_data::Root<PublicKeyResponse>>()?
+            .into_json::<Root<PublicKeyResponse>>()?
             .data
         {
             data
@@ -257,7 +274,7 @@ impl TendermintValidatorApp {
             ))
             .set(VAULT_TOKEN, &self.token)
             .send_json(body)?
-            .into_json::<vault_data::Root<SignResponse>>()?
+            .into_json::<Root<SignResponse>>()?
             .data
         {
             data
@@ -308,7 +325,7 @@ impl TendermintValidatorApp {
             .get(&format!("{}/v1/transit/wrapping_key", self.api_endpoint))
             .set(VAULT_TOKEN, &self.token)
             .call()?
-            .into_json::<vault_data::Root<PublicKeyResponse>>()?
+            .into_json::<Root<PublicKeyResponse>>()?
             .data
         {
             data
