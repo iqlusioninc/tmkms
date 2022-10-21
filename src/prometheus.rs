@@ -17,23 +17,23 @@ use std::str::FromStr;
 use tokio::signal::unix::{signal, SignalKind};
 
 ///Proposal Metric
-pub static SIGN_PROPOSAL_METRIC: Lazy<Family<Labels, Counter>> =
+static SIGN_PROPOSAL_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 /// Pre Vote metric
-pub static SIGN_PRE_VOTE_METRIC: Lazy<Family<Labels, Counter>> =
+static SIGN_PRE_VOTE_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 /// Pre Commit metric    
-pub static SIGN_PRE_COMMIT_METRIC: Lazy<Family<Labels, Counter>> =
+static SIGN_PRE_COMMIT_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 /// Pre Commit metric    
-pub static DOUBLE_SIGN_METRIC: Lazy<Family<Labels, Counter>> =
+static DOUBLE_SIGN_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 /// Pre Commit metric    
-pub static STATE_ERRORS_METRIC: Lazy<Family<Labels, Counter>> =
+static STATE_ERRORS_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Encode)]
@@ -55,7 +55,7 @@ pub struct Labels {
 
 impl Labels {
     ///Create pre commit metric's label
-    pub fn sign_pre_commit(chain: &str){
+    pub fn sign_pre_commit(chain: &str) {
         let label_set = Labels {
             method: MetricType::PreCommits,
             chain: chain.to_owned(),
@@ -64,7 +64,7 @@ impl Labels {
         SIGN_PRE_COMMIT_METRIC.get_or_create(&label_set).inc();
     }
     ///Create pre vote metric's label
-    pub fn sign_pre_vote(chain: &str){
+    pub fn sign_pre_vote(chain: &str) {
         let label_set = Labels {
             method: MetricType::PreVotes,
             chain: chain.to_owned(),
@@ -73,7 +73,7 @@ impl Labels {
         SIGN_PRE_VOTE_METRIC.get_or_create(&label_set).inc();
     }
     ///Create proposal metric's label
-    pub fn sign_proposal(chain: &str){
+    pub fn sign_proposal(chain: &str) {
         let label_set = Labels {
             method: MetricType::Proposals,
             chain: chain.to_owned(),
@@ -82,7 +82,7 @@ impl Labels {
         SIGN_PROPOSAL_METRIC.get_or_create(&label_set).inc();
     }
     ///Create double sign metric's label
-    pub fn double_sign(chain: &str, other: String){
+    pub fn double_sign(chain: &str, other: String) {
         let label_set = Labels {
             method: MetricType::DoubleSign,
             chain: chain.to_owned(),
@@ -107,13 +107,8 @@ impl Labels {
 pub struct PrometheusComponent;
 
 impl PrometheusComponent {
-    /// Run loop for Prometeus export endpoint
-    pub async fn run_and_block(&self, bind_address: &str) -> Result<(), FrameworkError> {
-        let addr = SocketAddr::from_str(bind_address).map_err(|e| {
-            FrameworkErrorKind::ConfigError
-                .context(format!("bind_address[{}] Error:{}", bind_address, e))
-        })?;
-
+    //for testability
+    fn setup_registry() -> Registry {
         let mut registry = <Registry>::default();
 
         registry.register(
@@ -142,6 +137,18 @@ impl PrometheusComponent {
             "Counts state-errors, local knowledge, per chain",
             Box::new(STATE_ERRORS_METRIC.clone()),
         );
+
+        registry
+    }
+
+    /// Run loop for Prometeus export endpoint
+    pub async fn run_and_block(&self, bind_address: &str) -> Result<(), FrameworkError> {
+        let addr = SocketAddr::from_str(bind_address).map_err(|e| {
+            FrameworkErrorKind::ConfigError
+                .context(format!("bind_address[{}] Error:{}", bind_address, e))
+        })?;
+
+        let registry = PrometheusComponent::setup_registry();
 
         info!("Starting Prometheus metrics endpoint at http://{addr} ...");
         inner_start_metrics_server(addr, registry).await
@@ -199,5 +206,137 @@ fn make_handler(
                     .unwrap()
             })
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rand::{distributions::Alphanumeric, Rng};
+
+    #[test]
+    fn test_sign_pre_commits() {
+        let chain_name = random_string(12);
+
+        let label_set = Labels {
+            method: MetricType::PreCommits,
+            chain: chain_name.clone(),
+            other: vec![],
+        };
+
+        {
+            let v = SIGN_PRE_COMMIT_METRIC.get_or_create(&label_set);
+            assert_eq!(0, v.get());
+        }
+
+        //increment
+        Labels::sign_pre_commit(&chain_name);
+
+        let v = SIGN_PRE_COMMIT_METRIC.get_or_create(&label_set);
+        assert_eq!(1, v.get());
+    }
+
+    #[test]
+    fn test_sign_pre_votes() {
+        let chain_name = random_string(12);
+
+        let label_set = Labels {
+            method: MetricType::PreVotes,
+            chain: chain_name.clone(),
+            other: vec![],
+        };
+
+        {
+            let v = SIGN_PRE_VOTE_METRIC.get_or_create(&label_set);
+            assert_eq!(0, v.get());
+        }
+
+        //increment
+        Labels::sign_pre_vote(&chain_name);
+
+        let v = SIGN_PRE_VOTE_METRIC.get_or_create(&label_set);
+        assert_eq!(1, v.get());
+    }
+
+    #[test]
+    fn test_sign_proposal() {
+        let chain_name = random_string(12);
+
+        let label_set = Labels {
+            method: MetricType::Proposals,
+            chain: chain_name.clone(),
+            other: vec![],
+        };
+
+        {
+            let v = SIGN_PROPOSAL_METRIC.get_or_create(&label_set);
+            assert_eq!(0, v.get());
+        }
+
+        //increment
+        Labels::sign_proposal(&chain_name);
+
+        let v = SIGN_PROPOSAL_METRIC.get_or_create(&label_set);
+        assert_eq!(1, v.get());
+    }
+
+    #[test]
+    fn test_double_sign() {
+        let chain_name = random_string(12);
+        let error_name = random_string(12);
+
+        let label_set = Labels {
+            method: MetricType::DoubleSign,
+            chain: chain_name.clone(),
+            other: vec![error_name.clone()],
+        };
+
+        {
+            let v = DOUBLE_SIGN_METRIC.get_or_create(&label_set);
+            assert_eq!(0, v.get());
+        }
+
+        //increment
+        Labels::double_sign(&chain_name, error_name);
+
+        let v = DOUBLE_SIGN_METRIC.get_or_create(&label_set);
+        assert_eq!(1, v.get());
+    }
+
+    #[test]
+    fn test_state_errors() {
+        let chain_name = random_string(12);
+        let error_name = random_string(12);
+
+        let label_set = Labels {
+            method: MetricType::StateErrors,
+            chain: chain_name.clone(),
+            other: vec![error_name.clone()],
+        };
+
+        {
+            let v = STATE_ERRORS_METRIC.get_or_create(&label_set);
+            assert_eq!(0, v.get());
+        }
+
+        //increment
+        Labels::state_errors(&chain_name, error_name);
+
+        let v = STATE_ERRORS_METRIC.get_or_create(&label_set);
+        assert_eq!(1, v.get());
+    }
+
+    #[test]
+    fn test_registry_stats_count() {
+        let registry = PrometheusComponent::setup_registry();
+        assert_eq!(5, registry.iter().count());
+    }
+
+    fn random_string(len: usize) -> String {
+        rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(len)
+            .map(char::from)
+            .collect()
     }
 }
