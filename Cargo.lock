@@ -2927,8 +2927,12 @@ dependencies = [
  "once_cell",
  "prost",
  "prost-derive",
+<<<<<<< HEAD
  "rand",
- "rand_core",
+=======
+ "rand 0.7.3",
+>>>>>>> 6f68879 (1.57 build fix)
+ "rand_core 0.6.4",
  "rpassword",
  "rsa",
  "sdkms",
