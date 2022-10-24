@@ -150,7 +150,7 @@ impl PrometheusComponent {
 
         let registry = PrometheusComponent::setup_registry();
 
-        info!("Starting Prometheus metrics endpoint at http://{addr} ...");
+        info!("Starting Prometheus metrics endpoint at http://{} ...", addr);
         inner_start_metrics_server(addr, registry).await
     }
 }
