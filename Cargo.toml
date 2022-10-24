@@ -83,7 +83,6 @@ yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 hashicorp = ["ureq", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
-default= ["hashicorp"]
 
 
 # Enable integer overflow checks in release builds for security reasons
