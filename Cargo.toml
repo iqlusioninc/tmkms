@@ -67,7 +67,7 @@ ureq = { version = "~2.5", default-features=false, features = ["tls", "json", "g
 base64 = { version = "0.13.0", optional = true}
 aes-kw = { version = "0.2.1", features = ["std"], optional = true}
 rsa = { version = "0.6.1", default = true, optional = true}
-rand = { version = "0.8", optional = true} 
+rand = { version = "0.7", optional = true} 
 aes-gcm = { version = "0.10.1", optional = true}
 
 [dev-dependencies]
@@ -83,6 +83,8 @@ yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 hashicorp = ["ureq", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
+default= ["hashicorp"]
+
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]
