@@ -290,7 +290,7 @@ impl TxSigner {
     async fn broadcast_tx(&mut self, sign_msg: SignMsg, sequence: u64) -> Result<(), Error> {
         let tx = self.sign_tx(&sign_msg)?;
 
-        let amino_tx = tendermint::abci::Transaction::from(
+        let amino_tx = tendermint_rpc::abci::Transaction::from(
             tx.to_amino_bytes(self.tx_builder.schema().namespace()),
         );
 
