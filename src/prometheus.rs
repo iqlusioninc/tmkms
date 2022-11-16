@@ -28,11 +28,11 @@ static SIGN_PRE_VOTE_METRIC: Lazy<Family<Labels, Counter>> =
 static SIGN_PRE_COMMIT_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
-/// Pre Commit metric    
+/// Double Sign error metric    
 static DOUBLE_SIGN_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
-/// Pre Commit metric    
+/// All inclusive state errors metric    
 static STATE_ERRORS_METRIC: Lazy<Family<Labels, Counter>> =
     Lazy::new(Family::<Labels, Counter<u64>>::default);
 
@@ -81,7 +81,7 @@ impl Labels {
         };
         SIGN_PROPOSAL_METRIC.get_or_create(&label_set).inc();
     }
-    ///Create double sign metric's label
+    ///Create double sign error metric's label
     pub fn double_sign(chain: &str, other: String) {
         let label_set = Labels {
             method: MetricType::DoubleSign,
@@ -90,7 +90,7 @@ impl Labels {
         };
         DOUBLE_SIGN_METRIC.get_or_create(&label_set).inc();
     }
-    ///Create double sign metric's label
+    ///Create all inclusive errors metric's label
     pub fn state_errors(chain: &str, other: String) {
         let label_set = Labels {
             method: MetricType::StateErrors,
@@ -150,7 +150,10 @@ impl PrometheusComponent {
 
         let registry = PrometheusComponent::setup_registry();
 
-        info!("Starting Prometheus metrics endpoint at http://{} ...", addr);
+        info!(
+            "Starting Prometheus metrics endpoint at http://{} ...",
+            addr
+        );
         inner_start_metrics_server(addr, registry).await
     }
 }
