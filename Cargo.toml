@@ -62,7 +62,7 @@ yubihsm = { version = "0.41", features = ["secp256k1", "setup", "usb"], optional
 zeroize = "1"
 
 [dev-dependencies]
-abscissa_core = { version = "0.6", features = ["testing"] }
+abscissa_core = { version = "0.7", features = ["testing"] }
 byteorder = "1"
 rand = "0.7"
 
