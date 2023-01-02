@@ -16,12 +16,12 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-abscissa_core = "0.6"
-abscissa_tokio = { version = "0.6", optional = true }
+abscissa_core = "0.7"
+abscissa_tokio = { version = "0.7", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
-clap = "3"
+clap = "4"
 cosmrs = "0.10"
 ed25519-dalek = "1"
 elliptic-curve = { version = "0.12", features = ["pkcs8"], optional = true }
