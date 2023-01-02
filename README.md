@@ -87,7 +87,7 @@ prerequisites for support.
 
 You will need the following prerequisites:
 
-- **Rust** (stable; **1.56+**): https://rustup.rs/
+- **Rust** (stable; **1.60+**): https://rustup.rs/
 - **C compiler**: e.g. gcc, clang
 - **pkg-config**
 - **libusb** (1.0+). Install instructions for common platforms:
@@ -234,7 +234,7 @@ limitations under the License.
 [build-link]: https://github.com/iqlusioninc/tmkms/actions
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/iqlusioninc/tmkms/blob/main/LICENSE
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.60+-blue.svg
 
 [//]: # (general links)
 

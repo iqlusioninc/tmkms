@@ -13,15 +13,15 @@ readme = "README.md"
 categories = ["cryptography::cryptocurrencies"]
 keywords = ["cosmos", "ed25519", "kms", "key-management", "yubihsm"]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 
 [dependencies]
-abscissa_core = "0.6"
-abscissa_tokio = { version = "0.6", optional = true }
+abscissa_core = "0.7"
+abscissa_tokio = { version = "0.7", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
-clap = "3"
+clap = "4"
 cosmrs = "0.10"
 ed25519-dalek = "1"
 elliptic-curve = { version = "0.12", features = ["pkcs8"], optional = true }
@@ -62,7 +62,7 @@ yubihsm = { version = "0.41", features = ["secp256k1", "setup", "usb"], optional
 zeroize = "1"
 
 [dev-dependencies]
-abscissa_core = { version = "0.6", features = ["testing"] }
+abscissa_core = { version = "0.7", features = ["testing"] }
 byteorder = "1"
 rand = "0.7"
 
