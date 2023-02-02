@@ -26,7 +26,7 @@ impl RemoteError {
     pub fn double_sign(height: i64) -> Self {
         RemoteError {
             code: RemoteErrorCode::DoubleSignError as i32,
-            description: format!("double signing requested at height: {}", height),
+            description: format!("double signing requested at height: {height}"),
         }
     }
 }

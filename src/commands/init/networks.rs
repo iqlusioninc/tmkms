@@ -68,7 +68,7 @@ impl Network {
                 eprintln!("\nRegistered networks:");
 
                 for network in Self::all() {
-                    eprintln!("- {}", network);
+                    eprintln!("- {network}");
                 }
 
                 process::exit(1);

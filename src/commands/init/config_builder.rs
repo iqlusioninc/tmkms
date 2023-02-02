@@ -52,7 +52,7 @@ impl ConfigBuilder {
 
     /// Add a comment describing a particular section
     fn add_section_comment(&mut self, section: &str) {
-        self.add_str(&format!("## {}\n\n", section));
+        self.add_str(&format!("## {section}\n\n"));
     }
 
     /// Add `[[chain]]` configurations

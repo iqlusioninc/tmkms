@@ -183,8 +183,7 @@ fn client_config() -> (yubihsm::Credentials, bool) {
 #[cfg(feature = "yubihsm-server")]
 fn prompt_for_auth_key_password(auth_key_id: u16) -> yubihsm::Credentials {
     let prompt = format!(
-        "Enter password for YubiHSM2 auth key 0x{:04x}: ",
-        auth_key_id
+        "Enter password for YubiHSM2 auth key 0x{auth_key_id:04x}: "
     );
 
     let password =

@@ -40,7 +40,7 @@ where
         io::stdout().write(&output.stdout).unwrap();
         io::stderr().write(&output.stderr).unwrap();
 
-        panic!("{} exited with error status: {}", KMS_EXE_PATH, status_code);
+        panic!("{KMS_EXE_PATH} exited with error status: {status_code}");
     }
 }
 

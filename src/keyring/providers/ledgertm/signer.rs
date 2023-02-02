@@ -60,7 +60,7 @@ mod tests {
     fn public_key() {
         let signer = Ed25519LedgerTmAppSigner::connect().unwrap();
         let pk = PublicKey::from(&signer);
-        println!("PK {:0X?}", pk);
+        println!("PK {pk:0X?}");
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod tests {
 
         // Get public key to initialize
         let pk = PublicKey::from(&signer);
-        println!("PK {:0X?}", pk);
+        println!("PK {pk:0X?}");
 
         for index in 50u8..254u8 {
             // Sign message1

@@ -216,7 +216,7 @@ mod tests {
                 assert!(version.minor >= 0x04);
             }
             Err(err) => {
-                eprintln!("Error: {:?}", err);
+                eprintln!("Error: {err:?}");
             }
         }
     }
@@ -230,10 +230,10 @@ mod tests {
         match resp {
             Ok(pk) => {
                 assert_eq!(pk.len(), 32);
-                println!("PK {:0X?}", pk);
+                println!("PK {pk:0X?}");
             }
             Err(err) => {
-                eprintln!("Error: {:?}", err);
+                eprintln!("Error: {err:?}");
                 panic!()
             }
         }
@@ -279,7 +279,7 @@ mod tests {
                 assert!(public_key.verify(&some_message2, &signature).is_ok());
             }
             Err(e) => {
-                println!("Err {:#?}", e);
+                println!("Err {e:#?}");
                 panic!();
             }
         }
@@ -313,7 +313,7 @@ mod tests {
                     println!("{:#?}", sig.to_vec());
                 }
                 Err(e) => {
-                    println!("Err {:#?}", e);
+                    println!("Err {e:#?}");
                     panic!();
                 }
             }
@@ -335,6 +335,6 @@ mod tests {
             app.sign(&get_fake_proposal(i, 100)).unwrap();
         }
         let duration = start.elapsed();
-        println!("Elapsed {:?}", duration);
+        println!("Elapsed {duration:?}");
     }
 }

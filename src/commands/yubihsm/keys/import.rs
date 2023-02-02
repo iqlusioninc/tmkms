@@ -218,7 +218,7 @@ impl ImportCommand {
                 process::exit(1);
             }));
 
-        let secret = ed25519::SecretKey::from_bytes(&*key_bytes).unwrap_or_else(|e| {
+        let secret = ed25519::SecretKey::from_bytes(&key_bytes).unwrap_or_else(|e| {
             status_err!("invalid Ed25519 key: {}", e);
             process::exit(1);
         });
