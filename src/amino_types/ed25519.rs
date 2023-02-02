@@ -12,14 +12,14 @@ use tendermint::public_key::{Ed25519, PublicKey};
 pub const AMINO_NAME: &str = "tendermint/remotesigner/PubKeyRequest";
 pub static AMINO_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(AMINO_NAME));
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/PubKeyResponse"]
 pub struct PubKeyResponse {
     #[prost_amino(bytes, tag = "1", amino_name = "tendermint/PubKeyEd25519")]
     pub pub_key_ed25519: Vec<u8>,
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/PubKeyRequest"]
 pub struct PubKeyRequest {}
 

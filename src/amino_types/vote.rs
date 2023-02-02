@@ -20,7 +20,7 @@ use tendermint_proto::types as proto_types;
 
 const VALIDATOR_ADDR_SIZE: usize = 20;
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct Vote {
     #[prost_amino(uint32, tag = "1")]
     pub vote_type: u32,
@@ -83,14 +83,14 @@ impl block::ParseHeight for Vote {
 pub const AMINO_NAME: &str = "tendermint/remotesigner/SignVoteRequest";
 pub static AMINO_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(AMINO_NAME));
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/SignVoteRequest"]
 pub struct SignVoteRequest {
     #[prost_amino(message, tag = "1")]
     pub vote: Option<Vote>,
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/SignedVoteResponse"]
 pub struct SignedVoteResponse {
     #[prost_amino(message, tag = "1")]
@@ -99,7 +99,7 @@ pub struct SignedVoteResponse {
     pub err: Option<RemoteError>,
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct CanonicalVote {
     #[prost_amino(uint32, tag = "1")]
     pub vote_type: u32,

@@ -18,7 +18,7 @@ use prost_amino_derive::Message;
 use tendermint::{block, chain, consensus, error};
 use tendermint_proto::types as proto_types;
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct Proposal {
     #[prost_amino(uint32, tag = "1")]
     pub msg_type: u32,
@@ -46,7 +46,7 @@ impl block::ParseHeight for Proposal {
 pub const AMINO_NAME: &str = "tendermint/remotesigner/SignProposalRequest";
 pub static AMINO_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(AMINO_NAME));
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/SignProposalRequest"]
 pub struct SignProposalRequest {
     #[prost_amino(message, tag = "1")]
@@ -84,7 +84,7 @@ impl block::ParseHeight for CanonicalProposal {
     }
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/SignedProposalResponse"]
 pub struct SignedProposalResponse {
     #[prost_amino(message, tag = "1")]

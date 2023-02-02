@@ -8,7 +8,7 @@ use tendermint::{
 };
 use tendermint_proto as proto;
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct TimeMsg {
     // TODO(ismail): switch to protobuf's well known type as soon as
     // https://github.com/tendermint/go-amino/pull/224 was merged
