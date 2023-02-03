@@ -97,7 +97,7 @@ impl KmsProcess {
 
         let (socket, _) = listener.accept().unwrap();
         Self {
-            process: process,
+            process,
             socket: KmsSocket::TCP(socket),
         }
     }
@@ -108,7 +108,7 @@ impl KmsProcess {
         let mut rng = rand::thread_rng();
         let letter: char = rng.gen_range(b'a', b'z') as char;
         let number: u32 = rng.gen_range(0, 999999);
-        let socket_path = format!("/tmp/tmkms-{}{:06}.sock", letter, number);
+        let socket_path = format!("/tmp/tmkms-{letter}{number:06}.sock");
         let config = KmsProcess::create_unix_config(&socket_path);
 
         // Start listening for connections via the Unix socket
@@ -120,7 +120,7 @@ impl KmsProcess {
 
         let (socket, _) = listener.accept().unwrap();
         Self {
-            process: process,
+            process,
             socket: KmsSocket::UNIX(socket),
         }
     }
@@ -169,7 +169,7 @@ impl KmsProcess {
             key_format = {{ type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }}
 
             [[validator]]
-            addr = "unix://{}"
+            addr = "unix://{socket_path}"
             chain_id = "test_chain_id"
             max_height = "500000"
             protocol_version = "legacy"
@@ -177,9 +177,8 @@ impl KmsProcess {
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
             key_format = "base64"
-            path = "{}"
-        "#,
-            socket_path, SIGNING_KEY_PATH
+            path = "{SIGNING_KEY_PATH}"
+        "#
         )
         .unwrap();
 

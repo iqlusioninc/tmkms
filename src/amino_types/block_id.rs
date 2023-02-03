@@ -7,7 +7,7 @@ use tendermint::{
 };
 use tendermint_proto as proto;
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct BlockId {
     #[prost_amino(bytes, tag = "1")]
     pub hash: Vec<u8>,
@@ -95,7 +95,7 @@ impl ConsensusMessage for BlockId {
     }
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct CanonicalBlockId {
     #[prost_amino(bytes, tag = "1")]
     pub hash: Vec<u8>,
@@ -119,7 +119,7 @@ impl ParseId for CanonicalBlockId {
     }
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct PartsSetHeader {
     #[prost_amino(int64, tag = "1")]
     pub total: i64,
@@ -170,7 +170,7 @@ impl From<block::parts::Header> for PartsSetHeader {
     }
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct CanonicalPartSetHeader {
     #[prost_amino(bytes, tag = "1")]
     pub hash: Vec<u8>,

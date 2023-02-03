@@ -102,8 +102,8 @@ impl Runnable for GenerateCommand {
             match self.label {
                 Some(ref l) => l.to_owned(),
                 None => match self.bech32_prefix {
-                    Some(ref prefix) => format!("{}:{}", prefix, timestamp),
-                    None => format!("{}:{}", key_type, timestamp),
+                    Some(ref prefix) => format!("{prefix}:{timestamp}"),
+                    None => format!("{key_type}:{timestamp}"),
                 },
             }
             .as_ref(),

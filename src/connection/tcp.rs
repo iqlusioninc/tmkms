@@ -37,7 +37,7 @@ pub fn open_secret_connection(
     let identity_key = key_utils::load_base64_ed25519_key(identity_key_path)?;
     info!("KMS node ID: {}", PublicKey::from(&identity_key));
 
-    let socket = TcpStream::connect(format!("{}:{}", host, port))?;
+    let socket = TcpStream::connect(format!("{host}:{port}"))?;
     let timeout = Duration::from_secs(timeout.unwrap_or(DEFAULT_TIMEOUT).into());
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
@@ -45,10 +45,10 @@ pub fn open_secret_connection(
     let connection = match SecretConnection::new(socket, identity_key, protocol_version) {
         Ok(conn) => conn,
         Err(error) => match error.detail() {
-            TmError::Crypto(_) => fail!(CryptoError, format!("{}", error)),
-            TmError::Protocol(_) => fail!(ProtocolError, format!("{}", error)),
-            TmError::InvalidKey(_) => fail!(InvalidKey, format!("{}", error)),
-            _ => fail!(ProtocolError, format!("{}", error)),
+            TmError::Crypto(_) => fail!(CryptoError, format!("{error}")),
+            TmError::Protocol(_) => fail!(ProtocolError, format!("{error}")),
+            TmError::InvalidKey(_) => fail!(InvalidKey, format!("{error}")),
+            _ => fail!(ProtocolError, format!("{error}")),
         },
     };
     let actual_peer_id = connection.remote_pubkey().peer_id();

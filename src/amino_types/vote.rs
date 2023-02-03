@@ -20,7 +20,7 @@ use tendermint_proto::types as proto_types;
 
 const VALIDATOR_ADDR_SIZE: usize = 20;
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct Vote {
     #[prost_amino(uint32, tag = "1")]
     pub vote_type: u32,
@@ -83,14 +83,14 @@ impl block::ParseHeight for Vote {
 pub const AMINO_NAME: &str = "tendermint/remotesigner/SignVoteRequest";
 pub static AMINO_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(AMINO_NAME));
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/SignVoteRequest"]
 pub struct SignVoteRequest {
     #[prost_amino(message, tag = "1")]
     pub vote: Option<Vote>,
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 #[amino_name = "tendermint/remotesigner/SignedVoteResponse"]
 pub struct SignedVoteResponse {
     #[prost_amino(message, tag = "1")]
@@ -99,7 +99,7 @@ pub struct SignedVoteResponse {
     pub err: Option<RemoteError>,
 }
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct CanonicalVote {
     #[prost_amino(uint32, tag = "1")]
     pub vote_type: u32,
@@ -212,7 +212,7 @@ impl SignableMsg for SignVoteRequest {
             let cv = proto_types::CanonicalVote {
                 r#type: vote.vote_type as i32,
                 height: vote.height,
-                round: vote.round as i64,
+                round: vote.round,
                 block_id,
                 timestamp: vote.timestamp.map(Into::into),
                 chain_id: chain_id.to_string(),
@@ -366,7 +366,7 @@ mod tests {
             3,
         ];
         let svr = SignVoteRequest::decode(got.as_ref()).unwrap();
-        println!("got back: {:?}", svr);
+        println!("got back: {svr:?}");
         assert_eq!(got, want);
     }
 
@@ -387,7 +387,7 @@ mod tests {
             vt_precommit.height = 1;
             vt_precommit.round = 1;
             vt_precommit.vote_type = SignedMsgType::PreCommit.to_u32(); // precommit
-            println!("{:?}", vt_precommit);
+            println!("{vt_precommit:?}");
             let cv_precommit = CanonicalVote::new(vt_precommit, "");
             let got = AminoMessage::bytes_vec(&cv_precommit);
             let want = vec![

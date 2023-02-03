@@ -1,6 +1,6 @@
 use prost_amino_derive::Message;
 
-#[derive(Clone, PartialEq, Message)]
+#[derive(Clone, Eq, PartialEq, Message)]
 pub struct RemoteError {
     #[prost_amino(sint32, tag = "1")]
     pub code: i32,
@@ -26,7 +26,7 @@ impl RemoteError {
     pub fn double_sign(height: i64) -> Self {
         RemoteError {
             code: RemoteErrorCode::DoubleSignError as i32,
-            description: format!("double signing requested at height: {}", height),
+            description: format!("double signing requested at height: {height}"),
         }
     }
 }

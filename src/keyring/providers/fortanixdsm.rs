@@ -221,7 +221,7 @@ impl<'a> TryFrom<SubjectPublicKeyInfo<'a>> for Ed25519PublicKey {
     fn try_from(spki: SubjectPublicKeyInfo<'_>) -> Result<Self, Self::Error> {
         spki.algorithm.assert_algorithm_oid(ED_25519_OID)?;
 
-        if spki.algorithm.parameters != None {
+        if spki.algorithm.parameters.is_some() {
             // TODO: once/if https://github.com/RustCrypto/formats/issues/354 is addressed we should use that error variant.
             return Err(SpkiError::KeyMalformed);
         }

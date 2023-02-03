@@ -70,12 +70,12 @@ impl Runnable for InitCommand {
             if !output_path.exists() {
                 status_ok!("Creating", "{}", output_path.display());
 
-                fs::create_dir_all(&output_path).unwrap_or_else(|e| {
+                fs::create_dir_all(output_path).unwrap_or_else(|e| {
                     abort!("couldn't create `{}`: {}", output_path.display(), e);
                 });
             }
 
-            fs::canonicalize(&output_path).unwrap_or_else(|e| {
+            fs::canonicalize(output_path).unwrap_or_else(|e| {
                 abort!("couldn't canonicalize `{}`: {}", output_path.display(), e);
             })
         };

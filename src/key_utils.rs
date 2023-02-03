@@ -50,7 +50,7 @@ pub fn load_base64_secret(path: impl AsRef<Path>) -> Result<Zeroizing<Vec<u8>>, 
 pub fn load_base64_ed25519_key(path: impl AsRef<Path>) -> Result<ed25519::Keypair, Error> {
     let key_bytes = load_base64_secret(path)?;
 
-    let secret = ed25519::SecretKey::from_bytes(&*key_bytes)
+    let secret = ed25519::SecretKey::from_bytes(&key_bytes)
         .map_err(|e| format_err!(InvalidKey, "invalid Ed25519 key: {}", e))?;
 
     let public = ed25519::PublicKey::from(&secret);
@@ -67,7 +67,7 @@ pub fn write_base64_secret(path: impl AsRef<Path>, data: &[u8]) -> Result<(), Er
         .truncate(true)
         .mode(SECRET_FILE_PERMS)
         .open(path.as_ref())
-        .and_then(|mut file| file.write_all(&*base64_data))
+        .and_then(|mut file| file.write_all(&base64_data))
         .map_err(|e| {
             format_err!(
                 IoError,

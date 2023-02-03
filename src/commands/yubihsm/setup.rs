@@ -116,7 +116,7 @@ impl Runnable for SetupCommand {
         } else {
             println!("This process will *ERASE* the configured YubiHSM2 and reinitialize it:");
             println!();
-            println!("- YubiHSM serial: {}", hsm_serial_number);
+            println!("- YubiHSM serial: {hsm_serial_number}");
             println!();
             println!("Authentication keys with the following IDs and passwords will be created:");
         }
@@ -168,13 +168,13 @@ impl Runnable for SetupCommand {
             );
 
             let mut report_file = File::create(report_path).unwrap_or_else(|e| {
-                panic!("couldn't create report file: {}", e);
+                panic!("couldn't create report file: {e}");
             });
 
             report_file
                 .write_all(report.to_json().as_bytes())
                 .unwrap_or_else(|e| {
-                    panic!("error writing report: {}", e);
+                    panic!("error writing report: {e}");
                 })
         }
     }
@@ -182,7 +182,7 @@ impl Runnable for SetupCommand {
 
 /// Read the mnemonic phrase from STDIN
 fn read_mnemonic_from_stdin(prompt: &str) -> mnemonic::Phrase {
-    print!("{}", prompt);
+    print!("{prompt}");
     io::stdout().flush().unwrap();
 
     let mut input_string = String::new();
@@ -211,7 +211,7 @@ fn print_mnemonic(mnemonic: &mnemonic::Phrase) {
 
     for word_group in &[&words[..(words_len / 2)], &words[(words_len / 2)..]] {
         let mut word_group_joined = word_group.join(" ");
-        println!("    {}", word_group_joined);
+        println!("    {word_group_joined}");
         word_group_joined.zeroize();
     }
 }
@@ -362,7 +362,7 @@ impl RolePassword {
         let truncated_secret_key = &secret_key.as_bytes()[..(KEY_SIZE / 2)];
 
         let result = RolePassword(
-            Bech32::default().encode(format!("kms-{}-password-", role_name), truncated_secret_key),
+            Bech32::default().encode(format!("kms-{role_name}-password-"), truncated_secret_key),
         );
         secret_key.zeroize();
 
@@ -426,7 +426,7 @@ fn derive_wrap_key_from_mnemonic(mnemonic: &mnemonic::Phrase, key_id: object::Id
 
 /// Serialize a key ID as bytes for use in a derivation path
 fn serialize_key_id(key_id: object::Id) -> String {
-    format!("0x{:04x}", key_id)
+    format!("0x{key_id:04x}")
 }
 
 /// Derive secrets from the given BIP39 `mnemonic::Phrase` ala a BIP32 (hardened)
@@ -472,7 +472,7 @@ fn create_object_label(label_prefix: &str) -> object::Label {
 
 /// Prompt the user to ensure they want to proceed
 fn prompt_for_user_approval(prompt: &str) {
-    print!("\n*** {} (y/N): ", prompt);
+    print!("\n*** {prompt} (y/N): ");
     io::stdout().flush().unwrap();
 
     let mut choice_in = String::new();

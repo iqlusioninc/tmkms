@@ -63,7 +63,7 @@ impl Runnable for InitCommand {
             vote_type: SignedMsgType::Proposal.to_u32(),
             ..Default::default()
         };
-        println!("{:?}", vote);
+        println!("{vote:?}");
         let sign_vote_req = SignVoteRequest { vote: Some(vote) };
         let mut to_sign = vec![];
         sign_vote_req
