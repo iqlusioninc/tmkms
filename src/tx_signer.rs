@@ -290,8 +290,7 @@ impl TxSigner {
     async fn broadcast_tx(&mut self, sign_msg: SignMsg, sequence: u64) -> Result<(), Error> {
         let tx = self.sign_tx(&sign_msg)?;
 
-        let amino_tx =
-            tx.to_amino_bytes(self.tx_builder.schema().namespace());
+        let amino_tx = tx.to_amino_bytes(self.tx_builder.schema().namespace());
 
         let amino_tx_hex =
             String::from_utf8(hex::encode(&amino_tx)).expect("hex should always be UTF-8");
