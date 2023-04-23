@@ -15,9 +15,6 @@ use std::path::PathBuf;
 /// Default YubiHSM2 domain (internal partitioning)
 pub const DEFAULT_DOMAINS: yubihsm::Domain = yubihsm::Domain::DOM1;
 
-/// Default YubiHSM2 permissions for generated keys
-pub const DEFAULT_CAPABILITIES: yubihsm::Capability = yubihsm::Capability::SIGN_EDDSA;
-
 /// Default wrap key to use when exporting
 pub const DEFAULT_WRAP_KEY: yubihsm::object::Id = 1;
 
