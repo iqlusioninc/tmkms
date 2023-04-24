@@ -91,8 +91,8 @@ impl Runnable for GenerateCommand {
 
         let hsm = crate::yubihsm::client();
         let mut capabilities = match key_type {
-          KeyType::Account => yubihsm::Capability::SIGN_ECDSA,
-          KeyType::Consensus => yubihsm::Capability::SIGN_EDDSA,
+            KeyType::Account => yubihsm::Capability::SIGN_ECDSA,
+            KeyType::Consensus => yubihsm::Capability::SIGN_EDDSA,
         };
 
         // If the key isn't explicitly marked as non-exportable, allow it to be exported
