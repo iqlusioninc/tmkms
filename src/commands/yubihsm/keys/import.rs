@@ -184,7 +184,7 @@ impl ImportCommand {
             key_id,
             label,
             DEFAULT_DOMAINS,
-            DEFAULT_CAPABILITIES | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
+            yubihsm::Capability::SIGN_EDDSA | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
             yubihsm::asymmetric::Algorithm::Ed25519,
             seed.as_bytes().as_ref(),
         ) {
@@ -230,7 +230,7 @@ impl ImportCommand {
             key_id,
             label,
             DEFAULT_DOMAINS,
-            DEFAULT_CAPABILITIES | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
+            yubihsm::Capability::SIGN_EDDSA | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
             yubihsm::asymmetric::Algorithm::Ed25519,
             &secret.as_bytes()[..],
         ) {
