@@ -101,7 +101,7 @@ access the YubiHSM2, and then add the following rules file under the
 `/etc/udev/rules.d` directory, e.g. `/etc/udev/rules.d/10-yubihsm.rules`:
 
 ```
-SUBSYSTEMS=="usb", ATTRS{product}=="YubiHSM", GROUP=="yubihsm"
+SUBSYSTEMS=="usb", ATTRS{product}=="YubiHSM", GROUP="yubihsm"
 ```
 
 Note that creating this file does not have an immediate effect: you'll
