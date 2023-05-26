@@ -181,7 +181,7 @@ impl KeyRing {
                     .ok_or_else(|| format_err!(InvalidKey, "ed25519 keyring is empty")),
             }?;
 
-            Ok(Signature::ED25519(signer.sign(msg)?))
+            Ok(Signature::Ed25519(signer.sign(msg)?))
         } else if !self.ecdsa_keys.is_empty() {
             let signer = match public_key {
                 Some(public_key) => self.ecdsa_keys.get(public_key).ok_or_else(|| {
@@ -194,7 +194,7 @@ impl KeyRing {
                     .ok_or_else(|| format_err!(InvalidKey, "ecdsa keyring is empty")),
             }?;
 
-            Ok(Signature::ECDSA(signer.sign(msg)?))
+            Ok(Signature::Ecdsa(signer.sign(msg)?))
         } else {
             Err(format_err!(InvalidKey, "keyring is empty").into())
         }
