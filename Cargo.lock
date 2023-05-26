@@ -1852,27 +1852,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "parameterized"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bae5c87ace1829bb3dcbadaf9d099c62beb05ca19ab4b26389eaa33ced9db11b"
-dependencies = [
- "parameterized-macro",
-]
-
-[[package]]
-name = "parameterized-macro"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24792407b50d07456abc531c1bc629a642a005d3b292c97dc23bf5bff1ad9cea"
-dependencies = [
- "indexmap",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "paste"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3097,7 +3076,6 @@ dependencies = [
  "k256",
  "ledger",
  "once_cell",
- "parameterized",
  "prost",
  "prost-amino",
  "prost-amino-derive",

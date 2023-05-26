@@ -17,8 +17,6 @@ use tempfile::NamedTempFile;
 use prost_amino::Message;
 use tendermint_p2p::secret_connection::{self, SecretConnection};
 
-use parameterized::parameterized;
-
 use tmkms::{
     amino_types::{self, *},
     config::provider::KeyType,
@@ -322,8 +320,17 @@ pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
     Ok(actual_len + (prost_amino::encoding::encoded_len_varint(actual_len) as u64))
 }
 
-#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
-fn test_handle_and_sign_proposal(key_type: KeyType) {
+#[test]
+fn test_handle_and_sign_proposal_account() {
+    handle_and_sign_proposal(KeyType::Account)
+}
+
+#[test]
+fn test_handle_and_sign_proposal_consensus() {
+    handle_and_sign_proposal(KeyType::Consensus)
+}
+
+fn handle_and_sign_proposal(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
@@ -390,8 +397,17 @@ fn test_handle_and_sign_proposal(key_type: KeyType) {
     });
 }
 
-#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
-fn test_handle_and_sign_vote(key_type: KeyType) {
+#[test]
+fn test_handle_and_sign_vote_account() {
+    handle_and_sign_vote(KeyType::Account)
+}
+
+#[test]
+fn test_handle_and_sign_vote_consensus() {
+    handle_and_sign_vote(KeyType::Consensus)
+}
+
+fn handle_and_sign_vote(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
@@ -468,9 +484,19 @@ fn test_handle_and_sign_vote(key_type: KeyType) {
     });
 }
 
-#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
+#[test]
 #[should_panic]
-fn test_exceed_max_height(key_type: KeyType) {
+fn test_exceed_max_height_account() {
+    exceed_max_height(KeyType::Account)
+}
+
+#[test]
+#[should_panic]
+fn test_exceed_max_height_consensus() {
+    exceed_max_height(KeyType::Consensus)
+}
+
+fn exceed_max_height(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
@@ -547,8 +573,17 @@ fn test_exceed_max_height(key_type: KeyType) {
     });
 }
 
-#[parameterized(key_type = {KeyType::Account, KeyType::Consensus})]
-fn test_handle_and_sign_get_publickey(key_type: KeyType) {
+#[test]
+fn test_handle_and_sign_get_publickey_account() {
+    handle_and_sign_get_publickey(KeyType::Account)
+}
+
+#[test]
+fn test_handle_and_sign_get_publickey_consensus() {
+    handle_and_sign_get_publickey(KeyType::Consensus)
+}
+
+fn handle_and_sign_get_publickey(key_type: KeyType) {
     ProtocolTester::apply(&key_type, |mut pt| {
         let mut buf = vec![];
 
