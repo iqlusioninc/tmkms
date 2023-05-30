@@ -1,11 +1,12 @@
-//! Signing keyring. Presently specialized for Ed25519.
+//! Signing keyring. Presently specialized for Ed25519 and ECDSA.
 
 pub mod ecdsa;
 pub mod ed25519;
 pub mod format;
 pub mod providers;
+pub mod signature;
 
-pub use self::{format::Format, providers::SigningProvider};
+pub use self::{format::Format, providers::SigningProvider, signature::Signature};
 use crate::{
     chain,
     config::provider::ProviderConfig,
@@ -105,13 +106,25 @@ impl KeyRing {
     }
 
     /// Get the default Ed25519 (i.e. consensus) public key for this keyring
-    pub fn default_ed25519_pubkey(&self) -> Result<TendermintKey, Error> {
-        let mut keys = self.ed25519_keys.keys();
+    pub fn default_pubkey(&self) -> Result<TendermintKey, Error> {
+        if !self.ed25519_keys.is_empty() {
+            let mut keys = self.ed25519_keys.keys();
 
-        if keys.len() == 1 {
-            Ok(*keys.next().unwrap())
+            if keys.len() == 1 {
+                Ok(*keys.next().unwrap())
+            } else {
+                fail!(InvalidKey, "expected only one ed25519 key in keyring");
+            }
+        } else if !self.ecdsa_keys.is_empty() {
+            let mut keys = self.ecdsa_keys.keys();
+
+            if keys.len() == 1 {
+                Ok(*keys.next().unwrap())
+            } else {
+                fail!(InvalidKey, "expected only one ecdsa key in keyring");
+            }
         } else {
-            fail!(InvalidKey, "expected only one key in keyring");
+            fail!(InvalidKey, "keyring is empty");
         }
     }
 
@@ -151,28 +164,40 @@ impl KeyRing {
 
     /// Sign a message using the secret key associated with the given public key
     /// (if it is in our keyring)
-    pub fn sign_ed25519(
-        &self,
-        public_key: Option<&TendermintKey>,
-        msg: &[u8],
-    ) -> Result<ed25519::Signature, Error> {
-        let signer = match public_key {
-            Some(public_key) => self.ed25519_keys.get(public_key).ok_or_else(|| {
-                format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
-            })?,
-            None => {
-                let mut vals = self.ed25519_keys.values();
+    pub fn sign(&self, public_key: Option<&TendermintKey>, msg: &[u8]) -> Result<Signature, Error> {
+        if self.ed25519_keys.len() > 1 || self.ecdsa_keys.len() > 1 {
+            fail!(SigningError, "expected only one key in keyring");
+        }
 
-                if vals.len() > 1 {
-                    fail!(SigningError, "expected only one key in keyring");
-                } else {
-                    vals.next()
-                        .ok_or_else(|| format_err!(InvalidKey, "keyring is empty"))?
-                }
-            }
-        };
+        if !self.ed25519_keys.is_empty() {
+            let signer = match public_key {
+                Some(public_key) => self.ed25519_keys.get(public_key).ok_or_else(|| {
+                    format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
+                }),
+                None => self
+                    .ed25519_keys
+                    .values()
+                    .next()
+                    .ok_or_else(|| format_err!(InvalidKey, "ed25519 keyring is empty")),
+            }?;
 
-        signer.sign(msg)
+            Ok(Signature::Ed25519(signer.sign(msg)?))
+        } else if !self.ecdsa_keys.is_empty() {
+            let signer = match public_key {
+                Some(public_key) => self.ecdsa_keys.get(public_key).ok_or_else(|| {
+                    format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
+                }),
+                None => self
+                    .ecdsa_keys
+                    .values()
+                    .next()
+                    .ok_or_else(|| format_err!(InvalidKey, "ecdsa keyring is empty")),
+            }?;
+
+            Ok(Signature::Ecdsa(signer.sign(msg)?))
+        } else {
+            Err(format_err!(InvalidKey, "keyring is empty").into())
+        }
     }
 }
 

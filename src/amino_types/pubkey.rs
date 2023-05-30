@@ -1,12 +1,10 @@
 use super::compute_prefix;
 use once_cell::sync::Lazy;
 use prost_amino_derive::Message;
-use tendermint::public_key::{Ed25519, PublicKey};
+use tendermint::public_key::{Ed25519, PublicKey, Secp256k1};
 
 // Note:On the golang side this is generic in the sense that it could everything that implements
 // github.com/tendermint/tendermint/crypto.PubKey
-// While this is meant to be used with different key-types, it currently only uses a PubKeyEd25519
-// version.
 // TODO(ismail): make this more generic (by modifying prost and adding a trait for PubKey)
 
 pub const AMINO_NAME: &str = "tendermint/remotesigner/PubKeyRequest";
@@ -17,6 +15,9 @@ pub static AMINO_PREFIX: Lazy<Vec<u8>> = Lazy::new(|| compute_prefix(AMINO_NAME)
 pub struct PubKeyResponse {
     #[prost_amino(bytes, tag = "1", amino_name = "tendermint/PubKeyEd25519")]
     pub pub_key_ed25519: Vec<u8>,
+
+    #[prost_amino(bytes, tag = "2", amino_name = "tendermint/PubKeySecp256k1")]
+    pub pub_key_secp256k1: Vec<u8>,
 }
 
 #[derive(Clone, Eq, PartialEq, Message)]
@@ -29,7 +30,11 @@ impl TryFrom<PubKeyResponse> for PublicKey {
     // This does not check if the underlying pub_key_ed25519 has the right size.
     // The caller needs to make sure that this is actually the case.
     fn try_from(response: PubKeyResponse) -> eyre::Result<PublicKey> {
-        Ok(Ed25519::from_bytes(&response.pub_key_ed25519)?.into())
+        if !response.pub_key_ed25519.is_empty() {
+            Ok(Ed25519::from_bytes(&response.pub_key_ed25519)?.into())
+        } else {
+            Ok(Secp256k1::from_sec1_bytes(&response.pub_key_secp256k1)?.into())
+        }
     }
 }
 
@@ -38,6 +43,12 @@ impl From<PublicKey> for PubKeyResponse {
         if let PublicKey::Ed25519(ref pk) = public_key {
             PubKeyResponse {
                 pub_key_ed25519: pk.as_bytes().to_vec(),
+                pub_key_secp256k1: vec![],
+            }
+        } else if let PublicKey::Secp256k1(ref pk) = public_key {
+            PubKeyResponse {
+                pub_key_ed25519: vec![],
+                pub_key_secp256k1: pk.to_bytes().to_vec(),
             }
         } else {
             unimplemented!(
@@ -129,6 +140,7 @@ mod tests {
                 0xe7, 0xc1, 0xd4, 0x69, 0xc3, 0x44, 0x26, 0xec, 0xef, 0xc0, 0x72, 0xa, 0x52, 0x4d,
                 0x37, 0x32, 0xef, 0xed,
             ],
+            pub_key_secp256k1: vec![],
         };
         let mut got = vec![];
         let _have = msg.encode(&mut got);
@@ -155,6 +167,7 @@ mod tests {
                 0x76, 0x55, 0x2b, 0x2e, 0x8d, 0x19, 0x6f, 0xe9, 0x12, 0x14, 0x50, 0x80, 0x6b, 0xd0,
                 0xd9, 0x3f, 0xd0, 0xcb,
             ],
+            pub_key_secp256k1: vec![],
         };
         let orig = pk.clone();
         let got: PublicKey = pk.try_into().unwrap();
@@ -171,6 +184,7 @@ mod tests {
     fn test_empty_into() {
         let empty_msg = PubKeyResponse {
             pub_key_ed25519: vec![],
+            pub_key_secp256k1: vec![],
         };
         // we expect this to panic:
         let _got: PublicKey = empty_msg.try_into().unwrap();

@@ -7,10 +7,9 @@ use super::{
     validate::{self, ConsensusMessage, Error::*},
     ParseChainId, SignedMsgType, TendermintRequest,
 };
-use crate::{config::validator::ProtocolVersion, rpc};
+use crate::{config::validator::ProtocolVersion, keyring::signature::Signature, rpc};
 use bytes::BufMut;
 use bytes_v0_5::BytesMut as BytesMutV05;
-use ed25519_dalek as ed25519;
 use once_cell::sync::Lazy;
 use prost::Message as _;
 use prost_amino::{error::EncodeError, Message};
@@ -227,7 +226,7 @@ impl SignableMsg for SignVoteRequest {
 
         Ok(true)
     }
-    fn set_signature(&mut self, sig: &ed25519::Signature) {
+    fn set_signature(&mut self, sig: &Signature) {
         if let Some(ref mut vt) = self.vote {
             vt.signature = sig.as_ref().to_vec();
         }

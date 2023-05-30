@@ -95,7 +95,7 @@ impl Request {
             } else if amino_prefix == *amino_types::proposal::AMINO_PREFIX {
                 let req = amino_types::SignProposalRequest::decode(msg.as_ref())?;
                 Ok(Request::SignProposal(req))
-            } else if amino_prefix == *amino_types::ed25519::AMINO_PREFIX {
+            } else if amino_prefix == *amino_types::pubkey::AMINO_PREFIX {
                 let req = amino_types::PubKeyRequest::decode(msg.as_ref())?;
                 Ok(Request::ShowPublicKey(req))
             } else if amino_prefix == *amino_types::ping::AMINO_PREFIX {
@@ -159,9 +159,17 @@ impl Response {
                     proto::privval::message::Sum::PingResponse(proto::privval::PingResponse {})
                 }
                 Response::PublicKey(pk) => {
-                    let pk = proto::crypto::PublicKey {
-                        sum: Some(proto::crypto::public_key::Sum::Ed25519(pk.pub_key_ed25519)),
+                    let sum = if !pk.pub_key_ed25519.is_empty() {
+                        Some(proto::crypto::public_key::Sum::Ed25519(pk.pub_key_ed25519))
+                    } else if !pk.pub_key_secp256k1.is_empty() {
+                        Some(proto::crypto::public_key::Sum::Secp256k1(
+                            pk.pub_key_secp256k1,
+                        ))
+                    } else {
+                        None
                     };
+
+                    let pk = proto::crypto::PublicKey { sum };
 
                     proto::privval::message::Sum::PubKeyResponse(proto::privval::PubKeyResponse {
                         pub_key: Some(pk),

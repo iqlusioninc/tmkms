@@ -156,7 +156,7 @@ impl Session {
         let started_at = Instant::now();
 
         // TODO(ismail): figure out which key to use here instead of taking the only key
-        let signature = chain.keyring.sign_ed25519(None, &to_sign)?;
+        let signature = chain.keyring.sign(None, &to_sign)?;
 
         self.log_signing_request(&request, started_at).unwrap();
         request.set_signature(&signature);
@@ -234,7 +234,7 @@ impl Session {
             });
 
         Ok(Response::PublicKey(PubKeyResponse::from(
-            *chain.keyring.default_ed25519_pubkey()?,
+            *chain.keyring.default_pubkey()?,
         )))
     }
 
