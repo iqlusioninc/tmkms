@@ -13,7 +13,7 @@ readme = "README.md"
 categories = ["cryptography::cryptocurrencies"]
 keywords = ["cosmos", "ed25519", "kms", "key-management", "yubihsm"]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.65"
 
 [dependencies]
 abscissa_core = "0.7"
