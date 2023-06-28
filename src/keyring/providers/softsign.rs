@@ -8,12 +8,12 @@ use crate::{
         softsign::{KeyFormat, SoftsignConfig},
         KeyType,
     },
+    ed25519_keypair::KeyPair,
     error::{Error, ErrorKind::*},
     key_utils,
     keyring::{self, SigningProvider},
     prelude::*,
 };
-use ed25519_dalek as ed25519;
 use k256::ecdsa;
 use tendermint::{PrivateKey, TendermintKey};
 use tendermint_config::PrivValidatorKey;
@@ -57,7 +57,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
                 loaded_consensus_key = true;
 
                 let signing_key = load_ed25519_key(config)?;
-                let consensus_pubkey = TendermintKey::ConsensusKey(signing_key.public.into());
+                let consensus_pubkey = TendermintKey::ConsensusKey((&signing_key).into());
 
                 let signer = keyring::ed25519::Signer::new(
                     SigningProvider::SoftSign,
@@ -76,7 +76,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
 }
 
 /// Load an Ed25519 key according to the provided configuration
-fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> {
+fn load_ed25519_key(config: &SoftsignConfig) -> Result<KeyPair, Error> {
     let key_format = config.key_format.as_ref().cloned().unwrap_or_default();
 
     match key_format {
@@ -94,7 +94,7 @@ fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> 
                 .priv_key;
 
             if let PrivateKey::Ed25519(pk) = private_key {
-                Ok(pk)
+                Ok(KeyPair::Original(pk))
             } else {
                 unreachable!("unsupported priv_validator.json algorithm");
             }

@@ -21,6 +21,7 @@ pub mod client;
 pub mod commands;
 pub mod config;
 pub mod connection;
+pub mod ed25519_keypair;
 pub mod error;
 pub mod key_utils;
 pub mod keyring;

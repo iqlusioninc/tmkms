@@ -42,7 +42,8 @@ pub fn open_secret_connection(
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = match SecretConnection::new(socket, identity_key, protocol_version) {
+    let connection = match SecretConnection::new(socket, identity_key.try_into()?, protocol_version)
+    {
         Ok(conn) => conn,
         Err(error) => match error.detail() {
             TmError::Crypto(_) => fail!(CryptoError, format!("{error}")),

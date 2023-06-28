@@ -295,7 +295,7 @@ impl io::Read for ProtocolTester {
 
 /// Get the Ed25519 signing keypair used by the tests
 fn test_ed25519_keypair() -> ed25519::Keypair {
-    tmkms::key_utils::load_base64_ed25519_key(signing_key_path(&KeyType::Consensus)).unwrap()
+    tmkms::key_utils::load_base64_ed25519_key(signing_key_path(&KeyType::Consensus)).unwrap().try_into().unwrap()
 }
 
 /// Get the Secp256k1 signing keypair used by the tests
