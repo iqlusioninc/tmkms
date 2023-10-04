@@ -3,8 +3,9 @@
 use tendermint_rpc::endpoint::broadcast::tx_commit;
 
 /// State of the last broadcasted transaction
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub enum LastTx {
+    #[default]
     /// No previously broadcast transaction (i.e. starting up)
     None,
 
@@ -14,13 +15,6 @@ pub enum LastTx {
     /// Error broadcasting the previous transaction
     Error(tendermint_rpc::error::Error),
 }
-
-impl Default for LastTx {
-    fn default() -> LastTx {
-        LastTx::None
-    }
-}
-
 impl LastTx {
     /// Get the RPC response, if there was one
     pub fn response(&self) -> Option<&tx_commit::Response> {

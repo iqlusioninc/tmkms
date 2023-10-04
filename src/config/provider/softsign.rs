@@ -44,23 +44,17 @@ impl AsRef<Path> for SoftPrivateKey {
 }
 
 /// Private key format
-#[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq)]
 pub enum KeyFormat {
     /// Base64-encoded
     #[serde(rename = "base64")]
+    #[default]
     Base64,
 
     /// JSON
     #[serde(rename = "json")]
     Json,
 }
-
-impl Default for KeyFormat {
-    fn default() -> Self {
-        KeyFormat::Base64
-    }
-}
-
 impl FromStr for KeyFormat {
     type Err = Error;
 
