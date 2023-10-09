@@ -4,6 +4,7 @@
 ignore = [
     "RUSTSEC-2019-0036", # failure: type confusion if __private_get_type_id__ is overridden
     "RUSTSEC-2020-0036", # failure is officially deprecated/unmaintained
-    "RUSTSEC-2020-0071", # time: potential segfault in `localtime_r` invocations
+    "RUSTSEC-2022-0093", # ed25519-dalek: double public key signing function oracle attack
     "RUSTSEC-2023-0033", # borsh: parsing borsh messages with ZST which are not-copy/clone is unsound
+    "RUSTSEC-2023-0052", # webpki: CPU denial of service in certificate path building
 ]
