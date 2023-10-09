@@ -46,12 +46,7 @@ impl Application for KmsApplication {
     /// beyond the default ones provided by the framework, this is the place
     /// to do so.
     fn register_components(&mut self, command: &Self::Cmd) -> Result<(), FrameworkError> {
-        #[allow(unused_mut)]
-        let mut components = self.framework_components(command)?;
-
-        #[cfg(feature = "tx-signer")]
-        components.push(Box::new(abscissa_tokio::TokioComponent::new()?));
-
+        let components = self.framework_components(command)?;
         let mut component_registry = self.state.components_mut();
         component_registry.register(components)
     }

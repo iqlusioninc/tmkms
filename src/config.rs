@@ -2,14 +2,9 @@
 
 pub mod chain;
 pub mod provider;
-#[cfg(feature = "tx-signer")]
-pub mod tx_signer;
 pub mod validator;
 
 pub use self::validator::*;
-
-#[cfg(feature = "tx-signer")]
-pub use self::tx_signer::TxSignerConfig;
 
 use self::{chain::ChainConfig, provider::ProviderConfig};
 use serde::Deserialize;
@@ -34,9 +29,4 @@ pub struct KmsConfig {
     /// Addresses of validator nodes
     #[serde(default)]
     pub validator: Vec<ValidatorConfig>,
-
-    /// Transaction signer config (for e.g. oracles)
-    #[cfg(feature = "tx-signer")]
-    #[serde(default)]
-    pub tx_signer: Vec<TxSignerConfig>,
 }

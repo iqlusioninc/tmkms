@@ -46,11 +46,6 @@ pub enum ErrorKind {
     #[error("subcommand hook failed")]
     HookError,
 
-    /// Error making an HTTP request
-    #[cfg(feature = "tx-signer")]
-    #[error("HTTP error")]
-    HttpError,
-
     /// Malformatted or otherwise invalid cryptographic key
     #[error("invalid key")]
     InvalidKey,
@@ -86,11 +81,6 @@ pub enum ErrorKind {
     /// Signing operation failed
     #[error("signing operation failed")]
     SigningError,
-
-    /// Error parsing/serializing a StdTx
-    #[cfg(feature = "tx-signer")]
-    #[error("stdtx error")]
-    StdtxError,
 
     /// Errors originating in the Tendermint crate
     #[error("Tendermint error")]
@@ -164,20 +154,6 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-#[cfg(feature = "tx-signer")]
-impl From<hyper::Error> for Error {
-    fn from(other: hyper::Error) -> Self {
-        ErrorKind::HttpError.context(other).into()
-    }
-}
-
-#[cfg(feature = "tx-signer")]
-impl From<hyper::http::Error> for Error {
-    fn from(other: hyper::http::Error) -> Self {
-        ErrorKind::HttpError.context(other).into()
-    }
-}
-
 impl From<io::Error> for Error {
     fn from(other: io::Error) -> Self {
         ErrorKind::IoError.context(other).into()
@@ -220,22 +196,8 @@ impl From<serde_json::error::Error> for Error {
     }
 }
 
-#[cfg(feature = "tx-signer")]
-impl From<stdtx::error::Report> for Error {
-    fn from(other: stdtx::error::Report) -> Self {
-        ErrorKind::StdtxError.context(other).into()
-    }
-}
-
 impl From<tendermint::Error> for Error {
     fn from(other: tendermint::error::Error) -> Self {
-        ErrorKind::TendermintError.context(other).into()
-    }
-}
-
-#[cfg(feature = "tx-signer")]
-impl From<tendermint_rpc::Error> for Error {
-    fn from(other: tendermint_rpc::error::Error) -> Self {
         ErrorKind::TendermintError.context(other).into()
     }
 }

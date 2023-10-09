@@ -28,9 +28,6 @@ pub mod prelude;
 pub mod rpc;
 pub mod session;
 
-#[cfg(feature = "tx-signer")]
-pub mod tx_signer;
-
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
 
