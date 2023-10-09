@@ -44,9 +44,6 @@ impl ConfigBuilder {
         self.add_provider_config();
         self.add_validator_config();
 
-        #[cfg(feature = "tx-signer")]
-        self.add_tx_signer_config();
-
         self.contents
     }
 
@@ -94,25 +91,6 @@ impl ConfigBuilder {
         self.add_template_with_chain_id(include_str!("templates/validator.toml"));
     }
 
-    /// Add `[[tx_signer]]` configurations
-    #[cfg(feature = "tx-signer")]
-    fn add_tx_signer_config(&mut self) {
-        self.add_section_comment("Transaction Signer Configuration");
-
-        for network in self.networks.clone() {
-            self.add_str(&format_template(
-                include_str!("templates/tx_signer.toml"),
-                &[
-                    ("$KMS_HOME", self.kms_home.as_ref()),
-                    ("$CHAIN_ID", network.chain_id()),
-                    ("$SCHEMA", network.schema_file()),
-                ],
-            ));
-
-            self.add_str("\n\n");
-        }
-    }
-
     /// Add `[[provider.yubihsm]]` configuration
     #[cfg(feature = "yubihsm")]
     fn add_yubihsm_provider_config(&mut self) {
@@ -126,15 +104,10 @@ impl ConfigBuilder {
         self.add_str("\nkeys = [\n");
 
         let mut key_id = 1;
-
-        #[allow(unused_mut)]
-        let mut key_types = vec!["consensus"];
-
-        #[cfg(feature = "tx-signer")]
-        key_types.push("account");
+        let key_types = ["consensus"];
 
         for network in self.networks.clone() {
-            for key_type in &key_types {
+            for key_type in key_types {
                 self.add_str(&format!(
                     "    {{ key = {}, type = \"{}\", chain_ids = [\"{}\"] }}, \n",
                     key_id,
@@ -165,11 +138,7 @@ impl ConfigBuilder {
     #[cfg(feature = "softsign")]
     fn add_softsign_provider_config(&mut self) {
         self.add_str("### Software-based Signer Configuration\n\n");
-
         self.add_template_with_chain_id(include_str!("templates/keyring/softsign_consensus.toml"));
-
-        #[cfg(feature = "tx-signer")]
-        self.add_template_with_chain_id(include_str!("templates/keyring/softsign_account.toml"));
     }
 
     /// Add `[[provider.fortanixdsm]]` configuration

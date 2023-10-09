@@ -17,7 +17,6 @@ rust-version = "1.65"
 
 [dependencies]
 abscissa_core = "0.7"
-abscissa_tokio = { version = "0.7", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
 chrono = "0.4"
@@ -29,8 +28,6 @@ eyre = "0.6"
 getrandom = "0.2"
 hkd32 = { version = "0.7", default-features = false, features = ["mnemonic"] }
 hkdf = "0.12"
-hyper = { version = "0.14", optional = true }
-hyper-rustls = { version = "0.23", optional = true, features = ["webpki-roots"] }
 k256 = { version = "0.11", features = ["ecdsa", "sha256"] }
 ledger = { version = "0.2", optional = true }
 once_cell = "1.5"
@@ -45,13 +42,11 @@ serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
 sha2 = "0.10"
 signature = { version = "1.5", features = ["std"] }
-stdtx = { version = "0.7", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
 tendermint = { version = "0.27", features = ["secp256k1"] }
 tendermint-config = "0.27"
-tendermint-rpc = { version = "0.27", optional = true, features = ["http-client"] }
 tendermint-proto = "0.27"
 tendermint-p2p = { version = "0.27", features = ["amino"] }
 thiserror = "1"
@@ -68,7 +63,6 @@ rand = "0.7"
 
 [features]
 softsign = []
-tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc"]
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
