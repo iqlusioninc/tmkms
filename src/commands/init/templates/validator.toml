@@ -2,5 +2,5 @@
 chain_id = "$CHAIN_ID"
 addr = "tcp://deadbeefdeadbeefdeadbeefdeadbeefdeadbeef@example1.example.com:26658"
 secret_key = "$KMS_HOME/secrets/kms-identity.key"
-protocol_version = "legacy"
+protocol_version = "v0.34"
 reconnect = true

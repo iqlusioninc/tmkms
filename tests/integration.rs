@@ -1,5 +1,10 @@
 //! KMS integration test
 
+use abscissa_core::prelude::warn;
+use chrono::{DateTime, Utc};
+use ed25519_dalek::{self as ed25519, Verifier};
+use prost::Message;
+use rand::Rng;
 use std::{
     fs,
     io::{self, Cursor, Read, Write},
@@ -7,21 +12,14 @@ use std::{
     os::unix::net::{UnixListener, UnixStream},
     process::{Child, Command},
 };
-
-use abscissa_core::prelude::warn;
-use chrono::{DateTime, Utc};
-use ed25519_dalek::{self as ed25519, Verifier};
-use rand::Rng;
 use tempfile::NamedTempFile;
-
-use prost_amino::Message;
 use tendermint_p2p::secret_connection::{self, SecretConnection};
+use tendermint_proto as proto;
 
 use tmkms::{
-    amino_types::{self, *},
     config::provider::KeyType,
-    config::validator::ProtocolVersion,
     connection::unix::UnixConnection,
+    signing::{SignableMsg, SignedMsgType},
 };
 
 /// Integration tests for the KMS command-line interface
@@ -146,7 +144,7 @@ impl KmsProcess {
             max_height = "500000"
             reconnect = false
             secret_key = "tests/support/secret_connection.key"
-            protocol_version = "legacy"
+            protocol_version = "v0.34"
 
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
@@ -176,7 +174,7 @@ impl KmsProcess {
             addr = "unix://{socket_path}"
             chain_id = "test_chain_id"
             max_height = "500000"
-            protocol_version = "legacy"
+            protocol_version = "v0.34"
 
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
@@ -204,7 +202,7 @@ impl KmsProcess {
                     SecretConnection::new(
                         socket_cp,
                         identity_keypair,
-                        secret_connection::Version::Legacy,
+                        secret_connection::Version::V0_34,
                     )
                     .unwrap(),
                 )
@@ -311,13 +309,13 @@ fn signing_key_path(key_type: &KeyType) -> &'static str {
 }
 
 /// Extract the actual length of an amino message
-pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost_amino::DecodeError> {
+pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost::DecodeError> {
     let mut buff = Cursor::new(buf);
-    let actual_len = prost_amino::encoding::decode_varint(&mut buff)?;
+    let actual_len = prost::encoding::decode_varint(&mut buff)?;
     if actual_len == 0 {
         return Ok(1);
     }
-    Ok(actual_len + (prost_amino::encoding::encoded_len_varint(actual_len) as u64))
+    Ok(actual_len + (prost::encoding::encoded_len_varint(actual_len) as u64))
 }
 
 #[test]
@@ -334,14 +332,14 @@ fn handle_and_sign_proposal(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
-    let t = TimeMsg {
+    let t = proto::google::protobuf::Timestamp {
         seconds: dt.timestamp(),
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let proposal = amino_types::proposal::Proposal {
-            msg_type: amino_types::SignedMsgType::Proposal.to_u32(),
+        let proposal = proto::types::Proposal {
+            r#type: SignedMsgType::Proposal.into(),
             height: 12345,
             round: 1,
             timestamp: Some(t),
@@ -350,33 +348,29 @@ fn handle_and_sign_proposal(key_type: KeyType) {
             signature: vec![],
         };
 
-        let spr = amino_types::proposal::SignProposalRequest {
+        let signable_msg = SignableMsg::Proposal(proposal.clone());
+
+        let request = proto::privval::SignProposalRequest {
             proposal: Some(proposal),
+            chain_id: chain_id.into(),
         };
 
-        let mut buf = vec![];
-        spr.encode(&mut buf).unwrap();
-        pt.write_all(&buf).unwrap();
+        send_request(
+            proto::privval::message::Sum::SignProposalRequest(request),
+            &mut pt,
+        );
 
-        // receive response:
-        let mut resp_buf = vec![0u8; 1024];
-        pt.read(&mut resp_buf).unwrap();
+        let response = match read_response(&mut pt) {
+            proto::privval::message::Sum::SignedProposalResponse(resp) => resp,
+            other => panic!("unexpected message type in response: {other:?}"),
+        };
 
-        let actual_len = extract_actual_len(&resp_buf).unwrap();
-        let mut resp = vec![0u8; actual_len as usize];
-        resp.copy_from_slice(&mut resp_buf[..(actual_len as usize)]);
-
-        let p_req = proposal::SignedProposalResponse::decode(resp.as_ref())
-            .expect("decoding proposal failed");
         let mut sign_bytes: Vec<u8> = vec![];
-        spr.sign_bytes(
-            chain_id.parse().unwrap(),
-            ProtocolVersion::Legacy,
-            &mut sign_bytes,
-        )
-        .unwrap();
+        signable_msg
+            .sign_bytes(chain_id.parse().unwrap(), &mut sign_bytes)
+            .unwrap();
 
-        let prop: amino_types::proposal::Proposal = p_req
+        let prop = response
             .proposal
             .expect("proposal should be embedded but none was found");
 
@@ -411,20 +405,20 @@ fn handle_and_sign_vote(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
-    let t = TimeMsg {
+    let t = proto::google::protobuf::Timestamp {
         seconds: dt.timestamp(),
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let vote_msg = amino_types::vote::Vote {
-            vote_type: 0x01,
+        let vote_msg = proto::types::Vote {
+            r#type: 0x01,
             height: 12345,
             round: 2,
             timestamp: Some(t),
-            block_id: Some(BlockId {
+            block_id: Some(proto::types::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                parts_header: Some(PartsSetHeader {
+                part_set_header: Some(proto::types::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),
@@ -437,31 +431,26 @@ fn handle_and_sign_vote(key_type: KeyType) {
             signature: vec![],
         };
 
-        let svr = amino_types::vote::SignVoteRequest {
+        let signable_msg = SignableMsg::Vote(vote_msg.clone());
+
+        let vote = proto::privval::SignVoteRequest {
             vote: Some(vote_msg),
+            chain_id: chain_id.into(),
         };
-        let mut buf = vec![];
-        svr.encode(&mut buf).unwrap();
-        pt.write_all(&buf).unwrap();
 
-        // receive response:
-        let mut resp_buf = vec![0u8; 1024];
-        pt.read(&mut resp_buf).unwrap();
+        send_request(proto::privval::message::Sum::SignVoteRequest(vote), &mut pt);
 
-        let actual_len = extract_actual_len(&resp_buf).unwrap();
-        let mut resp = vec![0u8; actual_len as usize];
-        resp.copy_from_slice(&resp_buf[..actual_len as usize]);
+        let request = match read_response(&mut pt) {
+            proto::privval::message::Sum::SignedVoteResponse(resp) => resp,
+            other => panic!("unexpected message type in response: {other:?}"),
+        };
 
-        let v_resp = vote::SignedVoteResponse::decode(resp.as_ref()).expect("decoding vote failed");
         let mut sign_bytes: Vec<u8> = vec![];
-        svr.sign_bytes(
-            chain_id.parse().unwrap(),
-            ProtocolVersion::Legacy,
-            &mut sign_bytes,
-        )
-        .unwrap();
+        signable_msg
+            .sign_bytes(chain_id.parse().unwrap(), &mut sign_bytes)
+            .unwrap();
 
-        let vote_msg: amino_types::vote::Vote = v_resp
+        let vote_msg: proto::types::Vote = request
             .vote
             .expect("vote should be embedded int the response but none was found");
 
@@ -500,20 +489,20 @@ fn exceed_max_height(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
-    let t = TimeMsg {
+    let t = proto::google::protobuf::Timestamp {
         seconds: dt.timestamp(),
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let vote_msg = amino_types::vote::Vote {
-            vote_type: 0x01,
+        let vote_msg = proto::types::Vote {
+            r#type: 0x01,
             height: 500001,
             round: 2,
             timestamp: Some(t),
-            block_id: Some(BlockId {
+            block_id: Some(proto::types::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                parts_header: Some(PartsSetHeader {
+                part_set_header: Some(proto::types::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),
@@ -526,31 +515,26 @@ fn exceed_max_height(key_type: KeyType) {
             signature: vec![],
         };
 
-        let svr = amino_types::vote::SignVoteRequest {
+        let signable_msg = SignableMsg::Vote(vote_msg.clone());
+
+        let vote = proto::privval::SignVoteRequest {
             vote: Some(vote_msg),
+            chain_id: chain_id.into(),
         };
-        let mut buf = vec![];
-        svr.encode(&mut buf).unwrap();
-        pt.write_all(&buf).unwrap();
 
-        // receive response:
-        let mut resp_buf = vec![0u8; 1024];
-        pt.read(&mut resp_buf).unwrap();
+        send_request(proto::privval::message::Sum::SignVoteRequest(vote), &mut pt);
 
-        let actual_len = extract_actual_len(&resp_buf).unwrap();
-        let mut resp = vec![0u8; actual_len as usize];
-        resp.copy_from_slice(&resp_buf[..actual_len as usize]);
+        let response = match read_response(&mut pt) {
+            proto::privval::message::Sum::SignedVoteResponse(resp) => resp,
+            other => panic!("unexpected message type in response: {other:?}"),
+        };
 
-        let v_resp = vote::SignedVoteResponse::decode(resp.as_ref()).expect("decoding vote failed");
         let mut sign_bytes: Vec<u8> = vec![];
-        svr.sign_bytes(
-            chain_id.parse().unwrap(),
-            ProtocolVersion::Legacy,
-            &mut sign_bytes,
-        )
-        .unwrap();
+        signable_msg
+            .sign_bytes(chain_id.parse().unwrap(), &mut sign_bytes)
+            .unwrap();
 
-        let vote_msg: amino_types::vote::Vote = v_resp
+        let vote_msg = response
             .vote
             .expect("vote should be embedded int the response but none was found");
 
@@ -584,28 +568,34 @@ fn test_handle_and_sign_get_publickey_consensus() {
 }
 
 fn handle_and_sign_get_publickey(key_type: KeyType) {
+    let chain_id = "test_chain_id";
+
     ProtocolTester::apply(&key_type, |mut pt| {
-        let mut buf = vec![];
-
-        PubKeyRequest {}.encode(&mut buf).unwrap();
-
-        pt.write_all(&buf).unwrap();
-
-        // receive response:
-        let mut resp_buf = vec![0u8; 1024];
-        pt.read(&mut resp_buf).unwrap();
-
-        let actual_len = extract_actual_len(&resp_buf).unwrap();
-        let mut resp = vec![0u8; actual_len as usize];
-        resp.copy_from_slice(&resp_buf[..actual_len as usize]);
-
-        let pk_resp = PubKeyResponse::decode(resp.as_ref()).expect("decoding public key failed");
-        let pk_len = match key_type {
-            KeyType::Account => pk_resp.pub_key_secp256k1.len(),
-            KeyType::Consensus => pk_resp.pub_key_ed25519.len(),
+        let request = proto::privval::PubKeyRequest {
+            chain_id: chain_id.into(),
         };
 
-        assert_ne!(pk_len, 0);
+        send_request(
+            proto::privval::message::Sum::PubKeyRequest(request),
+            &mut pt,
+        );
+
+        let response = match read_response(&mut pt) {
+            proto::privval::message::Sum::PubKeyResponse(resp) => resp,
+            other => panic!("unexpected message type in response: {other:?}"),
+        };
+
+        let pub_key = response
+            .pub_key
+            .and_then(|pk| pk.sum)
+            .expect("missing public key");
+
+        let pk_bytes = match pub_key {
+            proto::crypto::public_key::Sum::Ed25519(bytes) => bytes,
+            proto::crypto::public_key::Sum::Secp256k1(bytes) => bytes,
+        };
+
+        assert_ne!(pk_bytes.len(), 0);
     });
 }
 
@@ -614,17 +604,31 @@ fn test_handle_and_sign_ping_pong() {
     let key_type = KeyType::Consensus;
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let mut buf = vec![];
-        PingRequest {}.encode(&mut buf).unwrap();
-        pt.write_all(&buf).unwrap();
-
-        // receive response:
-        let mut resp_buf = vec![0u8; 1024];
-        pt.read(&mut resp_buf).unwrap();
-
-        let actual_len = extract_actual_len(&resp_buf).unwrap();
-        let mut resp = vec![0u8; actual_len as usize];
-        resp.copy_from_slice(&resp_buf[..actual_len as usize]);
-        PingResponse::decode(resp.as_ref()).expect("decoding ping response failed");
+        let request = proto::privval::PingRequest {};
+        send_request(proto::privval::message::Sum::PingRequest(request), &mut pt);
+        read_response(&mut pt);
     });
+}
+
+/// Encode request as a Protobuf message
+fn send_request(request: proto::privval::message::Sum, pt: &mut ProtocolTester) {
+    let mut buf = vec![];
+    proto::privval::Message { sum: Some(request) }
+        .encode_length_delimited(&mut buf)
+        .unwrap();
+
+    pt.write_all(&buf).unwrap();
+}
+
+/// Read the response as a Protobuf message
+fn read_response(pt: &mut ProtocolTester) -> proto::privval::message::Sum {
+    let mut resp_buf = vec![0u8; 4096];
+    pt.read(&mut resp_buf).unwrap();
+
+    let actual_len = extract_actual_len(&resp_buf).unwrap();
+    let mut resp_bytes = vec![0u8; actual_len as usize];
+    resp_bytes.copy_from_slice(&resp_buf[..actual_len as usize]);
+
+    let message = proto::privval::Message::decode_length_delimited(resp_bytes.as_ref()).unwrap();
+    message.sum.expect("no sum field in message")
 }

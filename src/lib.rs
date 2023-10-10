@@ -14,7 +14,6 @@ compile_error!(
      yubihsm, ledgertm, softsign, fortanixdsm (e.g. --features=yubihsm)"
 );
 
-pub mod amino_types;
 pub mod application;
 pub mod chain;
 pub mod client;
@@ -27,6 +26,7 @@ pub mod keyring;
 pub mod prelude;
 pub mod rpc;
 pub mod session;
+pub mod signing;
 
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
