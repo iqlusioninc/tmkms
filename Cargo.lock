@@ -524,7 +524,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4776e787b24d9568dd61d3237eeb4eb321d622fb881b858c7b82806420e87d4"
 dependencies = [
- "prost",
+ "prost 0.11.9",
  "prost-types",
  "tendermint-proto",
 ]
@@ -1661,7 +1661,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b82eaa1d779e9a4bc1c3217db8ffbeabaae1dca241bf70183242128d48681cd"
 dependencies = [
  "bytes 1.5.0",
- "prost-derive",
+ "prost-derive 0.11.9",
+]
+
+[[package]]
+name = "prost"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4fdd22f3b9c31b53c060df4a0613a1c7f062d4115a2b984dd15b1858f7e340d"
+dependencies = [
+ "bytes 1.5.0",
+ "prost-derive 0.12.1",
 ]
 
 [[package]]
@@ -1702,12 +1712,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "265baba7fabd416cf5078179f7d2cbeca4ce7a9041111900675ea7c4cb8a4c32"
+dependencies = [
+ "anyhow",
+ "itertools 0.10.5",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.37",
+]
+
+[[package]]
 name = "prost-types"
 version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213622a1460818959ac1181aaeb2dc9c7f63df720db7d788b3e24eacd1983e13"
 dependencies = [
- "prost",
+ "prost 0.11.9",
 ]
 
 [[package]]
@@ -2264,7 +2287,7 @@ dependencies = [
  "k256",
  "num-traits",
  "once_cell",
- "prost",
+ "prost 0.11.9",
  "prost-types",
  "ripemd160",
  "serde",
@@ -2308,8 +2331,8 @@ dependencies = [
  "flume",
  "hkdf 0.10.0",
  "merlin",
- "prost",
- "prost-derive",
+ "prost 0.11.9",
+ "prost-derive 0.11.9",
  "rand_core 0.5.1",
  "sha2 0.9.9",
  "signature",
@@ -2331,7 +2354,7 @@ dependencies = [
  "flex-error",
  "num-derive",
  "num-traits",
- "prost",
+ "prost 0.11.9",
  "prost-types",
  "serde",
  "serde_bytes",
@@ -2460,10 +2483,10 @@ dependencies = [
  "k256",
  "ledger",
  "once_cell",
- "prost",
+ "prost 0.12.1",
  "prost-amino",
  "prost-amino-derive",
- "prost-derive",
+ "prost-derive 0.11.9",
  "rand",
  "rand_core 0.6.4",
  "rpassword",
