@@ -37,24 +37,13 @@ pub struct ValidatorConfig {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum ProtocolVersion {
-    /// Tendermint v0.34
+    /// Tendermint v0.34 and newer.
     #[serde(rename = "v0.34")]
     V0_34,
 
     /// Tendermint v0.33
     #[serde(rename = "v0.33")]
     V0_33,
-
-    /// Pre-Tendermint v0.33
-    #[serde(rename = "legacy")]
-    Legacy,
-}
-
-impl ProtocolVersion {
-    /// Are messages encoded using Protocol Buffers?
-    pub fn is_protobuf(self) -> bool {
-        !matches!(self, ProtocolVersion::V0_33 | ProtocolVersion::Legacy)
-    }
 }
 
 impl From<ProtocolVersion> for secret_connection::Version {
@@ -62,7 +51,6 @@ impl From<ProtocolVersion> for secret_connection::Version {
         match version {
             ProtocolVersion::V0_34 => secret_connection::Version::V0_34,
             ProtocolVersion::V0_33 => secret_connection::Version::V0_33,
-            ProtocolVersion::Legacy => secret_connection::Version::Legacy,
         }
     }
 }

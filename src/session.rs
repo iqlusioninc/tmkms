@@ -1,19 +1,18 @@
 //! A session with a validator node
 
 use crate::{
-    amino_types::{
-        PingResponse, PubKeyRequest, PubKeyResponse, RemoteError, SignedMsgType, TendermintRequest,
-    },
     chain::{self, state::StateErrorKind, Chain},
     config::ValidatorConfig,
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
     rpc::{Request, Response},
+    signing::SignableMsg,
 };
-use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
-use tendermint::consensus;
+use std::{os::unix::net::UnixStream, time::Instant};
+use tendermint::{consensus, TendermintKey};
 use tendermint_config::net;
+use tendermint_proto as proto;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -97,17 +96,18 @@ impl Session {
 
     /// Handle an incoming request from the validator
     fn handle_request(&mut self) -> Result<bool, Error> {
-        let request = Request::read(&mut self.connection, self.config.protocol_version)?;
+        let request = Request::read(&mut self.connection)?;
         debug!(
             "[{}@{}] received request: {:?}",
             &self.config.chain_id, &self.config.addr, &request
         );
 
         let response = match request {
-            Request::SignProposal(req) => self.sign(req)?,
-            Request::SignVote(req) => self.sign(req)?,
+            Request::SignProposal(_) | Request::SignVote(_) => {
+                self.sign(request.into_signable_msg(&self.config.chain_id)?)?
+            }
             // non-signable requests:
-            Request::ReplyPing(_) => Response::Ping(PingResponse {}),
+            Request::ReplyPing(_) => Response::Ping(proto::privval::PingResponse {}),
             Request::ShowPublicKey(ref req) => self.get_public_key(req)?,
         };
 
@@ -116,22 +116,15 @@ impl Session {
             &self.config.chain_id, &self.config.addr, &response
         );
 
-        let response_bytes = response.encode(self.config.protocol_version)?;
+        let response_bytes = response.encode()?;
         self.connection.write_all(&response_bytes)?;
 
         Ok(true)
     }
 
     /// Perform a digital signature operation
-    fn sign<R>(&mut self, mut request: R) -> Result<Response, Error>
-    where
-        R: TendermintRequest + Debug,
-    {
-        request
-            .validate()
-            .map_err(|e| format_err!(SigningError, "failed to validate request: {}", e))?;
-
-        self.check_max_height(&mut request)?;
+    fn sign(&mut self, signable_msg: SignableMsg) -> Result<Response, Error> {
+        self.check_max_height(&signable_msg)?;
 
         let registry = chain::REGISTRY.get();
 
@@ -141,45 +134,36 @@ impl Session {
                 panic!("chain '{}' missing from registry!", &self.config.chain_id);
             });
 
-        if let Some(remote_err) = self.update_consensus_state(chain, &request)? {
+        if let Some(remote_err) = self.update_consensus_state(chain, &signable_msg)? {
             // In the event of double signing we send a response to notify the validator
-            return Ok(request.build_response(Some(remote_err)));
+            return Ok(signable_msg.error(remote_err));
         }
 
         let mut to_sign = vec![];
-        request.sign_bytes(
-            self.config.chain_id.clone(),
-            self.config.protocol_version,
-            &mut to_sign,
-        )?;
+        signable_msg.sign_bytes(self.config.chain_id.clone(), &mut to_sign)?;
 
         let started_at = Instant::now();
 
         // TODO(ismail): figure out which key to use here instead of taking the only key
         let signature = chain.keyring.sign(None, &to_sign)?;
 
-        self.log_signing_request(&request, started_at).unwrap();
-        request.set_signature(&signature);
-
-        Ok(request.build_response(None))
+        self.log_signing_request(&signable_msg, started_at).unwrap();
+        signable_msg.add_signature(signature)
     }
 
     /// If a max block height is configured, ensure the block we're signing
     /// doesn't exceed it
-    fn check_max_height<R>(&mut self, request: &mut R) -> Result<(), Error>
-    where
-        R: TendermintRequest + Debug,
-    {
+    fn check_max_height(&mut self, signable_msg: &SignableMsg) -> Result<(), Error> {
         if let Some(max_height) = self.config.max_height {
-            if let Some(height) = request.height() {
-                if height > max_height.value() as i64 {
-                    fail!(
-                        ExceedMaxHeight,
-                        "attempted to sign at height {} which is greater than {}",
-                        height,
-                        max_height,
-                    );
-                }
+            let height = signable_msg.height()?;
+
+            if height > max_height {
+                fail!(
+                    ExceedMaxHeight,
+                    "attempted to sign at height {} which is greater than {}",
+                    height,
+                    max_height,
+                );
             }
         }
 
@@ -188,16 +172,13 @@ impl Session {
 
     /// Update our local knowledge of the chain's consensus state, detecting
     /// attempted double signing and sending a response in the event it happens
-    fn update_consensus_state<R>(
+    fn update_consensus_state(
         &mut self,
         chain: &Chain,
-        request: &R,
-    ) -> Result<Option<RemoteError>, Error>
-    where
-        R: TendermintRequest + Debug,
-    {
-        let (msg_type, request_state) = parse_request(request)?;
-
+        signable_msg: &SignableMsg,
+    ) -> Result<Option<proto::privval::RemoteSignerError>, Error> {
+        let msg_type = signable_msg.msg_type()?;
+        let request_state = signable_msg.consensus_state()?;
         let mut chain_state = chain.state.lock().unwrap();
 
         match chain_state.update_consensus_state(request_state.clone()) {
@@ -216,7 +197,7 @@ impl Session {
                     request_state.block_id_prefix()
                 );
 
-                let remote_err = RemoteError::double_sign(request_state.height.into());
+                let remote_err = double_sign(request_state);
                 Ok(Some(remote_err))
             }
             Err(e) => Err(e.into()),
@@ -224,7 +205,10 @@ impl Session {
     }
 
     /// Get the public key for (the only) public key in the keyring
-    fn get_public_key(&mut self, _request: &PubKeyRequest) -> Result<Response, Error> {
+    fn get_public_key(
+        &mut self,
+        _request: &proto::privval::PubKeyRequest,
+    ) -> Result<Response, Error> {
         let registry = chain::REGISTRY.get();
 
         let chain = registry
@@ -233,17 +217,25 @@ impl Session {
                 panic!("chain '{}' missing from registry!", &self.config.chain_id);
             });
 
-        Ok(Response::PublicKey(PubKeyResponse::from(
-            *chain.keyring.default_pubkey()?,
-        )))
+        let pub_key = match chain.keyring.default_pubkey()? {
+            TendermintKey::AccountKey(pk) => pk,
+            TendermintKey::ConsensusKey(pk) => pk,
+        };
+
+        Ok(Response::PublicKey(proto::privval::PubKeyResponse {
+            pub_key: Some(pub_key.into()),
+            error: None,
+        }))
     }
 
     /// Write an INFO logline about a signing request
-    fn log_signing_request<R>(&self, request: &R, started_at: Instant) -> Result<(), Error>
-    where
-        R: TendermintRequest + Debug,
-    {
-        let (msg_type, request_state) = parse_request(request)?;
+    fn log_signing_request(
+        &self,
+        signable_msg: &SignableMsg,
+        started_at: Instant,
+    ) -> Result<(), Error> {
+        let msg_type = signable_msg.msg_type()?;
+        let request_state = signable_msg.consensus_state()?;
 
         info!(
             "[{}@{}] signed {:?}:{} at h/r/s {} ({} ms)",
@@ -259,25 +251,16 @@ impl Session {
     }
 }
 
-/// Parse the consensus state from an incoming request
-// TODO(tarcieri): fix the upstream Amino parser to do this correctly for us
-fn parse_request<R>(request: &R) -> Result<(SignedMsgType, consensus::State), Error>
-where
-    R: TendermintRequest + Debug,
-{
-    let msg_type = request
-        .msg_type()
-        .ok_or_else(|| format_err!(ProtocolError, "no message type for this request"))?;
+/// Double signing handler.
+fn double_sign(consensus_state: consensus::State) -> proto::privval::RemoteSignerError {
+    /// Double signing error code.
+    const DOUBLE_SIGN_ERROR: i32 = 2;
 
-    let mut consensus_state = request
-        .consensus_state()
-        .ok_or_else(|| format_err!(ProtocolError, "no consensus state in request"))?;
-
-    consensus_state.step = match msg_type {
-        SignedMsgType::Proposal => 0,
-        SignedMsgType::PreVote => 1,
-        SignedMsgType::PreCommit => 2,
-    };
-
-    Ok((msg_type, consensus_state))
+    proto::privval::RemoteSignerError {
+        code: DOUBLE_SIGN_ERROR,
+        description: format!(
+            "double signing requested at height: {}",
+            consensus_state.height
+        ),
+    }
 }

@@ -178,18 +178,6 @@ impl From<prost::EncodeError> for Error {
     }
 }
 
-impl From<prost_amino::DecodeError> for Error {
-    fn from(other: prost_amino::DecodeError) -> Self {
-        ErrorKind::ProtocolError.context(other).into()
-    }
-}
-
-impl From<prost_amino::EncodeError> for Error {
-    fn from(other: prost_amino::EncodeError) -> Self {
-        ErrorKind::ProtocolError.context(other).into()
-    }
-}
-
 impl From<serde_json::error::Error> for Error {
     fn from(other: serde_json::error::Error) -> Self {
         ErrorKind::SerializationError.context(other).into()

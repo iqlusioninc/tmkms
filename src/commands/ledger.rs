@@ -1,17 +1,14 @@
 //! `tmkms ledger` CLI (sub)commands
 
 use crate::{
-    amino_types::{
-        vote::{SignVoteRequest, Vote},
-        SignableMsg, SignedMsgType,
-    },
     chain,
-    config::validator::ProtocolVersion,
     prelude::*,
+    signing::{SignableMsg, SignedMsgType},
 };
 use abscissa_core::{Command, Runnable};
 use clap::{Parser, Subcommand};
 use std::{path::PathBuf, process};
+use tendermint_proto as proto;
 
 /// `ledger` subcommand
 #[derive(Command, Debug, Runnable, Subcommand)]
@@ -57,21 +54,17 @@ impl Runnable for InitCommand {
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&chain_id).unwrap();
 
-        let vote = Vote {
+        let vote = proto::types::Vote {
             height: self.height.unwrap(),
-            round: self.round.unwrap(),
-            vote_type: SignedMsgType::Proposal.to_u32(),
+            round: self.round.unwrap() as i32,
+            r#type: SignedMsgType::Proposal.into(),
             ..Default::default()
         };
         println!("{vote:?}");
-        let sign_vote_req = SignVoteRequest { vote: Some(vote) };
+        let sign_vote_req = SignableMsg::Vote(vote);
         let mut to_sign = vec![];
         sign_vote_req
-            .sign_bytes(
-                config.validator[0].chain_id.clone(),
-                ProtocolVersion::Legacy,
-                &mut to_sign,
-            )
+            .sign_bytes(config.validator[0].chain_id.clone(), &mut to_sign)
             .unwrap();
 
         let _sig = chain.keyring.sign(None, &to_sign).unwrap();
