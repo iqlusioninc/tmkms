@@ -15,7 +15,7 @@
 ********************************************************************************/
 
 use super::client::TendermintValidatorApp;
-use crate::keyring::ed25519::{PublicKey, Signature};
+use crate::keyring::ed25519::{Signature, VerifyingKey};
 use signature::{Error, Signer};
 use std::sync::{Arc, Mutex};
 
@@ -33,11 +33,12 @@ impl Ed25519LedgerTmAppSigner {
     }
 }
 
-impl From<&Ed25519LedgerTmAppSigner> for PublicKey {
+impl From<&Ed25519LedgerTmAppSigner> for VerifyingKey {
     /// Returns the public key that corresponds to the Tendermint Validator app connected to this signer
-    fn from(signer: &Ed25519LedgerTmAppSigner) -> PublicKey {
+    fn from(signer: &Ed25519LedgerTmAppSigner) -> VerifyingKey {
         let app = signer.app.lock().unwrap();
-        PublicKey::from_bytes(&app.public_key().unwrap()).expect("invalid Ed25519 public key")
+        VerifyingKey::try_from(app.public_key().unwrap().as_ref())
+            .expect("invalid Ed25519 public key")
     }
 }
 
@@ -52,14 +53,14 @@ impl Signer<Signature> for Ed25519LedgerTmAppSigner {
 
 #[cfg(test)]
 mod tests {
-    use super::{Ed25519LedgerTmAppSigner, PublicKey};
+    use super::{Ed25519LedgerTmAppSigner, VerifyingKey};
     use signature::Signer;
 
     #[test]
     #[ignore]
     fn public_key() {
         let signer = Ed25519LedgerTmAppSigner::connect().unwrap();
-        let pk = PublicKey::from(&signer);
+        let pk = VerifyingKey::from(&signer);
         println!("PK {pk:0X?}");
     }
 
@@ -126,7 +127,7 @@ mod tests {
         let signer = Ed25519LedgerTmAppSigner::connect().unwrap();
 
         // Get public key to initialize
-        let pk = PublicKey::from(&signer);
+        let pk = VerifyingKey::from(&signer);
         println!("PK {pk:0X?}");
 
         for index in 50u8..254u8 {

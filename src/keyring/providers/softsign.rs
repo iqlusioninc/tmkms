@@ -10,10 +10,9 @@ use crate::{
     },
     error::{Error, ErrorKind::*},
     key_utils,
-    keyring::{self, SigningProvider},
+    keyring::{self, ed25519, SigningProvider},
     prelude::*,
 };
-use ed25519_dalek as ed25519;
 use k256::ecdsa;
 use tendermint::{PrivateKey, TendermintKey};
 use tendermint_config::PrivValidatorKey;
@@ -30,9 +29,10 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
         match config.key_type {
             KeyType::Account => {
                 let signer = load_secp256k1_key(config)?;
-                let public_key =
-                    tendermint::PublicKey::from_raw_secp256k1(&signer.verifying_key().to_bytes())
-                        .unwrap();
+                let public_key = tendermint::PublicKey::from_raw_secp256k1(
+                    &signer.verifying_key().to_sec1_bytes(),
+                )
+                .unwrap();
 
                 let account_pubkey = TendermintKey::AccountKey(public_key);
 
@@ -57,7 +57,8 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
                 loaded_consensus_key = true;
 
                 let signing_key = load_ed25519_key(config)?;
-                let consensus_pubkey = TendermintKey::ConsensusKey(signing_key.public.into());
+                let consensus_pubkey =
+                    TendermintKey::ConsensusKey(signing_key.verifying_key().into());
 
                 let signer = keyring::ed25519::Signer::new(
                     SigningProvider::SoftSign,
@@ -76,7 +77,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
 }
 
 /// Load an Ed25519 key according to the provided configuration
-fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> {
+fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::SigningKey, Error> {
     let key_format = config.key_format.as_ref().cloned().unwrap_or_default();
 
     match key_format {
@@ -94,7 +95,7 @@ fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::Keypair, Error> 
                 .priv_key;
 
             if let PrivateKey::Ed25519(pk) = private_key {
-                Ok(pk)
+                Ok(pk.into())
             } else {
                 unreachable!("unsupported priv_validator.json algorithm");
             }
@@ -113,7 +114,7 @@ fn load_secp256k1_key(config: &SoftsignConfig) -> Result<ecdsa::SigningKey, Erro
 
     let key_bytes = key_utils::load_base64_secret(&config.path)?;
 
-    let secret_key = ecdsa::SigningKey::from_bytes(key_bytes.as_slice()).map_err(|e| {
+    let secret_key = ecdsa::SigningKey::try_from(key_bytes.as_slice()).map_err(|e| {
         format_err!(
             ConfigError,
             "can't decode account key base64 from {}: {}",

@@ -171,7 +171,7 @@ impl SignableMsg {
     pub fn add_signature(self, sig: Signature) -> Result<Response, Error> {
         match self {
             Self::Proposal(mut proposal) => {
-                proposal.signature = sig.as_ref().to_vec();
+                proposal.signature = sig.to_vec();
                 Ok(Response::SignedProposal(
                     proto::privval::SignedProposalResponse {
                         proposal: Some(proposal),
@@ -180,7 +180,7 @@ impl SignableMsg {
                 ))
             }
             Self::Vote(mut vote) => {
-                vote.signature = sig.as_ref().to_vec();
+                vote.signature = sig.to_vec();
                 Ok(Response::SignedVote(proto::privval::SignedVoteResponse {
                     vote: Some(vote),
                     error: None,

@@ -1,6 +1,10 @@
 //! Ed25519 signing keys
 
-pub use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature};
+mod signing_key;
+mod verifying_key;
+
+pub use self::{signing_key::SigningKey, verifying_key::VerifyingKey};
+pub use ed25519::Signature;
 
 use crate::{
     error::{Error, ErrorKind::*},

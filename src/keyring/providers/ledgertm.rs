@@ -36,7 +36,7 @@ pub fn init(
 
     let provider = Ed25519LedgerTmAppSigner::connect().map_err(|_| Error::from(SigningError))?;
 
-    let public_key = PublicKey::from_raw_ed25519(ed25519::PublicKey::from(&provider).as_bytes())
+    let public_key = PublicKey::from_raw_ed25519(ed25519::VerifyingKey::from(&provider).as_bytes())
         .expect("invalid Ed25519 public key");
 
     let signer = Signer::new(

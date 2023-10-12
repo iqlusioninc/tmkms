@@ -47,21 +47,19 @@ impl Runnable for ImportCommand {
             process::exit(1);
         }
 
-        let private_key = PrivValidatorKey::load_json_file(input_path)
+        let secret_key = PrivValidatorKey::load_json_file(input_path)
             .unwrap_or_else(|e| {
                 status_err!("couldn't load {}: {}", input_path.display(), e);
                 process::exit(1);
             })
             .priv_key;
 
-        match private_key {
-            PrivateKey::Ed25519(pk) => {
-                key_utils::write_base64_secret(output_path, pk.secret.as_bytes()).unwrap_or_else(
-                    |e| {
-                        status_err!("{}", e);
-                        process::exit(1);
-                    },
-                );
+        match secret_key {
+            PrivateKey::Ed25519(sk) => {
+                key_utils::write_base64_secret(output_path, sk.as_bytes()).unwrap_or_else(|e| {
+                    status_err!("{}", e);
+                    process::exit(1);
+                });
             }
             _ => unreachable!("unsupported priv_validator.json algorithm"),
         }

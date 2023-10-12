@@ -1,10 +1,9 @@
 //! Import keys either from encrypted backups or existing plaintext keys
 
 use super::*;
-use crate::prelude::*;
+use crate::{keyring::ed25519, prelude::*};
 use abscissa_core::{Command, Runnable};
 use clap::Parser;
-use ed25519_dalek as ed25519;
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;
 use tendermint::{PrivateKey, PublicKey};
@@ -173,7 +172,7 @@ impl ImportCommand {
             .priv_key;
 
         let seed = match private_key {
-            PrivateKey::Ed25519(pk) => pk.secret,
+            PrivateKey::Ed25519(pk) => pk,
             _ => unreachable!(),
         };
 
@@ -218,7 +217,7 @@ impl ImportCommand {
                 process::exit(1);
             }));
 
-        let secret = ed25519::SecretKey::from_bytes(&key_bytes).unwrap_or_else(|e| {
+        let secret = ed25519::SigningKey::try_from(key_bytes.as_ref()).unwrap_or_else(|e| {
             status_err!("invalid Ed25519 key: {}", e);
             process::exit(1);
         });

@@ -5,12 +5,11 @@ use crate::{
     config::provider::fortanixdsm::{FortanixDsmConfig, KeyDescriptor, SigningKeyConfig},
     config::provider::KeyType,
     error::{Error, ErrorKind::*},
-    keyring::{self, SigningProvider},
+    keyring::{self, ed25519, SigningProvider},
     prelude::*,
 };
-use ed25519_dalek::{Signature as Ed25519Signature, Signer};
 use elliptic_curve::pkcs8::{
-    spki::Error as SpkiError, DecodePublicKey, ObjectIdentifier, SubjectPublicKeyInfo,
+    spki::Error as SpkiError, DecodePublicKey, ObjectIdentifier, SubjectPublicKeyInfoRef,
 };
 use elliptic_curve::PublicKey as EcPublicKey;
 use k256::ecdsa::{Error as SignError, Signature as EcdsaSignature};
@@ -18,6 +17,7 @@ use sdkms::api_model::{
     DigestAlgorithm, EllipticCurve, ObjectType, SignRequest, SignResponse, SobjectDescriptor,
 };
 use sdkms::{Error as SdkmsError, SdkmsClient};
+use signature::Signer;
 use std::sync::Arc;
 use tendermint::public_key::{Ed25519, Secp256k1};
 use tendermint::{PublicKey, TendermintKey};
@@ -166,11 +166,11 @@ impl Signer<EcdsaSignature> for SigningKey {
     }
 }
 
-impl Signer<Ed25519Signature> for SigningKey {
-    fn try_sign(&self, msg: &[u8]) -> Result<Ed25519Signature, SignError> {
+impl Signer<ed25519::Signature> for SigningKey {
+    fn try_sign(&self, msg: &[u8]) -> Result<ed25519::Signature, SignError> {
         assert_eq!(self.elliptic_curve, EllipticCurve::Ed25519);
         let resp = self.sign(msg, DigestAlgorithm::Sha512)?;
-        Ed25519Signature::from_bytes(&resp.signature)
+        ed25519::Signature::from_slice(&resp.signature)
     }
 }
 
@@ -213,12 +213,10 @@ const ED_25519_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.101.112
 
 struct Ed25519PublicKey(Ed25519);
 
-impl DecodePublicKey for Ed25519PublicKey {}
-
-impl<'a> TryFrom<SubjectPublicKeyInfo<'a>> for Ed25519PublicKey {
+impl<'a> TryFrom<SubjectPublicKeyInfoRef<'a>> for Ed25519PublicKey {
     type Error = SpkiError;
 
-    fn try_from(spki: SubjectPublicKeyInfo<'_>) -> Result<Self, Self::Error> {
+    fn try_from(spki: SubjectPublicKeyInfoRef<'_>) -> Result<Self, Self::Error> {
         spki.algorithm.assert_algorithm_oid(ED_25519_OID)?;
 
         if spki.algorithm.parameters.is_some() {
@@ -226,7 +224,7 @@ impl<'a> TryFrom<SubjectPublicKeyInfo<'a>> for Ed25519PublicKey {
             return Err(SpkiError::KeyMalformed);
         }
 
-        Ed25519::from_bytes(spki.subject_public_key)
+        Ed25519::try_from(spki.subject_public_key.as_bytes().unwrap())
             .map_err(|_| SpkiError::KeyMalformed)
             .map(Ed25519PublicKey)
     }
