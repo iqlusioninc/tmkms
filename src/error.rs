@@ -25,6 +25,10 @@ pub enum ErrorKind {
     #[error("config error")]
     ConfigError,
 
+    /// Cryptographic operation failed
+    #[error("cryptographic error")]
+    CryptoError,
+
     /// Double sign attempted
     #[error("attempted double sign")]
     DoubleSign,
@@ -32,10 +36,6 @@ pub enum ErrorKind {
     /// Request a signature above max height
     #[error("requested signature above stop height")]
     ExceedMaxHeight,
-
-    /// Cryptographic operation failed
-    #[error("cryptographic error")]
-    CryptoError,
 
     /// Fortanix DSM related error
     #[cfg(feature = "fortanixdsm")]
@@ -46,7 +46,7 @@ pub enum ErrorKind {
     #[error("subcommand hook failed")]
     HookError,
 
-    /// Malformatted or otherwise invalid cryptographic key
+    /// Malformed or otherwise invalid cryptographic key
     #[error("invalid key")]
     InvalidKey,
 

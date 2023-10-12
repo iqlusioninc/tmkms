@@ -42,7 +42,10 @@ impl Format {
                 TendermintKey::ConsensusKey(pk) => pk.to_bech32(consensus_key_prefix),
             },
             Format::CosmosJson => PublicKey::from(*public_key.public_key()).to_json(),
-            Format::Hex => public_key.to_hex(),
+            Format::Hex => match public_key {
+                TendermintKey::AccountKey(pk) => pk.to_hex(),
+                TendermintKey::ConsensusKey(pk) => pk.to_hex(),
+            },
         }
     }
 }

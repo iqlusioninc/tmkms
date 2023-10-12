@@ -160,8 +160,8 @@ impl TendermintValidatorApp {
 
 #[cfg(test)]
 mod tests {
-    use ed25519_dalek::ed25519::signature::Verifier;
     use once_cell::sync::Lazy;
+    use signature::Verifier;
     use std::sync::Mutex;
     use std::time::Instant;
 
@@ -265,15 +265,15 @@ mod tests {
         let some_message2 = get_fake_proposal(6, 0);
         match app.sign(&some_message2) {
             Ok(sig) => {
-                use ed25519_dalek::PublicKey;
-                use ed25519_dalek::Signature;
+                use crate::keyring::ed25519;
 
                 println!("{:#?}", sig.to_vec());
 
                 // First, get public key
                 let public_key_bytes = app.public_key().unwrap();
-                let public_key = PublicKey::from_bytes(&public_key_bytes).unwrap();
-                let signature = Signature::from_bytes(&sig).unwrap();
+                let public_key =
+                    ed25519::VerifyingKey::try_from(public_key_bytes.as_ref()).unwrap();
+                let signature = ed25519::Signature::try_from(sig.as_ref()).unwrap();
 
                 // Verify signature
                 assert!(public_key.verify(&some_message2, &signature).is_ok());

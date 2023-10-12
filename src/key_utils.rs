@@ -1,23 +1,20 @@
 //! Utilities
 
+use crate::{
+    error::{Error, ErrorKind::*},
+    keyring::ed25519,
+    prelude::*,
+};
+use k256::ecdsa;
+use rand_core::{OsRng, RngCore};
 use std::{
     fs::{self, OpenOptions},
     io::Write,
     os::unix::fs::OpenOptionsExt,
     path::Path,
 };
-
-use ed25519_dalek as ed25519;
-use ed25519_dalek::SECRET_KEY_LENGTH;
-use k256::ecdsa;
-use rand_core::{OsRng, RngCore};
 use subtle_encoding::base64;
 use zeroize::Zeroizing;
-
-use crate::{
-    error::{Error, ErrorKind::*},
-    prelude::*,
-};
 
 /// File permissions for secret data
 pub const SECRET_FILE_PERMS: u32 = 0o600;
@@ -48,14 +45,11 @@ pub fn load_base64_secret(path: impl AsRef<Path>) -> Result<Zeroizing<Vec<u8>>, 
 }
 
 /// Load a Base64-encoded Ed25519 secret key
-pub fn load_base64_ed25519_key(path: impl AsRef<Path>) -> Result<ed25519::Keypair, Error> {
+pub fn load_base64_ed25519_key(path: impl AsRef<Path>) -> Result<ed25519::SigningKey, Error> {
     let key_bytes = load_base64_secret(path)?;
 
-    let secret = ed25519::SecretKey::from_bytes(&key_bytes)
-        .map_err(|e| format_err!(InvalidKey, "invalid Ed25519 key: {}", e))?;
-
-    let public = ed25519::PublicKey::from(&secret);
-    Ok(ed25519::Keypair { secret, public })
+    Ok(ed25519::SigningKey::try_from(key_bytes.as_ref())
+        .map_err(|e| format_err!(InvalidKey, "invalid Ed25519 key: {}", e))?)
 }
 
 /// Load a Base64-encoded Secp256k1 secret key
@@ -64,7 +58,7 @@ pub fn load_base64_secp256k1_key(
 ) -> Result<(ecdsa::SigningKey, ecdsa::VerifyingKey), Error> {
     let key_bytes = load_base64_secret(path)?;
 
-    let signing = ecdsa::SigningKey::from_bytes(&key_bytes)
+    let signing = ecdsa::SigningKey::try_from(key_bytes.as_slice())
         .map_err(|e| format_err!(InvalidKey, "invalid ECDSA key: {}", e))?;
 
     let veryfing = ecdsa::VerifyingKey::from(&signing);
@@ -96,7 +90,7 @@ pub fn write_base64_secret(path: impl AsRef<Path>, data: &[u8]) -> Result<(), Er
 
 /// Generate a Secret Connection key at the given path
 pub fn generate_key(path: impl AsRef<Path>) -> Result<(), Error> {
-    let mut secret_key = Zeroizing::new([0u8; SECRET_KEY_LENGTH]);
+    let mut secret_key = Zeroizing::new([0u8; ed25519::SigningKey::BYTE_SIZE]);
     OsRng.fill_bytes(&mut *secret_key);
     write_base64_secret(path, &*secret_key)
 }

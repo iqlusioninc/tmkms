@@ -2,9 +2,9 @@
 
 use abscissa_core::prelude::warn;
 use chrono::{DateTime, Utc};
-use ed25519_dalek::{self as ed25519, Verifier};
 use prost::Message;
 use rand::Rng;
+use signature::Verifier;
 use std::{
     fs,
     io::{self, Cursor, Read, Write},
@@ -15,10 +15,10 @@ use std::{
 use tempfile::NamedTempFile;
 use tendermint_p2p::secret_connection::{self, SecretConnection};
 use tendermint_proto as proto;
-
 use tmkms::{
     config::provider::KeyType,
     connection::unix::UnixConnection,
+    keyring::ed25519,
     signing::{SignableMsg, SignedMsgType},
 };
 
@@ -86,7 +86,7 @@ impl KmsProcess {
     /// Spawn the KMS process and wait for an incoming TCP connection
     pub fn create_tcp(key_type: &KeyType) -> Self {
         // Generate a random port and a config file
-        let port: u16 = rand::thread_rng().gen_range(60000, 65535);
+        let port: u16 = rand::thread_rng().gen_range(60000..=65535);
         let config = KmsProcess::create_tcp_config(port, key_type);
 
         // Listen on a random port
@@ -106,8 +106,8 @@ impl KmsProcess {
     pub fn create_unix(key_type: &KeyType) -> Self {
         // Create a random socket path and a config file
         let mut rng = rand::thread_rng();
-        let letter: char = rng.gen_range(b'a', b'z') as char;
-        let number: u32 = rng.gen_range(0, 999999);
+        let letter: char = rng.gen_range(b'a'..=b'z') as char;
+        let number: u32 = rng.gen_range(0..=999999);
         let socket_path = format!("/tmp/tmkms-{letter}{number:06}.sock");
         let config = KmsProcess::create_unix_config(&socket_path, key_type);
 
@@ -128,7 +128,7 @@ impl KmsProcess {
     /// Create a config file for a TCP KMS and return its path
     fn create_tcp_config(port: u16, key_type: &KeyType) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
-        let pub_key = test_ed25519_keypair().public;
+        let pub_key = test_ed25519_keypair().verifying_key();
         let peer_id = secret_connection::PublicKey::from(pub_key).peer_id();
 
         writeln!(
@@ -193,7 +193,7 @@ impl KmsProcess {
         match self.socket {
             KmsSocket::TCP(ref sock) => {
                 // we use the same key for both sides:
-                let identity_keypair = test_ed25519_keypair();
+                let identity_key = test_ed25519_keypair();
 
                 // Here we reply to the kms with a "remote" ephermal key, auth signature etc:
                 let socket_cp = sock.try_clone().unwrap();
@@ -201,7 +201,7 @@ impl KmsProcess {
                 KmsConnection::Tcp(
                     SecretConnection::new(
                         socket_cp,
-                        identity_keypair,
+                        identity_key.into(),
                         secret_connection::Version::V0_34,
                     )
                     .unwrap(),
@@ -292,7 +292,7 @@ impl io::Read for ProtocolTester {
 }
 
 /// Get the Ed25519 signing keypair used by the tests
-fn test_ed25519_keypair() -> ed25519::Keypair {
+fn test_ed25519_keypair() -> ed25519::SigningKey {
     tmkms::key_utils::load_base64_ed25519_key(signing_key_path(&KeyType::Consensus)).unwrap()
 }
 
@@ -384,7 +384,9 @@ fn handle_and_sign_proposal(key_type: KeyType) {
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(prop.signature.as_slice()).unwrap();
-                test_ed25519_keypair().public.verify(msg, &signature)
+                test_ed25519_keypair()
+                    .verifying_key()
+                    .verify(msg, &signature)
             }
         };
         assert!(r.is_ok());
@@ -429,6 +431,8 @@ fn handle_and_sign_vote(key_type: KeyType) {
             ],
             validator_index: 56789,
             signature: vec![],
+            extension: vec![],
+            extension_signature: vec![],
         };
 
         let signable_msg = SignableMsg::Vote(vote_msg.clone());
@@ -466,7 +470,9 @@ fn handle_and_sign_vote(key_type: KeyType) {
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
-                test_ed25519_keypair().public.verify(msg, &signature)
+                test_ed25519_keypair()
+                    .verifying_key()
+                    .verify(msg, &signature)
             }
         };
         assert!(r.is_ok());
@@ -513,6 +519,8 @@ fn exceed_max_height(key_type: KeyType) {
             ],
             validator_index: 56789,
             signature: vec![],
+            extension: vec![],
+            extension_signature: vec![],
         };
 
         let signable_msg = SignableMsg::Vote(vote_msg.clone());
@@ -550,7 +558,9 @@ fn exceed_max_height(key_type: KeyType) {
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
-                test_ed25519_keypair().public.verify(msg, &signature)
+                test_ed25519_keypair()
+                    .verifying_key()
+                    .verify(msg, &signature)
             }
         };
         assert!(r.is_ok());

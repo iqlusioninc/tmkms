@@ -172,7 +172,14 @@ impl KeyRing {
         if !self.ed25519_keys.is_empty() {
             let signer = match public_key {
                 Some(public_key) => self.ed25519_keys.get(public_key).ok_or_else(|| {
-                    format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
+                    format_err!(
+                        InvalidKey,
+                        "not in keyring: {}",
+                        match public_key {
+                            TendermintKey::AccountKey(pk) => pk.to_bech32(""),
+                            TendermintKey::ConsensusKey(pk) => pk.to_bech32(""),
+                        }
+                    )
                 }),
                 None => self
                     .ed25519_keys
@@ -185,7 +192,14 @@ impl KeyRing {
         } else if !self.ecdsa_keys.is_empty() {
             let signer = match public_key {
                 Some(public_key) => self.ecdsa_keys.get(public_key).ok_or_else(|| {
-                    format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
+                    format_err!(
+                        InvalidKey,
+                        "not in keyring: {}",
+                        match public_key {
+                            TendermintKey::AccountKey(pk) => pk.to_bech32(""),
+                            TendermintKey::ConsensusKey(pk) => pk.to_bech32(""),
+                        }
+                    )
                 }),
                 None => self
                     .ecdsa_keys

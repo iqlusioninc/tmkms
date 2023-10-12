@@ -151,7 +151,10 @@ fn display_key_info(
 
     let key_serialized = match key_formatters.get(&key.object_id) {
         Some(key_formatter) => key_formatter.serialize(tendermint_key),
-        None => tendermint_key.to_hex(),
+        None => match tendermint_key {
+            TendermintKey::AccountKey(k) => k.to_hex(),
+            TendermintKey::ConsensusKey(k) => k.to_hex(),
+        },
     };
 
     status_attr_ok!(key_id, "[{}] {}", key_type, key_serialized);

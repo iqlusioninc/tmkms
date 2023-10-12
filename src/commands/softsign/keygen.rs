@@ -1,9 +1,8 @@
 //! `tmkms softsign keygen` subcommand
 
-use crate::{key_utils, prelude::*};
+use crate::{key_utils, keyring::ed25519, prelude::*};
 use abscissa_core::{Command, Runnable};
 use clap::Parser;
-use ed25519_dalek as ed25519;
 use k256::ecdsa;
 use rand_core::{OsRng, RngCore};
 use std::{path::Path, path::PathBuf, process};
@@ -71,15 +70,9 @@ fn generate_secp256k1_key(output_path: &Path) {
 fn generate_ed25519_key(output_path: &Path) {
     let mut sk_bytes = [0u8; 32];
     OsRng.fill_bytes(&mut sk_bytes);
-    let sk = ed25519::SecretKey::from_bytes(&sk_bytes).unwrap();
-    let pk = ed25519::PublicKey::from(&sk);
+    let sk = ed25519::SigningKey::from(sk_bytes);
 
-    let keypair = ed25519::Keypair {
-        public: pk,
-        secret: sk,
-    };
-
-    key_utils::write_base64_secret(output_path, keypair.secret.as_ref()).unwrap_or_else(|e| {
+    key_utils::write_base64_secret(output_path, sk.as_bytes()).unwrap_or_else(|e| {
         status_err!("{}", e);
         process::exit(1);
     });
