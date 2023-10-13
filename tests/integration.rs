@@ -365,28 +365,27 @@ fn handle_and_sign_proposal(key_type: KeyType) {
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
-        let mut sign_bytes: Vec<u8> = vec![];
-        signable_msg
-            .sign_bytes(chain_id.parse().unwrap(), &mut sign_bytes)
+        let signable_bytes = signable_msg
+            .signable_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let prop = response
             .proposal
             .expect("proposal should be embedded but none was found");
 
-        let msg: &[u8] = sign_bytes.as_slice();
-
         let r = match key_type {
             KeyType::Account => {
                 let signature =
                     k256::ecdsa::Signature::try_from(prop.signature.as_slice()).unwrap();
-                test_secp256k1_keypair().1.verify(msg, &signature)
+                test_secp256k1_keypair()
+                    .1
+                    .verify(&signable_bytes, &signature)
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(prop.signature.as_slice()).unwrap();
                 test_ed25519_keypair()
                     .verifying_key()
-                    .verify(msg, &signature)
+                    .verify(&signable_bytes, &signature)
             }
         };
         assert!(r.is_ok());
@@ -449,9 +448,8 @@ fn handle_and_sign_vote(key_type: KeyType) {
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
-        let mut sign_bytes: Vec<u8> = vec![];
-        signable_msg
-            .sign_bytes(chain_id.parse().unwrap(), &mut sign_bytes)
+        let signable_bytes = signable_msg
+            .signable_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let vote_msg: proto::types::Vote = request
@@ -461,18 +459,18 @@ fn handle_and_sign_vote(key_type: KeyType) {
         let sig: Vec<u8> = vote_msg.signature;
         assert_ne!(sig.len(), 0);
 
-        let msg: &[u8] = sign_bytes.as_slice();
-
         let r = match key_type {
             KeyType::Account => {
                 let signature = k256::ecdsa::Signature::try_from(sig.as_slice()).unwrap();
-                test_secp256k1_keypair().1.verify(msg, &signature)
+                test_secp256k1_keypair()
+                    .1
+                    .verify(&signable_bytes, &signature)
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
                 test_ed25519_keypair()
                     .verifying_key()
-                    .verify(msg, &signature)
+                    .verify(&signable_bytes, &signature)
             }
         };
         assert!(r.is_ok());
@@ -537,9 +535,8 @@ fn exceed_max_height(key_type: KeyType) {
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
-        let mut sign_bytes: Vec<u8> = vec![];
-        signable_msg
-            .sign_bytes(chain_id.parse().unwrap(), &mut sign_bytes)
+        let signable_bytes = signable_msg
+            .signable_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let vote_msg = response
@@ -549,18 +546,18 @@ fn exceed_max_height(key_type: KeyType) {
         let sig: Vec<u8> = vote_msg.signature;
         assert_ne!(sig.len(), 0);
 
-        let msg: &[u8] = sign_bytes.as_slice();
-
         let r = match key_type {
             KeyType::Account => {
                 let signature = k256::ecdsa::Signature::try_from(sig.as_slice()).unwrap();
-                test_secp256k1_keypair().1.verify(msg, &signature)
+                test_secp256k1_keypair()
+                    .1
+                    .verify(&signable_bytes, &signature)
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
                 test_ed25519_keypair()
                     .verifying_key()
-                    .verify(msg, &signature)
+                    .verify(&signable_bytes, &signature)
             }
         };
         assert!(r.is_ok());
