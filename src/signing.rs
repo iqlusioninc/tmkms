@@ -6,8 +6,9 @@ use crate::{
     prelude::{ensure, fail, format_err},
     rpc::Response,
 };
-use bytes::BufMut;
+use bytes::{Bytes, BytesMut};
 use prost::{EncodeError, Message as _};
+use signature::Signer;
 use tendermint::{block, chain, consensus};
 use tendermint_proto as proto;
 
@@ -98,31 +99,43 @@ impl SignableMsg {
         Ok(())
     }
 
-    /// Get the bytes to be signed for a given message.
-    pub fn sign_bytes<B>(
-        &self,
-        chain_id: chain::Id,
-        sign_bytes: &mut B,
-    ) -> Result<bool, EncodeError>
+    /// Sign the given message, returning a response with the signature appended.
+    pub fn sign<S>(self, chain_id: chain::Id, signer: impl Signer<S>) -> Result<Response, Error>
     where
-        B: BufMut,
+        S: Into<Signature>,
     {
+        let signable_bytes = self.signable_bytes(chain_id)?;
+        let signature = signer.try_sign(&signable_bytes)?;
+        self.add_signature(signature.into())
+    }
+
+    /// Get the bytes representing a canonically encoded message over which a
+    /// signature is to be computed.
+    pub fn signable_bytes(&self, chain_id: chain::Id) -> Result<Bytes, EncodeError> {
+        fn canonicalize_block_id(
+            block_id: &proto::types::BlockId,
+        ) -> Option<proto::types::CanonicalBlockId> {
+            if block_id.hash.is_empty() {
+                return None;
+            }
+
+            Some(proto::types::CanonicalBlockId {
+                hash: block_id.hash.clone(),
+                part_set_header: block_id.part_set_header.as_ref().map(|y| {
+                    proto::types::CanonicalPartSetHeader {
+                        total: y.total,
+                        hash: y.hash.clone(),
+                    }
+                }),
+            })
+        }
+
+        let mut bytes = BytesMut::new();
+
         match self {
             Self::Proposal(proposal) => {
                 let proposal = proposal.clone();
-                let block_id = match proposal.block_id.as_ref() {
-                    Some(x) if x.hash.is_empty() => None,
-                    Some(x) => Some(proto::types::CanonicalBlockId {
-                        hash: x.hash.clone(),
-                        part_set_header: x.part_set_header.as_ref().map(|y| {
-                            proto::types::CanonicalPartSetHeader {
-                                total: y.total,
-                                hash: y.hash.clone(),
-                            }
-                        }),
-                    }),
-                    None => None,
-                };
+                let block_id = proposal.block_id.as_ref().and_then(canonicalize_block_id);
 
                 let cp = proto::types::CanonicalProposal {
                     chain_id: chain_id.to_string(),
@@ -134,24 +147,11 @@ impl SignableMsg {
                     timestamp: proposal.timestamp.map(Into::into),
                 };
 
-                cp.encode_length_delimited(sign_bytes).unwrap();
-                Ok(true)
+                cp.encode_length_delimited(&mut bytes)?;
             }
             Self::Vote(vote) => {
                 let vote = vote.clone();
-                let block_id = match vote.block_id.as_ref() {
-                    Some(x) if x.hash.is_empty() => None,
-                    Some(x) => Some(proto::types::CanonicalBlockId {
-                        hash: x.hash.clone(),
-                        part_set_header: x.part_set_header.as_ref().map(|y| {
-                            proto::types::CanonicalPartSetHeader {
-                                total: y.total,
-                                hash: y.hash.clone(),
-                            }
-                        }),
-                    }),
-                    None => None,
-                };
+                let block_id = vote.block_id.as_ref().and_then(canonicalize_block_id);
 
                 let cv = proto::types::CanonicalVote {
                     r#type: vote.r#type,
@@ -161,10 +161,11 @@ impl SignableMsg {
                     timestamp: vote.timestamp.map(Into::into),
                     chain_id: chain_id.to_string(),
                 };
-                cv.encode_length_delimited(sign_bytes).unwrap();
-                Ok(true)
+                cv.encode_length_delimited(&mut bytes)?;
             }
         }
+
+        Ok(bytes.into())
     }
 
     /// Add a signature to this request, returning a response.

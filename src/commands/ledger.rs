@@ -62,9 +62,8 @@ impl Runnable for InitCommand {
         };
         println!("{vote:?}");
         let sign_vote_req = SignableMsg::Vote(vote);
-        let mut to_sign = vec![];
-        sign_vote_req
-            .sign_bytes(config.validator[0].chain_id.clone(), &mut to_sign)
+        let to_sign = sign_vote_req
+            .signable_bytes(config.validator[0].chain_id.clone())
             .unwrap();
 
         let _sig = chain.keyring.sign(None, &to_sign).unwrap();

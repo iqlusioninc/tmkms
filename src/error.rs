@@ -184,6 +184,12 @@ impl From<serde_json::error::Error> for Error {
     }
 }
 
+impl From<signature::Error> for Error {
+    fn from(other: signature::Error) -> Self {
+        ErrorKind::CryptoError.context(other).into()
+    }
+}
+
 impl From<tendermint::Error> for Error {
     fn from(other: tendermint::error::Error) -> Self {
         ErrorKind::TendermintError.context(other).into()

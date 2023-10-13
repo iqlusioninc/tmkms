@@ -139,9 +139,7 @@ impl Session {
             return Ok(signable_msg.error(remote_err));
         }
 
-        let mut to_sign = vec![];
-        signable_msg.sign_bytes(self.config.chain_id.clone(), &mut to_sign)?;
-
+        let to_sign = signable_msg.signable_bytes(self.config.chain_id.clone())?;
         let started_at = Instant::now();
 
         // TODO(ismail): figure out which key to use here instead of taking the only key
