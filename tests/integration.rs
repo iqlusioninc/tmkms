@@ -19,7 +19,7 @@ use tmkms::{
     config::provider::KeyType,
     connection::unix::UnixConnection,
     keyring::ed25519,
-    signing::{SignableMsg, SignedMsgType},
+    privval::{SignableMsg, SignedMsgType},
 };
 
 /// Integration tests for the KMS command-line interface

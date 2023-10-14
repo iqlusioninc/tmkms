@@ -3,7 +3,7 @@
 use crate::{
     chain,
     prelude::*,
-    signing::{SignableMsg, SignedMsgType},
+    privval::{SignableMsg, SignedMsgType},
 };
 use abscissa_core::{Command, Runnable};
 use clap::{Parser, Subcommand};

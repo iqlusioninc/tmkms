@@ -1,10 +1,8 @@
-//! Signed message support.
+//! Validator private key operations: signing consensus votes and proposals.
 
-use crate::{error::Error, keyring::signature::Signature, rpc::Response};
 use bytes::{Bytes, BytesMut};
 use prost::{EncodeError, Message as _};
-use signature::Signer;
-use tendermint::{block, chain, consensus, vote, Proposal, Vote};
+use tendermint::{block, chain, consensus, vote, Error, Proposal, Vote};
 use tendermint_proto as proto;
 
 /// Message codes.
@@ -49,18 +47,8 @@ impl SignableMsg {
         }
     }
 
-    /// Sign the given message, returning a response with the signature appended.
-    pub fn sign<S>(self, chain_id: chain::Id, signer: &impl Signer<S>) -> Result<Response, Error>
-    where
-        S: Into<Signature>,
-    {
-        let signable_bytes = self.signable_bytes(chain_id)?;
-        let signature = signer.try_sign(&signable_bytes)?;
-        self.add_signature(signature.into())
-    }
-
     /// Get the bytes representing a canonically encoded message over which a
-    /// signature is to be computed.
+    /// signature is computed over.
     pub fn signable_bytes(&self, chain_id: chain::Id) -> Result<Bytes, EncodeError> {
         let mut bytes = BytesMut::new();
 
@@ -97,44 +85,6 @@ impl SignableMsg {
         Ok(bytes.into())
     }
 
-    /// Add a signature to this request, returning a response.
-    pub fn add_signature(self, sig: Signature) -> Result<Response, Error> {
-        match self {
-            Self::Proposal(proposal) => {
-                let mut proposal = proto::types::Proposal::from(proposal);
-                proposal.signature = sig.to_vec();
-                Ok(Response::SignedProposal(
-                    proto::privval::SignedProposalResponse {
-                        proposal: Some(proposal),
-                        error: None,
-                    },
-                ))
-            }
-            Self::Vote(vote) => {
-                let mut vote = proto::types::Vote::from(vote);
-                vote.signature = sig.to_vec();
-                Ok(Response::SignedVote(proto::privval::SignedVoteResponse {
-                    vote: Some(vote),
-                    error: None,
-                }))
-            }
-        }
-    }
-
-    /// Build an error response for this request.
-    pub fn error(&self, error: proto::privval::RemoteSignerError) -> Response {
-        match self {
-            Self::Proposal(_) => Response::SignedProposal(proto::privval::SignedProposalResponse {
-                proposal: None,
-                error: Some(error),
-            }),
-            Self::Vote(_) => Response::SignedVote(proto::privval::SignedVoteResponse {
-                vote: None,
-                error: Some(error),
-            }),
-        }
-    }
-
     /// Parse the consensus state from the request.
     pub fn consensus_state(&self) -> consensus::State {
         match self {
@@ -158,7 +108,7 @@ impl SignableMsg {
 }
 
 impl TryFrom<proto::types::Proposal> for SignableMsg {
-    type Error = tendermint::Error;
+    type Error = Error;
 
     fn try_from(proposal: proto::types::Proposal) -> Result<Self, Self::Error> {
         Proposal::try_from(proposal).map(Self::Proposal)
@@ -166,7 +116,7 @@ impl TryFrom<proto::types::Proposal> for SignableMsg {
 }
 
 impl TryFrom<proto::types::Vote> for SignableMsg {
-    type Error = tendermint::Error;
+    type Error = Error;
 
     fn try_from(vote: proto::types::Vote) -> Result<Self, Self::Error> {
         Vote::try_from(vote).map(Self::Vote)
@@ -246,25 +196,27 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
     type Error = Error;
 
     fn try_from(code: SignedMsgCode) -> Result<Self, Self::Error> {
-        Ok(proto::types::SignedMsgType::try_from(code)?.into())
+        proto::types::SignedMsgType::try_from(code)
+            .map(Into::into)
+            .map_err(|e| Error::parse(e.to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{chain, proto, SignableMsg, SignedMsgType};
-    use chrono::{DateTime, Utc};
+    use tendermint::Time;
 
     fn example_chain_id() -> chain::Id {
         chain::Id::try_from("test_chain_id").unwrap()
     }
 
     fn example_timestamp() -> proto::google::protobuf::Timestamp {
-        let dt = "2023-10-04T10:00:00.000Z".parse::<DateTime<Utc>>().unwrap();
+        let dt = Time::parse_from_rfc3339("2023-10-04T10:00:00.000Z").unwrap();
 
         proto::google::protobuf::Timestamp {
-            seconds: dt.timestamp(),
-            nanos: dt.timestamp_subsec_nanos() as i32,
+            seconds: dt.unix_timestamp(),
+            nanos: 0,
         }
     }
 
@@ -305,7 +257,7 @@ mod tests {
     }
 
     #[test]
-    fn sign_proposal() {
+    fn serialize_canonical_proposal() {
         let signable_msg = SignableMsg::try_from(example_proposal()).unwrap();
         let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
         assert_eq!(
@@ -320,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    fn sign_vote() {
+    fn serialize_canonical_vote() {
         let signable_msg = SignableMsg::try_from(example_vote()).unwrap();
         let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
         assert_eq!(

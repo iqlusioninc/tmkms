@@ -24,9 +24,9 @@ pub mod error;
 pub mod key_utils;
 pub mod keyring;
 pub mod prelude;
+pub mod privval;
 pub mod rpc;
 pub mod session;
-pub mod signing;
 
 #[cfg(feature = "yubihsm")]
 pub mod yubihsm;
