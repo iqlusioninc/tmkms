@@ -3,7 +3,7 @@
 // TODO: docs for everything
 #![allow(missing_docs)]
 
-use crate::signing::SignableMsg;
+use crate::{keyring::Signature, privval::SignableMsg};
 use prost::Message as _;
 use std::io::Read;
 use tendermint::chain;
@@ -97,7 +97,7 @@ pub enum Response {
 }
 
 impl Response {
-    /// Encode response to bytes
+    /// Encode response to bytes.
     pub fn encode(self) -> Result<Vec<u8>, Error> {
         let mut buf = Vec::new();
         let msg = match self {
@@ -110,6 +110,46 @@ impl Response {
         };
         proto::privval::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
         Ok(buf)
+    }
+
+    /// Construct an error response for a given [`SignableMsg`].
+    pub fn error(msg: SignableMsg, error: proto::privval::RemoteSignerError) -> Response {
+        match msg {
+            SignableMsg::Proposal(_) => {
+                Response::SignedProposal(proto::privval::SignedProposalResponse {
+                    proposal: None,
+                    error: Some(error),
+                })
+            }
+            SignableMsg::Vote(_) => Response::SignedVote(proto::privval::SignedVoteResponse {
+                vote: None,
+                error: Some(error),
+            }),
+        }
+    }
+
+    /// Construct a signed response from a [`SignableMsg`] and a [`Signature`].
+    pub fn sign(msg: SignableMsg, sig: Signature) -> Result<Response, Error> {
+        match msg {
+            SignableMsg::Proposal(proposal) => {
+                let mut proposal = proto::types::Proposal::from(proposal);
+                proposal.signature = sig.to_vec();
+                Ok(Response::SignedProposal(
+                    proto::privval::SignedProposalResponse {
+                        proposal: Some(proposal),
+                        error: None,
+                    },
+                ))
+            }
+            SignableMsg::Vote(vote) => {
+                let mut vote = proto::types::Vote::from(vote);
+                vote.signature = sig.to_vec();
+                Ok(Response::SignedVote(proto::privval::SignedVoteResponse {
+                    vote: Some(vote),
+                    error: None,
+                }))
+            }
+        }
     }
 }
 

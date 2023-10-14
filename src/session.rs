@@ -6,8 +6,8 @@ use crate::{
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
+    privval::SignableMsg,
     rpc::{Request, Response},
-    signing::SignableMsg,
 };
 use std::{os::unix::net::UnixStream, time::Instant};
 use tendermint::{consensus, TendermintKey};
@@ -136,7 +136,7 @@ impl Session {
 
         if let Some(remote_err) = self.update_consensus_state(chain, &signable_msg)? {
             // In the event of double signing we send a response to notify the validator
-            return Ok(signable_msg.error(remote_err));
+            return Ok(Response::error(signable_msg, remote_err));
         }
 
         let to_sign = signable_msg.signable_bytes(self.config.chain_id.clone())?;
@@ -146,7 +146,7 @@ impl Session {
         let signature = chain.keyring.sign(None, &to_sign)?;
 
         self.log_signing_request(&signable_msg, started_at).unwrap();
-        signable_msg.add_signature(signature)
+        Response::sign(signable_msg, signature)
     }
 
     /// If a max block height is configured, ensure the block we're signing
