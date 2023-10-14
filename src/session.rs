@@ -153,7 +153,7 @@ impl Session {
     /// doesn't exceed it
     fn check_max_height(&mut self, signable_msg: &SignableMsg) -> Result<(), Error> {
         if let Some(max_height) = self.config.max_height {
-            let height = signable_msg.height()?;
+            let height = signable_msg.height();
 
             if height > max_height {
                 fail!(
@@ -175,8 +175,8 @@ impl Session {
         chain: &Chain,
         signable_msg: &SignableMsg,
     ) -> Result<Option<proto::privval::RemoteSignerError>, Error> {
-        let msg_type = signable_msg.msg_type()?;
-        let request_state = signable_msg.consensus_state()?;
+        let msg_type = signable_msg.msg_type();
+        let request_state = signable_msg.consensus_state();
         let mut chain_state = chain.state.lock().unwrap();
 
         match chain_state.update_consensus_state(request_state.clone()) {
@@ -232,8 +232,8 @@ impl Session {
         signable_msg: &SignableMsg,
         started_at: Instant,
     ) -> Result<(), Error> {
-        let msg_type = signable_msg.msg_type()?;
-        let request_state = signable_msg.consensus_state()?;
+        let msg_type = signable_msg.msg_type();
+        let request_state = signable_msg.consensus_state();
 
         info!(
             "[{}@{}] signed {:?}:{} at h/r/s {} ({} ms)",

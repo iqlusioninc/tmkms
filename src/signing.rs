@@ -1,15 +1,10 @@
 //! Signed message support.
 
-use crate::{
-    error::{Error, ErrorKind},
-    keyring::signature::Signature,
-    prelude::{ensure, fail, format_err},
-    rpc::Response,
-};
+use crate::{error::Error, keyring::signature::Signature, rpc::Response};
 use bytes::{Bytes, BytesMut};
 use prost::{EncodeError, Message as _};
 use signature::Signer;
-use tendermint::{block, chain, consensus};
+use tendermint::{block, chain, consensus, vote, Proposal, Vote};
 use tendermint_proto as proto;
 
 /// Message codes.
@@ -27,76 +22,31 @@ const PRECOMMIT_CODE: SignedMsgCode = 0x02;
 /// Code for precommits.
 const PROPOSAL_CODE: SignedMsgCode = 0x20;
 
-/// Size of a validator address.
-const VALIDATOR_ADDR_SIZE: usize = 20;
-
 /// Trait for signed messages.
 #[derive(Debug)]
 pub enum SignableMsg {
     /// Proposals
-    Proposal(proto::types::Proposal),
+    Proposal(Proposal),
 
     /// Votes
-    Vote(proto::types::Vote),
+    Vote(Vote),
 }
 
 impl SignableMsg {
     /// Get the signed message type.
-    pub fn msg_type(&self) -> Result<SignedMsgType, Error> {
-        let res = match self {
-            Self::Proposal(_) => Some(SignedMsgType::Proposal),
-            Self::Vote(vote) => match vote.r#type {
-                PREVOTE_CODE => Some(SignedMsgType::Prevote),
-                PRECOMMIT_CODE => Some(SignedMsgType::Precommit),
-                _ => None,
-            },
-        };
-
-        Ok(res.ok_or_else(|| {
-            format_err!(ErrorKind::ProtocolError, "no message type for this request")
-        })?)
+    pub fn msg_type(&self) -> SignedMsgType {
+        match self {
+            Self::Proposal(_) => SignedMsgType::Proposal,
+            Self::Vote(vote) => vote.vote_type.into(),
+        }
     }
 
     /// Get the block height.
-    pub fn height(&self) -> Result<block::Height, Error> {
+    pub fn height(&self) -> block::Height {
         match self {
-            Self::Proposal(proposal) => Ok(proposal.height.try_into()?),
-            Self::Vote(vote) => Ok(vote.height.try_into()?),
+            Self::Proposal(proposal) => proposal.height,
+            Self::Vote(vote) => vote.height,
         }
-    }
-
-    /// Validate the message is well-formed.
-    pub fn validate(&self) -> Result<(), Error> {
-        // Ensure height is valid
-        self.height()?;
-
-        // Ensure consensus state is valid
-        self.consensus_state()?;
-
-        match self {
-            Self::Proposal(proposal) => {
-                ensure!(
-                    proposal.pol_round >= -1,
-                    ErrorKind::ProtocolError,
-                    "negative pol_round"
-                );
-            }
-            Self::Vote(vote) => {
-                ensure!(
-                    vote.validator_index >= 0,
-                    ErrorKind::ProtocolError,
-                    "negative validator index"
-                );
-
-                ensure!(
-                    vote.validator_address.len() == VALIDATOR_ADDR_SIZE,
-                    ErrorKind::ProtocolError,
-                    "negative validator index"
-                );
-            }
-        }
-
-        Ok(())
     }
 
     /// Sign the given message, returning a response with the signature appended.
@@ -112,52 +62,31 @@ impl SignableMsg {
     /// Get the bytes representing a canonically encoded message over which a
     /// signature is to be computed.
     pub fn signable_bytes(&self, chain_id: chain::Id) -> Result<Bytes, EncodeError> {
-        fn canonicalize_block_id(
-            block_id: &proto::types::BlockId,
-        ) -> Option<proto::types::CanonicalBlockId> {
-            if block_id.hash.is_empty() {
-                return None;
-            }
-
-            Some(proto::types::CanonicalBlockId {
-                hash: block_id.hash.clone(),
-                part_set_header: block_id.part_set_header.as_ref().map(|y| {
-                    proto::types::CanonicalPartSetHeader {
-                        total: y.total,
-                        hash: y.hash.clone(),
-                    }
-                }),
-            })
-        }
-
         let mut bytes = BytesMut::new();
 
         match self {
             Self::Proposal(proposal) => {
-                let proposal = proposal.clone();
-                let block_id = proposal.block_id.as_ref().and_then(canonicalize_block_id);
-
                 let cp = proto::types::CanonicalProposal {
                     chain_id: chain_id.to_string(),
                     r#type: SignedMsgType::Proposal.into(),
-                    height: proposal.height,
-                    block_id,
-                    pol_round: proposal.pol_round as i64,
-                    round: proposal.round as i64,
+                    height: proposal.height.into(),
+                    block_id: proposal.block_id.map(Into::into),
+                    pol_round: proposal
+                        .pol_round
+                        .map(|round| round.value().into())
+                        .unwrap_or(-1),
+                    round: proposal.round.value().into(),
                     timestamp: proposal.timestamp.map(Into::into),
                 };
 
                 cp.encode_length_delimited(&mut bytes)?;
             }
             Self::Vote(vote) => {
-                let vote = vote.clone();
-                let block_id = vote.block_id.as_ref().and_then(canonicalize_block_id);
-
                 let cv = proto::types::CanonicalVote {
-                    r#type: vote.r#type,
-                    height: vote.height,
-                    round: vote.round as i64,
-                    block_id,
+                    r#type: vote.vote_type.into(),
+                    height: vote.height.into(),
+                    round: vote.round.value().into(),
+                    block_id: vote.block_id.map(Into::into),
                     timestamp: vote.timestamp.map(Into::into),
                     chain_id: chain_id.to_string(),
                 };
@@ -171,7 +100,8 @@ impl SignableMsg {
     /// Add a signature to this request, returning a response.
     pub fn add_signature(self, sig: Signature) -> Result<Response, Error> {
         match self {
-            Self::Proposal(mut proposal) => {
+            Self::Proposal(proposal) => {
+                let mut proposal = proto::types::Proposal::from(proposal);
                 proposal.signature = sig.to_vec();
                 Ok(Response::SignedProposal(
                     proto::privval::SignedProposalResponse {
@@ -180,7 +110,8 @@ impl SignableMsg {
                     },
                 ))
             }
-            Self::Vote(mut vote) => {
+            Self::Vote(vote) => {
+                let mut vote = proto::types::Vote::from(vote);
                 vote.signature = sig.to_vec();
                 Ok(Response::SignedVote(proto::privval::SignedVoteResponse {
                     vote: Some(vote),
@@ -205,38 +136,40 @@ impl SignableMsg {
     }
 
     /// Parse the consensus state from the request.
-    pub fn consensus_state(&self) -> Result<consensus::State, Error> {
-        let msg_type = self.msg_type()?;
-
-        let mut consensus_state = match self {
+    pub fn consensus_state(&self) -> consensus::State {
+        match self {
             Self::Proposal(p) => consensus::State {
-                height: block::Height::try_from(p.height)?,
-                round: block::Round::from(p.round as u16),
-                step: 3,
-                block_id: p
-                    .block_id
-                    .clone()
-                    .and_then(|block_id| block_id.try_into().ok()),
+                height: p.height,
+                round: p.round,
+                step: 0,
+                block_id: p.block_id,
             },
             Self::Vote(v) => consensus::State {
-                height: block::Height::try_from(v.height)?,
-                round: block::Round::from(v.round as u16),
-                step: 6,
-                block_id: v
-                    .block_id
-                    .clone()
-                    .and_then(|block_id| block_id.try_into().ok()),
+                height: v.height,
+                round: v.round,
+                step: match v.vote_type {
+                    vote::Type::Prevote => 1,
+                    vote::Type::Precommit => 2,
+                },
+                block_id: v.block_id,
             },
-        };
+        }
+    }
+}
 
-        consensus_state.step = match msg_type {
-            SignedMsgType::Unknown => fail!(ErrorKind::InvalidMessageError, "unknown message type"),
-            SignedMsgType::Proposal => 0,
-            SignedMsgType::Prevote => 1,
-            SignedMsgType::Precommit => 2,
-        };
+impl TryFrom<proto::types::Proposal> for SignableMsg {
+    type Error = tendermint::Error;
 
-        Ok(consensus_state)
+    fn try_from(proposal: proto::types::Proposal) -> Result<Self, Self::Error> {
+        Proposal::try_from(proposal).map(Self::Proposal)
+    }
+}
+
+impl TryFrom<proto::types::Vote> for SignableMsg {
+    type Error = tendermint::Error;
+
+    fn try_from(vote: proto::types::Vote) -> Result<Self, Self::Error> {
+        Vote::try_from(vote).map(Self::Vote)
     }
 }
 
@@ -300,18 +233,20 @@ impl From<proto::types::SignedMsgType> for SignedMsgType {
     }
 }
 
+impl From<vote::Type> for SignedMsgType {
+    fn from(vote_type: vote::Type) -> SignedMsgType {
+        match vote_type {
+            vote::Type::Prevote => SignedMsgType::Prevote,
+            vote::Type::Precommit => SignedMsgType::Precommit,
+        }
+    }
+}
+
 impl TryFrom<SignedMsgCode> for SignedMsgType {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(code: SignedMsgCode) -> Result<Self, Self::Error> {
-        // TODO(tarcieri): use `TryFrom<i32>` impl for `proto::types::SignedMsgType`
-        match code {
-            UNKNOWN_CODE => Ok(Self::Unknown),
-            PREVOTE_CODE => Ok(Self::Prevote),
-            PRECOMMIT_CODE => Ok(Self::Precommit),
-            PROPOSAL_CODE => Ok(Self::Proposal),
-            _ => Err(()),
-        }
+        Ok(proto::types::SignedMsgType::try_from(code)?.into())
     }
 }
 
@@ -371,7 +306,7 @@ mod tests {
 
     #[test]
     fn sign_proposal() {
-        let signable_msg = SignableMsg::Proposal(example_proposal());
+        let signable_msg = SignableMsg::try_from(example_proposal()).unwrap();
         let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
@@ -386,7 +321,7 @@ mod tests {
 
     #[test]
     fn sign_vote() {
-        let signable_msg = SignableMsg::Vote(example_vote());
+        let signable_msg = SignableMsg::try_from(example_vote()).unwrap();
         let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
