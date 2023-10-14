@@ -100,7 +100,7 @@ impl SignableMsg {
     }
 
     /// Sign the given message, returning a response with the signature appended.
-    pub fn sign<S>(self, chain_id: chain::Id, signer: impl Signer<S>) -> Result<Response, Error>
+    pub fn sign<S>(self, chain_id: chain::Id, signer: &impl Signer<S>) -> Result<Response, Error>
     where
         S: Into<Signature>,
     {
@@ -312,5 +312,95 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
             PROPOSAL_CODE => Ok(Self::Proposal),
             _ => Err(()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{chain, proto, SignableMsg, SignedMsgType};
+    use chrono::{DateTime, Utc};
+
+    fn example_chain_id() -> chain::Id {
+        chain::Id::try_from("test_chain_id").unwrap()
+    }
+
+    fn example_timestamp() -> proto::google::protobuf::Timestamp {
+        let dt = "2023-10-04T10:00:00.000Z".parse::<DateTime<Utc>>().unwrap();
+
+        proto::google::protobuf::Timestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32,
+        }
+    }
+
+    fn example_proposal() -> proto::types::Proposal {
+        proto::types::Proposal {
+            r#type: SignedMsgType::Proposal.into(),
+            height: 12345,
+            round: 1,
+            timestamp: Some(example_timestamp()),
+            pol_round: -1,
+            block_id: None,
+            signature: vec![],
+        }
+    }
+
+    fn example_vote() -> proto::types::Vote {
+        proto::types::Vote {
+            r#type: 0x01,
+            height: 500001,
+            round: 2,
+            timestamp: Some(example_timestamp()),
+            block_id: Some(proto::types::BlockId {
+                hash: b"some hash00000000000000000000000".to_vec(),
+                part_set_header: Some(proto::types::PartSetHeader {
+                    total: 1000000,
+                    hash: b"parts_hash0000000000000000000000".to_vec(),
+                }),
+            }),
+            validator_address: vec![
+                0xa3, 0xb2, 0xcc, 0xdd, 0x71, 0x86, 0xf1, 0x68, 0x5f, 0x21, 0xf2, 0x48, 0x2a, 0xf4,
+                0xfb, 0x34, 0x46, 0xa8, 0x4b, 0x35,
+            ],
+            validator_index: 56789,
+            signature: vec![],
+            extension: vec![],
+            extension_signature: vec![],
+        }
+    }
+
+    #[test]
+    fn sign_proposal() {
+        let signable_msg = SignableMsg::Proposal(example_proposal());
+        let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
+        assert_eq!(
+            signable_bytes.as_ref(),
+            &[
+                0x36, 0x8, 0x20, 0x11, 0x39, 0x30, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x19, 0x1, 0x0,
+                0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                0xff, 0x1, 0x32, 0x6, 0x8, 0xa0, 0xef, 0xf4, 0xa8, 0x6, 0x3a, 0xd, 0x74, 0x65,
+                0x73, 0x74, 0x5f, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x5f, 0x69, 0x64
+            ]
+        );
+    }
+
+    #[test]
+    fn sign_vote() {
+        let signable_msg = SignableMsg::Vote(example_vote());
+        let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
+        assert_eq!(
+            signable_bytes.as_ref(),
+            &[
+                0x77, 0x8, 0x1, 0x11, 0x21, 0xa1, 0x7, 0x0, 0x0, 0x0, 0x0, 0x0, 0x19, 0x2, 0x0,
+                0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x22, 0x4a, 0xa, 0x20, 0x73, 0x6f, 0x6d, 0x65, 0x20,
+                0x68, 0x61, 0x73, 0x68, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
+                0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x12,
+                0x26, 0x8, 0xc0, 0x84, 0x3d, 0x12, 0x20, 0x70, 0x61, 0x72, 0x74, 0x73, 0x5f, 0x68,
+                0x61, 0x73, 0x68, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
+                0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x2a, 0x6, 0x8,
+                0xa0, 0xef, 0xf4, 0xa8, 0x6, 0x32, 0xd, 0x74, 0x65, 0x73, 0x74, 0x5f, 0x63, 0x68,
+                0x61, 0x69, 0x6e, 0x5f, 0x69, 0x64
+            ]
+        );
     }
 }
