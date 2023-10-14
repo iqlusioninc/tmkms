@@ -348,7 +348,7 @@ fn handle_and_sign_proposal(key_type: KeyType) {
             signature: vec![],
         };
 
-        let signable_msg = SignableMsg::Proposal(proposal.clone());
+        let signable_msg = SignableMsg::try_from(proposal.clone()).unwrap();
 
         let request = proto::privval::SignProposalRequest {
             proposal: Some(proposal),
@@ -434,7 +434,7 @@ fn handle_and_sign_vote(key_type: KeyType) {
             extension_signature: vec![],
         };
 
-        let signable_msg = SignableMsg::Vote(vote_msg.clone());
+        let signable_msg = SignableMsg::try_from(vote_msg.clone()).unwrap();
 
         let vote = proto::privval::SignVoteRequest {
             vote: Some(vote_msg),
@@ -521,7 +521,7 @@ fn exceed_max_height(key_type: KeyType) {
             extension_signature: vec![],
         };
 
-        let signable_msg = SignableMsg::Vote(vote_msg.clone());
+        let signable_msg = SignableMsg::try_from(vote_msg.clone()).unwrap();
 
         let vote = proto::privval::SignVoteRequest {
             vote: Some(vote_msg),

@@ -60,11 +60,11 @@ impl Request {
             Self::SignProposal(proto::privval::SignProposalRequest {
                 proposal: Some(proposal),
                 chain_id,
-            }) => (SignableMsg::Proposal(proposal), chain_id),
+            }) => (SignableMsg::try_from(proposal)?, chain_id),
             Self::SignVote(proto::privval::SignVoteRequest {
                 vote: Some(vote),
                 chain_id,
-            }) => (SignableMsg::Vote(vote), chain_id),
+            }) => (SignableMsg::try_from(vote)?, chain_id),
             _ => fail!(
                 ErrorKind::InvalidMessageError,
                 "expected a signable message type: {:?}",
@@ -82,7 +82,6 @@ impl Request {
             expected_chain_id
         );
 
-        signable_msg.validate()?;
         Ok(signable_msg)
     }
 }
