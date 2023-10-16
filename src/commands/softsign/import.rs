@@ -60,10 +60,19 @@ impl Runnable for ImportCommand {
                     status_err!("{}", e);
                     process::exit(1);
                 });
+                info!("Imported Ed25519 private key to {}", output_path.display());
+            }
+            PrivateKey::Secp256k1(sk) => {
+                key_utils::write_base64_secret(output_path, &sk.to_bytes()).unwrap_or_else(|e| {
+                    status_err!("{}", e);
+                    process::exit(1);
+                });
+                info!(
+                    "Imported Secp256k1 private key to {}",
+                    output_path.display()
+                );
             }
             _ => unreachable!("unsupported priv_validator.json algorithm"),
         }
-
-        info!("Imported Ed25519 private key to {}", output_path.display());
     }
 }
