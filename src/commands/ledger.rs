@@ -33,7 +33,7 @@ pub struct InitCommand {
     pub config: Option<PathBuf>,
 
     /// block height
-    #[clap(short = 'h', long = "height")]
+    #[clap(short = 'H', long = "height")]
     pub height: Option<i64>,
 
     /// block round
