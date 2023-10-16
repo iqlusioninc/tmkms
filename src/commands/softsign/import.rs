@@ -67,7 +67,10 @@ impl Runnable for ImportCommand {
                     status_err!("{}", e);
                     process::exit(1);
                 });
-                info!("Imported Secp256k1 private key to {}", output_path.display());
+                info!(
+                    "Imported Secp256k1 private key to {}",
+                    output_path.display()
+                );
             }
             _ => unreachable!("unsupported priv_validator.json algorithm"),
         }
