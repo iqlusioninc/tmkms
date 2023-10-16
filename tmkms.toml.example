@@ -37,7 +37,7 @@ chain_id = "cosmoshub-3"
 reconnect = true # true is the default
 secret_key = "path/to/secret_connection.key"
 # max_height = "500000"
-protocol_version = "legacy" # or "v0.33", "v0.34" (i.e. Tendermint version)
+protocol_version = "v0.34" # or "v0.33" (i.e. Tendermint version)
 
 ## Signing provider configuration
 
