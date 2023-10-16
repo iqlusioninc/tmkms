@@ -14,13 +14,13 @@ use tendermint_proto as proto;
 #[derive(Command, Debug, Runnable, Subcommand)]
 pub enum LedgerCommand {
     /// initialise the height/round/step
-    Initialise(InitCommand),
+    Init(InitCommand),
 }
 
 impl LedgerCommand {
     pub(super) fn config_path(&self) -> Option<&PathBuf> {
         match self {
-            LedgerCommand::Initialise(init) => init.config.as_ref(),
+            LedgerCommand::Init(init) => init.config.as_ref(),
         }
     }
 }
