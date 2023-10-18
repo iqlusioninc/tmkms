@@ -11,7 +11,7 @@ use tendermint_proto as proto;
 
 // TODO(tarcieri): use `tendermint_p2p::secret_connection::DATA_MAX_SIZE`
 // See informalsystems/tendermint-rs#1356
-const DATA_MAX_SIZE: usize = 65535;
+const DATA_MAX_SIZE: usize = 262144;
 
 use crate::{
     error::{Error, ErrorKind},
@@ -38,7 +38,6 @@ impl Request {
             .map_err(|e| format_err!(ErrorKind::ProtocolError, "malformed message packet: {}", e))?
             .sum;
 
-        // TODO(tarcieri): transition natively to protobuf types
         match msg {
             Some(proto::privval::message::Sum::SignVoteRequest(req)) => Ok(Request::SignVote(req)),
             Some(proto::privval::message::Sum::SignProposalRequest(req)) => {
