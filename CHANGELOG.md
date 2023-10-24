@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.13.0 (2023-10-23)
+### Added
+- Support for secp256k1 consensus keys ([#644], [#790])
+
+### Changed
+- Bump tendermint-rs dependencies to v0.34; MSRV 1.72 ([#778])
+  - `cosmrs` v0.15
+  - `ed25519` v2
+  - `ed25519-dalek` => `ed25519-consensus` v2
+  - `elliptic-curve` v0.13
+  - `k256` v0.13
+  - `prost` v0.12
+  - `prost-derive` v0.12
+  - `rpassword` v7
+  - `signature` v2
+  - `tendermint` v0.34
+  - `tendermint-config` v0.34
+  - `tendermint-proto` v0.34
+  - `tendermint-p2p` v0.34
+  - `yubihsm` v0.42
+- Rename `tmkms ledger initialize` to `tmkms ledger init` ([#787])
+- Use `-H` for `tmkms ledger init` height parameter ([#789])
+
+### Fixed
+- Use correct signing capabilities for YubiHSM account keygen ([#725])
+- yubihsm udev rules GROUP ([#728])
+- Support RPC messages up to 256kB ([#792])
+
+### Removed
+- `tx-signer` feature ([#764])
+- Amino encoding support ([#775])
+
+[#644]: https://github.com/iqlusioninc/tmkms/pull/644
+[#725]: https://github.com/iqlusioninc/tmkms/pull/725
+[#728]: https://github.com/iqlusioninc/tmkms/pull/728
+[#764]: https://github.com/iqlusioninc/tmkms/pull/764
+[#775]: https://github.com/iqlusioninc/tmkms/pull/775
+[#778]: https://github.com/iqlusioninc/tmkms/pull/778
+[#787]: https://github.com/iqlusioninc/tmkms/pull/787
+[#789]: https://github.com/iqlusioninc/tmkms/pull/789
+[#790]: https://github.com/iqlusioninc/tmkms/pull/790
+[#792]: https://github.com/iqlusioninc/tmkms/pull/792
+
+
 ## 0.12.2 (2022-08-08)
 ### Changed
 - Bump `cosmrs` to v0.9 ([#591])
