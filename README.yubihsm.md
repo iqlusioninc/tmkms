@@ -513,3 +513,116 @@ Stored Wrap key 0x0001
 [domain]: https://developers.yubico.com/YubiHSM2/Concepts/Domain.html
 [capabilities]: https://developers.yubico.com/YubiHSM2/Concepts/Capability.html
 [delegated capabilities]: https://developers.yubico.com/YubiHSM2/Concepts/Effective_Capabilities.html
+
+# Step-by-step guide on enabling YubiHSM for the validator
+
+1. Init the tmkms config
+
+```bash
+user@host:~/tmkms$ tmkms init ~/.tmkms
+Creating /home/user/.tmkms
+Generated KMS configuration: /home/user/.tmkms/tmkms.toml
+Generated Secret Connection key: /home/user/.tmkms/secrets/kms-identity.key
+```
+
+2. Update the `tmkms.toml` file, specifically, edit these params:
+- `chain.id`, `validator.chain_id`, `providers.yubihsm.keys[].chain_ids` - set it as the chain name (for example, `cosmoshub-4` for Cosmos network)
+- `chain.key_format.account_key_prefix` - set it as a bech32 prefix for account public key (for example, `cosmospub` for Cosmos network)
+- `chain.key_format.consensus_key_prefix` - set it as a bech32 prefix for validator consensus public key (for example, `cosmosvalconspub` for Cosmos network)
+- `providers.yubihsm.auth.key`, `providers.yubihsm.auth.password` - set it as YubiHSM credentials (if you haven't done it before, the default is 1/password)
+- `validator.addr` - remove the part before @ and the @ symbol itself to avoid mismatch
+- `validator.protocol_version` - set it to Tendermint version used (for example, `0.34` for Cosmos network), otherwise it won't be able to communicate with the node
+
+3. Check that your device is recognized:
+
+```bash
+user@host:~/.tmkms$ sudo tmkms yubihsm detect
+Detected YubiHSM2 USB devices:
+- Serial #0123456789 (bus 0)
+```
+
+4. Reset the device. Keep in mind that this will erase every key inside and will generate new access codes for YubiHSM:
+
+```bash
+user@host:~/.tmkms$ tmkms yubihsm setup
+This process will *ERASE* the configured YubiHSM2 and reinitialize it:
+
+- YubiHSM serial: 0123456789
+
+Authentication keys with the following IDs and passwords will be created:
+
+- key 0x0001: admin:
+
+    never gonna give you up never gonna let you down never gonna
+    run around and desert you never gonna make you cry never gonna
+
+- authkey 0x0002 [operator]:  kms-operator-password-xxxxxxxxxx
+- authkey 0x0003 [auditor]:   kms-auditor-password-yyyyyyyyyy
+- authkey 0x0004 [validator]: kms-validator-password-zzzzzzzzzzzz
+- wrapkey 0x0001 [primary]:   aaaaaaaaaaaa
+
+*** Are you SURE you want erase and reinitialize this HSM? (y/N): y
+2021-06-25T19:47:16.704555Z  WARN yubihsm::client: factory resetting HSM device! all data will be lost!
+2021-06-25T19:47:17.753624Z  INFO yubihsm::client: waiting for device reset to complete
+2021-06-25T19:47:19.394422Z  INFO yubihsm::setup: installed temporary setup authentication key into slot 65534
+2021-06-25T19:47:19.414025Z  WARN yubihsm::setup: deleting default authentication key from slot 1
+2021-06-25T19:47:19.439914Z  INFO yubihsm::setup::profile: installing role: admin:2021-06-25T19:47:11Z
+2021-06-25T19:47:19.463169Z  INFO yubihsm::setup::profile: installing role: operator:2021-06-25T19:47:11Z
+2021-06-25T19:47:19.482779Z  INFO yubihsm::setup::profile: installing role: auditor:2021-06-25T19:47:11Z
+2021-06-25T19:47:19.502406Z  INFO yubihsm::setup::profile: installing role: validator:2021-06-25T19:47:11Z
+2021-06-25T19:47:19.522044Z  INFO yubihsm::setup::profile: installing wrap key: primary:2021-06-25T19:47:11Z
+2021-06-25T19:47:19.544402Z  INFO yubihsm::setup::profile: storing provisioning report in opaque object 0xfffe
+2021-06-25T19:47:19.568656Z  WARN yubihsm::setup: deleting temporary setup authentication key from slot 65534
+     Success reinitialized YubiHSM (serial: 0123456789)
+```
+
+5. Your device is reset. Now update the tmkms config and change the auth key and password to either the operator or the admin key, so you can put the key there:
+
+```bash
+auth = { key = 2, password = "kms-operator-password-xxxxxxxxxx" }
+```
+
+6. Check that you are able to list keys in this YubiHSM and there are none, this is expected:
+
+```bash
+user@host:~/.tmkms$ sudo tmkms yubihsm keys list
+error: no keys in this YubiHSM (#0123456789)
+```
+
+7. Import your keys into the HSM (replace the `~/.appfolder` with the actual folder that stores the chain data):
+
+```bash
+user@host:~/.tmkms$ tmkms yubihsm keys import -t json -i 1 ~/.appfolder/config/priv_validator_key.json
+    Imported key 0x0001
+```
+
+8. Validate that the key is in HSM now and that it matches the one used by the full node (replace appd with your full node daemon executable):
+
+```bash
+user@host:~/.tmkms$ sudo tmkms yubihsm keys list
+Listing keys in YubiHSM #0123456789:
+- 0x0001: [cons] cosmosvalconspubxxxxxxxxxx
+   label: ""
+user@host:~/.tmkms$ appd tendermint show-validator
+cosmosvalconspubxxxxxxxxxx
+```
+
+9. Update the tmkms config and put the validator key and password here. This is important as the operator key cannot sign blocks and you don't want your operator/admin key stored in a plaintext on a machine.
+
+```bash
+auth = { key = 4, password = "kms-validator-password-zzzzzzzzzzzz" }
+```
+
+10. Update the `config.toml` of the full node, specifically:
+- comment out the `priv_validator_key_file` and `priv_validator_state_file` options
+- add `priv_validator_laddr = "tcp://127.0.0.1:26658"` option so it'd try to use the tmkms to sign blocks.
+
+11. Stop the validator node process and validate your validator is skipping blocks now.
+
+12. Start tmkms, it's strongly suggested to write a systemd file for it so it'd take care of running it detached.
+
+13. Start the full node and validate that it connects to tmkms to sign blocks and that your validator is signing blocks again.
+
+14. You're done!
+
+15. You may want to delete the old `priv_validator_key.json` from the server, so no attacker can steal it, but please make sure you have backups.
