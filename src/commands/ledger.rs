@@ -8,6 +8,7 @@ use crate::{
 use abscissa_core::{Command, Runnable};
 use clap::{Parser, Subcommand};
 use std::{path::PathBuf, process};
+use tendermint::Vote;
 use tendermint_proto as proto;
 
 /// `ledger` subcommand
@@ -61,7 +62,7 @@ impl Runnable for InitCommand {
             ..Default::default()
         };
         println!("{vote:?}");
-        let sign_vote_req = SignableMsg::try_from(vote).unwrap();
+        let sign_vote_req = SignableMsg::from(Vote::try_from(vote).unwrap());
         let to_sign = sign_vote_req
             .signable_bytes(config.validator[0].chain_id.clone())
             .unwrap();

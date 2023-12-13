@@ -6,7 +6,7 @@
 use crate::{keyring::Signature, privval::SignableMsg};
 use prost::Message as _;
 use std::io::Read;
-use tendermint::chain;
+use tendermint::{chain, Proposal, Vote};
 use tendermint_proto as proto;
 
 // TODO(tarcieri): use `tendermint_p2p::secret_connection::DATA_MAX_SIZE`
@@ -22,66 +22,68 @@ use crate::{
 #[derive(Debug)]
 pub enum Request {
     /// Sign the given message
-    SignProposal(proto::privval::SignProposalRequest),
-    SignVote(proto::privval::SignVoteRequest),
-    ShowPublicKey(proto::privval::PubKeyRequest),
-    ReplyPing(proto::privval::PingRequest),
+    SignProposal(Proposal),
+    SignVote(Vote),
+    ShowPublicKey,
+    PingRequest,
 }
 
 impl Request {
     /// Read a request from the given readable.
-    pub fn read(conn: &mut impl Read) -> Result<Self, Error> {
-        let msg = read_msg(conn)?;
+    pub fn read(conn: &mut impl Read, expected_chain_id: &chain::Id) -> Result<Self, Error> {
+        let msg_bytes = read_msg(conn)?;
 
         // Parse Protobuf-encoded request message
-        let msg = proto::privval::Message::decode_length_delimited(msg.as_ref())
+        let msg = proto::privval::Message::decode_length_delimited(msg_bytes.as_ref())
             .map_err(|e| format_err!(ErrorKind::ProtocolError, "malformed message packet: {}", e))?
             .sum;
 
-        match msg {
-            Some(proto::privval::message::Sum::SignVoteRequest(req)) => Ok(Request::SignVote(req)),
-            Some(proto::privval::message::Sum::SignProposalRequest(req)) => {
-                Ok(Request::SignProposal(req))
-            }
+        let (req, chain_id) = match msg {
+            Some(proto::privval::message::Sum::SignVoteRequest(
+                proto::privval::SignVoteRequest {
+                    vote: Some(vote),
+                    chain_id,
+                },
+            )) => (Request::SignVote(vote.try_into()?), chain_id),
+            Some(proto::privval::message::Sum::SignProposalRequest(
+                proto::privval::SignProposalRequest {
+                    proposal: Some(proposal),
+                    chain_id,
+                },
+            )) => (Request::SignProposal(proposal.try_into()?), chain_id),
             Some(proto::privval::message::Sum::PubKeyRequest(req)) => {
-                Ok(Request::ShowPublicKey(req))
+                (Request::ShowPublicKey, req.chain_id)
             }
-            Some(proto::privval::message::Sum::PingRequest(req)) => Ok(Request::ReplyPing(req)),
+            Some(proto::privval::message::Sum::PingRequest(_)) => {
+                return Ok(Request::PingRequest);
+            }
             _ => fail!(ErrorKind::ProtocolError, "invalid RPC message: {:?}", msg),
-        }
-    }
-
-    /// Convert this request into a [`SignableMsg`].
-    ///
-    /// The expected `chain::Id` is used to validate the request.
-    pub fn into_signable_msg(self, expected_chain_id: &chain::Id) -> Result<SignableMsg, Error> {
-        let (signable_msg, chain_id) = match self {
-            Self::SignProposal(proto::privval::SignProposalRequest {
-                proposal: Some(proposal),
-                chain_id,
-            }) => (SignableMsg::try_from(proposal)?, chain_id),
-            Self::SignVote(proto::privval::SignVoteRequest {
-                vote: Some(vote),
-                chain_id,
-            }) => (SignableMsg::try_from(vote)?, chain_id),
-            _ => fail!(
-                ErrorKind::InvalidMessageError,
-                "expected a signable message type: {:?}",
-                self
-            ),
         };
 
-        let chain_id = chain::Id::try_from(chain_id)?;
-
         ensure!(
-            expected_chain_id == &chain_id,
+            expected_chain_id == &chain::Id::try_from(chain_id.as_str())?,
             ErrorKind::ChainIdError,
             "got unexpected chain ID: {} (expecting: {})",
             &chain_id,
             expected_chain_id
         );
 
-        Ok(signable_msg)
+        Ok(req)
+    }
+
+    /// Convert this request into a [`SignableMsg`].
+    ///
+    /// The expected `chain::Id` is used to validate the request.
+    pub fn into_signable_msg(self) -> Result<SignableMsg, Error> {
+        match self {
+            Self::SignProposal(proposal) => Ok(proposal.into()),
+            Self::SignVote(vote) => Ok(vote.into()),
+            _ => fail!(
+                ErrorKind::InvalidMessageError,
+                "expected a signable message type: {:?}",
+                self
+            ),
+        }
     }
 }
 

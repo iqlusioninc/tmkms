@@ -96,7 +96,7 @@ impl Session {
 
     /// Handle an incoming request from the validator
     fn handle_request(&mut self) -> Result<bool, Error> {
-        let request = Request::read(&mut self.connection)?;
+        let request = Request::read(&mut self.connection, &self.config.chain_id)?;
         debug!(
             "[{}@{}] received request: {:?}",
             &self.config.chain_id, &self.config.addr, &request
@@ -104,11 +104,11 @@ impl Session {
 
         let response = match request {
             Request::SignProposal(_) | Request::SignVote(_) => {
-                self.sign(request.into_signable_msg(&self.config.chain_id)?)?
+                self.sign(request.into_signable_msg()?)?
             }
             // non-signable requests:
-            Request::ReplyPing(_) => Response::Ping(proto::privval::PingResponse {}),
-            Request::ShowPublicKey(ref req) => self.get_public_key(req)?,
+            Request::PingRequest => Response::Ping(proto::privval::PingResponse {}),
+            Request::ShowPublicKey => self.get_public_key()?,
         };
 
         debug!(
@@ -203,10 +203,7 @@ impl Session {
     }
 
     /// Get the public key for (the only) public key in the keyring
-    fn get_public_key(
-        &mut self,
-        _request: &proto::privval::PubKeyRequest,
-    ) -> Result<Response, Error> {
+    fn get_public_key(&mut self) -> Result<Response, Error> {
         let registry = chain::REGISTRY.get();
 
         let chain = registry
