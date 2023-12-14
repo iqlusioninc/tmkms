@@ -107,6 +107,18 @@ impl SignableMsg {
     }
 }
 
+impl From<Proposal> for SignableMsg {
+    fn from(proposal: Proposal) -> Self {
+        Self::Proposal(proposal)
+    }
+}
+
+impl From<Vote> for SignableMsg {
+    fn from(vote: Vote) -> Self {
+        Self::Vote(vote)
+    }
+}
+
 impl TryFrom<proto::types::Proposal> for SignableMsg {
     type Error = Error;
 
@@ -205,7 +217,7 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
 #[cfg(test)]
 mod tests {
     use super::{chain, proto, SignableMsg, SignedMsgType};
-    use tendermint::Time;
+    use tendermint::{Proposal, Time, Vote};
 
     fn example_chain_id() -> chain::Id {
         chain::Id::try_from("test_chain_id").unwrap()
@@ -220,7 +232,7 @@ mod tests {
         }
     }
 
-    fn example_proposal() -> proto::types::Proposal {
+    fn example_proposal() -> Proposal {
         proto::types::Proposal {
             r#type: SignedMsgType::Proposal.into(),
             height: 12345,
@@ -230,9 +242,11 @@ mod tests {
             block_id: None,
             signature: vec![],
         }
+        .try_into()
+        .unwrap()
     }
 
-    fn example_vote() -> proto::types::Vote {
+    fn example_vote() -> Vote {
         proto::types::Vote {
             r#type: 0x01,
             height: 500001,
@@ -254,6 +268,8 @@ mod tests {
             extension: vec![],
             extension_signature: vec![],
         }
+        .try_into()
+        .unwrap()
     }
 
     #[test]
