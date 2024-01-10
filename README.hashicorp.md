@@ -124,8 +124,10 @@ example:
 [[providers.hashicorp]]
 chain_id = "<...chain id...>"
 api_endpoint= "https://<...host...>:8200"
-access_token="<...token...>"
 pk_key_name="<...ed25519 signing key...>"
+
+[providers.hashicorp.auth]
+access_token="<...token...>"
 ```
 
 You can [get](https://learn.hashicorp.com/tutorials/vault/tokens) the access token from the HashiCorp Vault.

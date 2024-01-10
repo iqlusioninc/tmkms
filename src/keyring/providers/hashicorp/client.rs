@@ -8,6 +8,7 @@ use ureq::Agent;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use crate::keyring::ed25519;
 
 pub const CONSENUS_KEY_TYPE: &str = "ed25519";
 const VAULT_TOKEN: &str = "X-Vault-Token";
@@ -17,7 +18,7 @@ pub(crate) struct TendermintValidatorApp {
     api_endpoint: String,
     token: String,
     key_name: String,
-    public_key_value: Option<[u8; ed25519_dalek::PUBLIC_KEY_LENGTH]>,
+    public_key_value: Option<[u8; ed25519::VerifyingKey::BYTE_SIZE]>,
 }
 
 // TODO(tarcieri): check this is actually sound?! :-)
@@ -167,7 +168,7 @@ impl TendermintValidatorApp {
     //vault read transit/keys/cosmoshub-sign-key
     //GET http://0.0.0.0:8200/v1/transit/keys/cosmoshub-sign-key
     /// Get public key
-    pub fn public_key(&mut self) -> Result<[u8; ed25519_dalek::PUBLIC_KEY_LENGTH], Error> {
+    pub fn public_key(&mut self) -> Result<[u8; ed25519::VerifyingKey::BYTE_SIZE], Error> {
         if let Some(v) = self.public_key_value {
             debug!("using cached public key {}...", self.key_name);
             return Ok(v);
@@ -241,8 +242,8 @@ impl TendermintValidatorApp {
             pubk.len()
         );
 
-        let mut array = [0u8; ed25519_dalek::PUBLIC_KEY_LENGTH];
-        array.copy_from_slice(&pubk[..ed25519_dalek::PUBLIC_KEY_LENGTH]);
+        let mut array = [0u8; ed25519::VerifyingKey::BYTE_SIZE];
+        array.copy_from_slice(&pubk[..ed25519::VerifyingKey::BYTE_SIZE]);
 
         //cache it...
         self.public_key_value = Some(array);
@@ -254,7 +255,7 @@ impl TendermintValidatorApp {
     //vault write transit/sign/cosmoshub-sign-key plaintext=$(base64 <<< "some-data")
     //"https://127.0.0.1:8200/v1/transit/sign/cosmoshub-sign-key"
     /// Sign message
-    pub fn sign(&self, message: &[u8]) -> Result<[u8; ed25519_dalek::SIGNATURE_LENGTH], Error> {
+    pub fn sign(&self, message: &[u8]) -> Result<[u8; ed25519::Signature::BYTE_SIZE], Error> {
         debug!("signing request: received");
         if message.is_empty() {
             return Err(Error::InvalidEmptyMessage);
@@ -307,8 +308,8 @@ impl TendermintValidatorApp {
             )));
         }
 
-        let mut array = [0u8; ed25519_dalek::SIGNATURE_LENGTH];
-        array.copy_from_slice(&signature[..ed25519_dalek::SIGNATURE_LENGTH]);
+        let mut array = [0u8; ed25519::Signature::BYTE_SIZE];
+        array.copy_from_slice(&signature[..ed25519::Signature::BYTE_SIZE]);
         Ok(array)
     }
 

@@ -6,6 +6,7 @@ use aes_kw;
 use clap::Parser;
 use serde::Serialize;
 use std::{path::PathBuf, process};
+use crate::keyring::ed25519;
 
 use crate::keyring::providers::hashicorp::{client, error};
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
@@ -39,6 +40,7 @@ pub struct UploadCommand {
     #[clap(long = "payload")]
     pub payload: String,
 }
+
 ///Import Secret Key Request
 #[derive(Debug, Serialize)]
 struct ImportRequest {
@@ -127,7 +129,7 @@ impl UploadCommand {
 
         let pub_key = RsaPublicKey::from_public_key_pem(&wrapping_key_pem).unwrap();
 
-        //wrap AES256 into RSA4096
+        // wrap AES256 into RSA4096
         let wrapped_aes = pub_key
             .encrypt(
                 &mut rand_core::OsRng,
@@ -148,26 +150,27 @@ impl UploadCommand {
     }
 }
 
-//https://docs.rs/ed25519/latest/ed25519/pkcs8/index.html
+// https://docs.rs/ed25519/latest/ed25519/pkcs8/index.html
 fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
     let bytes = base64::decode(input_key)?;
 
     let secret_key = if bytes.len() == 64 {
-        ed25519_dalek::Keypair::from_bytes(&bytes)?.secret
+        ed25519::SigningKey::try_from(&bytes.as_slice()[..ed25519::SigningKey::BYTE_SIZE])
     } else {
-        ed25519_dalek::SecretKey::from_bytes(&bytes)?
-    };
+        ed25519::SigningKey::try_from(bytes.as_slice())
+    }.map_err(|e| error::Error::InvalidPubKey(e.to_string()));
+    // TODO(mkaczanowski): invalid pubkey is not the best error tyep
 
-    let mut secret_key: Vec<u8> = secret_key.to_bytes().into_iter().collect::<Vec<u8>>();
+    let mut secret_key: Vec<u8> = secret_key?.as_bytes().to_vec();
 
-    //HashiCorp Vault Transit engine expects PKCS8
-    if secret_key.len() == ed25519_dalek::SECRET_KEY_LENGTH {
+    // HashiCorp Vault Transit engine expects PKCS8
+    if secret_key.len() == ed25519::SigningKey::BYTE_SIZE {
         let mut pkcs8_key = Vec::from(*PKCS8_HEADER);
         pkcs8_key.extend_from_slice(&secret_key);
         secret_key = pkcs8_key;
     }
 
-    debug_assert!(secret_key.len() == ed25519_dalek::SECRET_KEY_LENGTH + PKCS8_HEADER.len());
+    debug_assert!(secret_key.len() == ed25519::SigningKey::BYTE_SIZE + PKCS8_HEADER.len());
 
     Ok(secret_key)
 }
@@ -175,22 +178,29 @@ fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
 #[cfg(test)]
 mod tests {
     use std::convert::TryFrom;
+    use rand_core::{OsRng, RngCore};
+    use crate::config::provider::hashicorp::AuthConfig;
 
     use super::*;
 
+    fn new_rand_ed25519_key() -> ed25519::SigningKey {
+        let mut sk_bytes = [0u8; 32];
+        OsRng.fill_bytes(&mut sk_bytes);
+
+        ed25519::SigningKey::from(sk_bytes)
+    }
+
     #[test]
     fn test_input_key_32bit_ok() {
-        let bytes = ed25519_dalek::SecretKey::generate(&mut rand::thread_rng()).to_bytes();
-        assert_eq!(bytes.len(), ed25519_dalek::SECRET_KEY_LENGTH);
+        let sk = new_rand_ed25519_key();
+        let secret = base64::encode(sk.as_bytes());
 
-        let secret = base64::encode(bytes);
-
-        //under test
+        // under test
         let bytes = input_key(&secret).unwrap();
 
         assert_eq!(
             bytes.len(),
-            ed25519_dalek::SECRET_KEY_LENGTH + PKCS8_HEADER.len()
+            ed25519::SigningKey::BYTE_SIZE + PKCS8_HEADER.len()
         );
     }
 
@@ -198,36 +208,36 @@ mod tests {
     fn test_input_key_48bit_ok() {
         let mut secret = PKCS8_HEADER.into_iter().cloned().collect::<Vec<u8>>();
 
-        let bytes = ed25519_dalek::SecretKey::generate(&mut rand::thread_rng()).to_bytes();
-        assert_eq!(bytes.len(), ed25519_dalek::SECRET_KEY_LENGTH);
+        let sk = new_rand_ed25519_key();
 
-        secret.extend_from_slice(&bytes);
+        secret.extend_from_slice(sk.as_bytes());
 
-        let secret = base64::encode(bytes);
-        //under test
+        let secret = base64::encode(sk.as_bytes());
+
+        // under test
         let bytes = input_key(&secret).unwrap();
 
         assert_eq!(
             bytes.len(),
-            ed25519_dalek::SECRET_KEY_LENGTH + PKCS8_HEADER.len()
+            ed25519::SigningKey::BYTE_SIZE + PKCS8_HEADER.len()
         );
     }
     #[test]
     fn test_input_key_64bit_ok() {
         let mut secret = PKCS8_HEADER.into_iter().cloned().collect::<Vec<u8>>();
 
-        let bytes = ed25519_dalek::SecretKey::generate(&mut rand::thread_rng()).to_bytes();
-        assert_eq!(bytes.len(), ed25519_dalek::SECRET_KEY_LENGTH);
+        let sk = new_rand_ed25519_key();
 
-        secret.extend_from_slice(&bytes);
+        secret.extend_from_slice(sk.as_bytes());
 
-        let secret = base64::encode(bytes);
-        //under test
+        let secret = base64::encode(sk.as_bytes());
+
+        // under test
         let bytes = input_key(&secret).unwrap();
 
         assert_eq!(
             bytes.len(),
-            ed25519_dalek::SECRET_KEY_LENGTH + PKCS8_HEADER.len()
+            ed25519::SigningKey::BYTE_SIZE + PKCS8_HEADER.len()
         );
     }
 
@@ -249,7 +259,7 @@ mod tests {
         };
 
         let config = HashiCorpConfig {
-            access_token: "crazy-long-string".into(),
+            auth: AuthConfig::String { access_token: "crazy-long-string".to_string() },
             api_endpoint: format!("http://{}", server_address()),
             pk_name: PK_NAME.into(),
             chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
@@ -257,13 +267,13 @@ mod tests {
 
         std::env::set_var("VAULT_TOKEN", VAULT_TOKEN);
 
-        //init
+        // init
         let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
             .match_header("X-Vault-Token", VAULT_TOKEN)
             .with_body(TOKEN_DATA)
             .create();
 
-        //upload
+        // upload
         let wrapping_key = mock("GET", "/v1/transit/wrapping_key")
             .match_header("X-Vault-Token", VAULT_TOKEN)
             .with_body(WRAPPING_KEY_RESPONSE)
@@ -271,19 +281,18 @@ mod tests {
 
         let end_point = format!("/v1/transit/keys/{}/import", PK_NAME);
 
-        //upload
+        // upload
         let export = mock("POST", end_point.as_str())
             .match_header("X-Vault-Token", VAULT_TOKEN)
             //.match_body(req.as_str()) //sipher string will be always different
             .create();
 
-        //test
+        // test
         cmd.upload(&config);
 
         lookup_self.assert();
         export.assert();
         wrapping_key.expect(1).assert();
-        // }
     }
 
     //curl --header "X-Vault-Token: hvs.<...valid.token...>>" http://127.0.0.1:8200/v1/auth/token/lookup-self

@@ -17,6 +17,7 @@ pub struct TestCommand {
         help = "/path/to/tmkms.toml"
     )]
     pub config: Option<PathBuf>,
+
     /// enable verbose debug logging
     #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
@@ -25,7 +26,7 @@ pub struct TestCommand {
     #[clap(help = "Vault's transit secret engine signing key")]
     pk_name: String,
 
-    ///test message
+    /// test message
     #[clap(help = "message to sign")]
     test_messsage: String,
 }
@@ -56,7 +57,7 @@ impl Runnable for TestCommand {
 
         let app = crate::keyring::providers::hashicorp::client::TendermintValidatorApp::connect(
             &config.api_endpoint,
-            &config.access_token,
+            &config.auth.access_token(),
             &self.pk_name,
         )
         .unwrap_or_else(|e| panic!("Unable to connect to Vault {} {}", config.api_endpoint, e));
