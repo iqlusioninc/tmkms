@@ -42,7 +42,7 @@ pub fn init(
 
         let mut app = client::TendermintValidatorApp::connect(
             &config.api_endpoint,
-            &config.access_token,
+            &config.auth.access_token(),
             &config.pk_name,
         )
         .unwrap_or_else(|_| {
@@ -56,7 +56,7 @@ pub fn init(
             panic!("Failed to get public key for chain id:{}", config.chain_id,)
         });
 
-        let public_key = ed25519::PublicKey::from_bytes(&public_key).unwrap_or_else(|_| {
+        let public_key = ed25519::VerifyingKey::try_from(public_key.as_slice()).unwrap_or_else(|_| {
             panic!(
                 "invalid Ed25519 public key for chain id:{}",
                 config.chain_id
