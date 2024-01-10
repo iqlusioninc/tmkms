@@ -12,8 +12,6 @@ id = "cosmoshub-3"
 key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }
 state_file = "/home/soleinik/work/rust/tmkms/state/cosmoshub-3-consensus.json"
 
-
-
 ## Signing Provider Configuration
 [[providers.hashicorp]]
 chain_id = "cosmoshub-4"
@@ -27,7 +25,6 @@ api_endpoint= "http://127.0.0.1:8200"
 access_token="hvs.CAESIBwDAKQh2JKuxibeHOV-jmc2T68loAKLNWO2_QX1l7L3Gh4KHGh2cy5iYnRJRVVLdHBqTVMwUGdLZFNGWjNCZkc"
 pk_name="cosmoshub-sign-key"
 
-
 ## Validator Configuration
 
 # [[validator]]
@@ -36,6 +33,4 @@ pk_name="cosmoshub-sign-key"
 # secret_key = "/home/soleinik/work/rust/tmkms/secrets/kms-identity.key"
 # protocol_version = "legacy"
 # reconnect = true
-
-
 
