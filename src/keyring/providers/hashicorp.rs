@@ -30,7 +30,7 @@ pub fn init(
     let mut chains = Vec::<String>::new();
 
     for config in configs {
-        //misconfiguration check
+        // misconfiguration check
         if chains.contains(&config.chain_id.to_string()) {
             fail!(
                 ConfigError,
@@ -52,8 +52,8 @@ pub fn init(
             )
         });
 
-        let public_key = app.public_key().unwrap_or_else(|_| {
-            panic!("Failed to get public key for chain id:{}", config.chain_id,)
+        let public_key = app.public_key().unwrap_or_else(|e| {
+            panic!("Failed to get public key for chain id:{}, err: {}", config.chain_id, e)
         });
 
         let public_key = ed25519::VerifyingKey::try_from(public_key.as_slice()).unwrap_or_else(|_| {
@@ -67,7 +67,7 @@ pub fn init(
 
         chain_registry.add_consensus_key(
             &config.chain_id,
-            //avoiding need for clone
+            // avoiding need for clone
             Signer::new(
                 SigningProvider::HashiCorp,
                 TendermintKey::ConsensusKey(public_key.into()),
