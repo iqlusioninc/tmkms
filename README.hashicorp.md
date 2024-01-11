@@ -27,7 +27,7 @@ vault write transit/keys/cosmoshub-sign-key type=ed25519
 echo "\ncreating policy..."
 cat <<EOF | vault policy write tmkms-transit-sign-policy -
 path "transit/sign/cosmoshub-sign-key" {
-  capabilities = [ "update"]
+  capabilities = [ "update" ]
 }
 EOF
 

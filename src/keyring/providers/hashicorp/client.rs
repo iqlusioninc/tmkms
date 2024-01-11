@@ -81,25 +81,25 @@ impl std::fmt::Display for ExportKeyType {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum CreateKeyType {
-    ///AES-128 wrapped with GCM using a 96-bit nonce size AEAD (symmetric, supports derivation and convergent encryption)
+    /// AES-128 wrapped with GCM using a 96-bit nonce size AEAD (symmetric, supports derivation and convergent encryption)
     Aes128Gcm96,
-    ///AES-256 wrapped with GCM using a 96-bit nonce size AEAD (symmetric, supports derivation and convergent encryption, default)
+    /// AES-256 wrapped with GCM using a 96-bit nonce size AEAD (symmetric, supports derivation and convergent encryption, default)
     Aes256Gcm96,
-    ///ChaCha20-Poly1305 AEAD (symmetric, supports derivation and convergent encryption)
+    /// ChaCha20-Poly1305 AEAD (symmetric, supports derivation and convergent encryption)
     Chacha20Poly1305,
-    ///ED25519 (asymmetric, supports derivation). When using derivation, a sign operation with the same context will derive the same key and signature; this is a signing analogue to convergent_encryption.
+    /// ED25519 (asymmetric, supports derivation). When using derivation, a sign operation with the same context will derive the same key and signature; this is a signing analogue to convergent_encryption.
     Ed25519,
-    ///ECDSA using the P-256 elliptic curve (asymmetric)
+    /// ECDSA using the P-256 elliptic curve (asymmetric)
     EcdsaP256,
-    ///ECDSA using the P-384 elliptic curve (asymmetric)
+    /// ECDSA using the P-384 elliptic curve (asymmetric)
     EcdsaP384,
-    ///ECDSA using the P-521 elliptic curve (asymmetric)
+    /// ECDSA using the P-521 elliptic curve (asymmetric)
     EcdsaP521,
-    ///RSA with bit size of 2048 (asymmetric)
+    /// RSA with bit size of 2048 (asymmetric)
     Rsa2048,
-    ///RSA with bit size of 3072 (asymmetric)
+    /// RSA with bit size of 3072 (asymmetric)
     Rsa3072,
-    ///RSA with bit size of 4096 (asymmetric)
+    /// RSA with bit size of 4096 (asymmetric)
     Rsa4096,
 }
 
