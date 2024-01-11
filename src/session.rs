@@ -123,7 +123,7 @@ impl Session {
     }
 
     /// Perform a digital signature operation
-    fn sign(&mut self, signable_msg: SignableMsg) -> Result<Response, Error> {
+    fn sign(&mut self, mut signable_msg: SignableMsg) -> Result<Response, Error> {
         self.check_max_height(&signable_msg)?;
 
         let registry = chain::REGISTRY.get();
@@ -139,13 +139,25 @@ impl Session {
             return Ok(Response::error(signable_msg, remote_err));
         }
 
-        let to_sign = signable_msg.signable_bytes(self.config.chain_id.clone())?;
+        // TODO(tarcieri): support for non-default public keys
+        let public_key = None;
+        let chain_id = self.config.chain_id.clone();
+
+        let canonical_msg = signable_msg.canonical_bytes(chain_id.clone())?;
         let started_at = Instant::now();
-
-        // TODO(ismail): figure out which key to use here instead of taking the only key
-        let signature = chain.keyring.sign(None, &to_sign)?;
-
+        let signature = chain.keyring.sign(public_key, &canonical_msg)?;
         self.log_signing_request(&signable_msg, started_at).unwrap();
+
+        // Add extension signature if there are any extensions defined
+        if let Some(extension_msg) = signable_msg.extension_bytes(chain_id)? {
+            let extension_sig = chain.keyring.sign(public_key, &extension_msg)?;
+
+            match &mut signable_msg {
+                SignableMsg::Vote(vote) => vote.extension_signature = Some(extension_sig.into()),
+                other => fail!(InvalidMessageError, "expected a vote type: {:?}", other),
+            }
+        }
+
         Response::sign(signable_msg, signature)
     }
 

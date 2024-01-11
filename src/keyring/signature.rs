@@ -33,3 +33,9 @@ impl From<ed25519::Signature> for Signature {
         Self::Ed25519(sig)
     }
 }
+
+impl From<Signature> for tendermint::Signature {
+    fn from(sig: Signature) -> tendermint::Signature {
+        sig.to_vec().try_into().expect("signature should be valid")
+    }
+}

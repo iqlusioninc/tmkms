@@ -49,12 +49,12 @@ impl SignableMsg {
 
     /// Get the bytes representing a canonically encoded message over which a
     /// signature is computed over.
-    pub fn signable_bytes(&self, chain_id: chain::Id) -> Result<Bytes, EncodeError> {
+    pub fn canonical_bytes(&self, chain_id: chain::Id) -> Result<Bytes, EncodeError> {
         let mut bytes = BytesMut::new();
 
         match self {
             Self::Proposal(proposal) => {
-                let cp = proto::types::CanonicalProposal {
+                let canonical = proto::types::CanonicalProposal {
                     chain_id: chain_id.to_string(),
                     r#type: SignedMsgType::Proposal.into(),
                     height: proposal.height.into(),
@@ -67,10 +67,10 @@ impl SignableMsg {
                     timestamp: proposal.timestamp.map(Into::into),
                 };
 
-                cp.encode_length_delimited(&mut bytes)?;
+                canonical.encode_length_delimited(&mut bytes)?;
             }
             Self::Vote(vote) => {
-                let cv = proto::types::CanonicalVote {
+                let canonical = proto::types::CanonicalVote {
                     r#type: vote.vote_type.into(),
                     height: vote.height.into(),
                     round: vote.round.value().into(),
@@ -78,11 +78,35 @@ impl SignableMsg {
                     timestamp: vote.timestamp.map(Into::into),
                     chain_id: chain_id.to_string(),
                 };
-                cv.encode_length_delimited(&mut bytes)?;
+                canonical.encode_length_delimited(&mut bytes)?;
             }
         }
 
         Ok(bytes.into())
+    }
+
+    /// Get the bytes representing a vote extension if applicable.
+    pub fn extension_bytes(&self, chain_id: chain::Id) -> Result<Option<Bytes>, EncodeError> {
+        match self {
+            Self::Proposal(_) => Ok(None),
+            Self::Vote(vote) => {
+                // Only sign extension if actually present
+                if vote.extension.is_empty() {
+                    return Ok(None);
+                }
+
+                let canonical = proto::types::CanonicalVoteExtension {
+                    extension: vote.extension.clone(),
+                    height: vote.height.into(),
+                    round: vote.round.value().into(),
+                    chain_id: chain_id.to_string(),
+                };
+
+                let mut bytes = BytesMut::new();
+                canonical.encode_length_delimited(&mut bytes)?;
+                Ok(Some(bytes.into()))
+            }
+        }
     }
 
     /// Parse the consensus state from the request.
@@ -275,7 +299,7 @@ mod tests {
     #[test]
     fn serialize_canonical_proposal() {
         let signable_msg = SignableMsg::try_from(example_proposal()).unwrap();
-        let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
+        let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
             &[
@@ -290,7 +314,7 @@ mod tests {
     #[test]
     fn serialize_canonical_vote() {
         let signable_msg = SignableMsg::try_from(example_vote()).unwrap();
-        let signable_bytes = signable_msg.signable_bytes(example_chain_id()).unwrap();
+        let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
             &[
