@@ -129,6 +129,38 @@ impl SignableMsg {
             },
         }
     }
+
+    /// Add a consensus signature to this message.
+    pub fn add_consensus_signature(&mut self, signature: impl Into<tendermint::Signature>) {
+        match self {
+            SignableMsg::Proposal(proposal) => {
+                proposal.signature = Some(signature.into());
+            }
+            SignableMsg::Vote(vote) => {
+                vote.signature = Some(signature.into());
+            }
+        }
+    }
+
+    /// Add an extension signature to this message.
+    pub fn add_extension_signature(
+        &mut self,
+        signature: impl Into<tendermint::Signature>,
+    ) -> Result<(), Error> {
+        match self {
+            SignableMsg::Vote(vote) => {
+                if vote.extension.is_empty() {
+                    return Err(Error::protocol(
+                        "can't add signature to empty extension".into(),
+                    ));
+                }
+
+                vote.extension_signature = Some(signature.into());
+                Ok(())
+            }
+            _ => Err(Error::invalid_message_type()),
+        }
+    }
 }
 
 impl From<Proposal> for SignableMsg {
