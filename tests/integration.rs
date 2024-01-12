@@ -366,7 +366,7 @@ fn handle_and_sign_proposal(key_type: KeyType) {
         };
 
         let signable_bytes = signable_msg
-            .signable_bytes(chain_id.parse().unwrap())
+            .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let prop = response
@@ -449,7 +449,7 @@ fn handle_and_sign_vote(key_type: KeyType) {
         };
 
         let signable_bytes = signable_msg
-            .signable_bytes(chain_id.parse().unwrap())
+            .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let vote_msg: proto::types::Vote = request
@@ -536,7 +536,7 @@ fn exceed_max_height(key_type: KeyType) {
         };
 
         let signable_bytes = signable_msg
-            .signable_bytes(chain_id.parse().unwrap())
+            .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let vote_msg = response

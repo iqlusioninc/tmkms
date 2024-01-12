@@ -64,7 +64,7 @@ impl Runnable for InitCommand {
         println!("{vote:?}");
         let sign_vote_req = SignableMsg::from(Vote::try_from(vote).unwrap());
         let to_sign = sign_vote_req
-            .signable_bytes(config.validator[0].chain_id.clone())
+            .canonical_bytes(config.validator[0].chain_id.clone())
             .unwrap();
 
         let _sig = chain.keyring.sign(None, &to_sign).unwrap();
