@@ -142,23 +142,28 @@ impl Session {
         // TODO(tarcieri): support for non-default public keys
         let public_key = None;
         let chain_id = self.config.chain_id.clone();
-
         let canonical_msg = signable_msg.canonical_bytes(chain_id.clone())?;
+
         let started_at = Instant::now();
-        let signature = chain.keyring.sign(public_key, &canonical_msg)?;
+        let consensus_sig = chain.keyring.sign(public_key, &canonical_msg)?;
+        signable_msg.add_consensus_signature(consensus_sig);
         self.log_signing_request(&signable_msg, started_at).unwrap();
 
         // Add extension signature if there are any extensions defined
         if let Some(extension_msg) = signable_msg.extension_bytes(chain_id)? {
+            let started_at = Instant::now();
             let extension_sig = chain.keyring.sign(public_key, &extension_msg)?;
+            signable_msg.add_extension_signature(extension_sig)?;
 
-            match &mut signable_msg {
-                SignableMsg::Vote(vote) => vote.extension_signature = Some(extension_sig.into()),
-                other => fail!(InvalidMessageError, "expected a vote type: {:?}", other),
-            }
+            info!(
+                "[{}@{}] signed vote extension ({} ms)",
+                &self.config.chain_id,
+                &self.config.addr,
+                started_at.elapsed().as_millis(),
+            );
         }
 
-        Response::sign(signable_msg, signature)
+        Ok(signable_msg.into())
     }
 
     /// If a max block height is configured, ensure the block we're signing

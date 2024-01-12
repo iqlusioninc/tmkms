@@ -3,7 +3,7 @@
 // TODO: docs for everything
 #![allow(missing_docs)]
 
-use crate::{keyring::Signature, privval::SignableMsg};
+use crate::privval::SignableMsg;
 use prost::Message as _;
 use std::io::Read;
 use tendermint::{chain, Proposal, Vote};
@@ -128,28 +128,21 @@ impl Response {
             }),
         }
     }
+}
 
-    /// Construct a signed response from a [`SignableMsg`] and a [`Signature`].
-    pub fn sign(msg: SignableMsg, sig: Signature) -> Result<Response, Error> {
+impl From<SignableMsg> for Response {
+    fn from(msg: SignableMsg) -> Response {
         match msg {
             SignableMsg::Proposal(proposal) => {
-                let mut proposal = proto::types::Proposal::from(proposal);
-                proposal.signature = sig.to_vec();
-                Ok(Response::SignedProposal(
-                    proto::privval::SignedProposalResponse {
-                        proposal: Some(proposal),
-                        error: None,
-                    },
-                ))
-            }
-            SignableMsg::Vote(vote) => {
-                let mut vote = proto::types::Vote::from(vote);
-                vote.signature = sig.to_vec();
-                Ok(Response::SignedVote(proto::privval::SignedVoteResponse {
-                    vote: Some(vote),
+                Response::SignedProposal(proto::privval::SignedProposalResponse {
+                    proposal: Some(proposal.into()),
                     error: None,
-                }))
+                })
             }
+            SignableMsg::Vote(vote) => Response::SignedVote(proto::privval::SignedVoteResponse {
+                vote: Some(vote.into()),
+                error: None,
+            }),
         }
     }
 }
