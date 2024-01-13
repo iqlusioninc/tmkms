@@ -7,9 +7,9 @@ use super::error::Error;
 use std::time::Duration;
 use ureq::Agent;
 
+use crate::keyring::ed25519;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::keyring::ed25519;
 
 pub const CONSENUS_KEY_TYPE: &str = "ed25519";
 const VAULT_TOKEN: &str = "X-Vault-Token";
@@ -121,9 +121,14 @@ impl std::fmt::Display for CreateKeyType {
     }
 }
 
-
 impl TendermintValidatorApp {
-    pub fn connect(api_endpoint: &str, token: &str, key_name: &str, ca_cert: Option<String>, skip_verify: Option<bool>) -> Result<Self, Error> {
+    pub fn connect(
+        api_endpoint: &str,
+        token: &str,
+        key_name: &str,
+        ca_cert: Option<String>,
+        skip_verify: Option<bool>,
+    ) -> Result<Self, Error> {
         // this call performs token self lookup, to fail fast
         // let mut client = Client::new(host, token)?;
 
@@ -139,7 +144,8 @@ impl TendermintValidatorApp {
 
         if let Some(ca_cert) = ca_cert {
             let cert_bytes = fs::read(ca_cert).expect("Failed to read cert file");
-            let root_cert = native_tls::Certificate::from_pem(&cert_bytes).expect("Failed to parse PEM certificate");
+            let root_cert = native_tls::Certificate::from_pem(&cert_bytes)
+                .expect("Failed to parse PEM certificate");
             let mut builder = native_tls::TlsConnector::builder();
             builder.add_root_certificate(root_cert);
 
@@ -408,7 +414,7 @@ mod tests {
             TEST_TOKEN,
             TEST_KEY_NAME,
             None,
-            None
+            None,
         );
 
         assert!(app.is_ok());
@@ -429,7 +435,7 @@ mod tests {
             TEST_TOKEN,
             TEST_KEY_NAME,
             None,
-            None
+            None,
         )
         .expect("Failed to connect");
 
@@ -477,7 +483,7 @@ mod tests {
             TEST_TOKEN,
             TEST_KEY_NAME,
             None,
-            None
+            None,
         )
         .expect("Failed to connect");
 
@@ -521,7 +527,7 @@ mod tests {
             TEST_TOKEN,
             TEST_KEY_NAME,
             None,
-            None
+            None,
         )
         .expect("Failed to connect");
 

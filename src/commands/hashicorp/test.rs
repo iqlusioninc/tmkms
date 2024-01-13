@@ -50,8 +50,9 @@ impl Runnable for TestCommand {
 
         let cfg = &config.providers.hashicorp[0];
 
-        let signing_key = &cfg.keys.
-            iter()
+        let signing_key = &cfg
+            .keys
+            .iter()
             .find(|k| k.key == self.key_name)
             .expect("Unable to find key name in the config");
 
@@ -62,9 +63,14 @@ impl Runnable for TestCommand {
             &signing_key.auth.access_token(),
             &self.key_name,
             None,
-            None
+            None,
         )
-        .unwrap_or_else(|e| panic!("Unable to connect to Vault {} {}", cfg.adapter.vault_addr, e));
+        .unwrap_or_else(|e| {
+            panic!(
+                "Unable to connect to Vault {} {}",
+                cfg.adapter.vault_addr, e
+            )
+        });
 
         let mut app =
             crate::keyring::providers::hashicorp::signer::Ed25519HashiCorpAppSigner::new(app);

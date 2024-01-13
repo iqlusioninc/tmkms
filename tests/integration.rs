@@ -135,7 +135,11 @@ impl KmsProcess {
     }
 
     /// Create a config file for a TCP KMS and return its path
-    fn create_tcp_config(port: u16, key_type: &KeyType, provider: SigningProvider) -> NamedTempFile {
+    fn create_tcp_config(
+        port: u16,
+        key_type: &KeyType,
+        provider: SigningProvider,
+    ) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
         let pub_key = test_ed25519_keypair().verifying_key();
         let peer_id = secret_connection::PublicKey::from(pub_key).peer_id();
@@ -161,16 +165,23 @@ impl KmsProcess {
 
         match provider {
             #[cfg(feature = "softsign")]
-            SigningProvider::SoftSign => writeln!(config_file, r#"
+            SigningProvider::SoftSign => writeln!(
+                config_file,
+                r#"
                 [[providers.softsign]]
                 chain_ids = ["test_chain_id"]
                 key_format = "base64"
                 path = "{}"
                 key_type = "{}"
-            "#, signing_key_path(&key_type), key_type),
+            "#,
+                signing_key_path(&key_type),
+                key_type
+            ),
 
             #[cfg(feature = "hashicorp")]
-            SigningProvider::HashiCorp => writeln!(config_file, r#"
+            SigningProvider::HashiCorp => writeln!(
+                config_file,
+                r#"
                 [[providers.hashicorp]]
 
                 [[providers.hashicorp.keys]]
@@ -181,17 +192,24 @@ impl KmsProcess {
 
                 [providers.hashicorp.adapter]
                 vault_addr = "http://127.0.0.1:8400"
-                "#, key_type),
+                "#,
+                key_type
+            ),
 
             #[allow(unreachable_patterns)]
-            _ => Ok(())
-        }.unwrap();
+            _ => Ok(()),
+        }
+        .unwrap();
 
         config_file
     }
 
     /// Create a config file for a UNIX KMS and return its path
-    fn create_unix_config(socket_path: &str, key_type: &KeyType, provider: SigningProvider) -> NamedTempFile {
+    fn create_unix_config(
+        socket_path: &str,
+        key_type: &KeyType,
+        provider: SigningProvider,
+    ) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
 
         writeln!(
@@ -212,16 +230,23 @@ impl KmsProcess {
 
         match provider {
             #[cfg(feature = "softsign")]
-            SigningProvider::SoftSign => writeln!(config_file, r#"
+            SigningProvider::SoftSign => writeln!(
+                config_file,
+                r#"
                 [[providers.softsign]]
                 chain_ids = ["test_chain_id"]
                 key_format = "base64"
                 path = "{}"
                 key_type = "{}"
-            "#, signing_key_path(&key_type), key_type),
+            "#,
+                signing_key_path(&key_type),
+                key_type
+            ),
 
             #[cfg(feature = "hashicorp")]
-            SigningProvider::HashiCorp => writeln!(config_file, r#"
+            SigningProvider::HashiCorp => writeln!(
+                config_file,
+                r#"
                 [[providers.hashicorp]]
 
                 [[providers.hashicorp.keys]]
@@ -232,11 +257,14 @@ impl KmsProcess {
 
                 [providers.hashicorp.adapter]
                 vault_addr = "http://127.0.0.1:8400"
-                "#, key_type),
+                "#,
+                key_type
+            ),
 
             #[allow(unreachable_patterns)]
-            _ => Ok(())
-        }.unwrap();
+            _ => Ok(()),
+        }
+        .unwrap();
 
         config_file
     }
@@ -274,12 +302,19 @@ impl KmsProcess {
         let base64_key = Zeroizing::new(fs::read_to_string(signing_key_path(key_type)).unwrap());
         let payload_arg = format!("--payload={}", base64_key.as_str());
         let args = &[
-            "hashicorp", "upload", "cosmoshub-sign-key",
-            payload_arg.as_str(), "-c", config_path
+            "hashicorp",
+            "upload",
+            "cosmoshub-sign-key",
+            payload_arg.as_str(),
+            "-c",
+            config_path,
         ];
 
         // the first import will succeed, the latter won't (because key is already uploaded)
-        let _ = Command::new(KMS_EXE_PATH).env("VAULT_TOKEN", "test").args(args).output();
+        let _ = Command::new(KMS_EXE_PATH)
+            .env("VAULT_TOKEN", "test")
+            .args(args)
+            .output();
     }
 }
 

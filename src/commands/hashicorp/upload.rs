@@ -1,12 +1,12 @@
 //! Test the Hashicorp is working by performing signatures successively
 
+use crate::keyring::ed25519;
 use crate::{config::provider::hashicorp::HashiCorpConfig, prelude::*};
 use abscissa_core::{Command, Runnable};
 use aes_kw;
 use clap::Parser;
 use serde::Serialize;
 use std::{path::PathBuf, process};
-use crate::keyring::ed25519;
 
 use crate::keyring::providers::hashicorp::{client, error};
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
@@ -116,7 +116,11 @@ impl UploadCommand {
         let base64_key: String = if self.payload.is_some() {
             self.payload.clone().unwrap()
         } else if self.payload_file.is_some() {
-            std::fs::read_to_string(self.payload_file.clone().unwrap()).expect("unable to read payload file").strip_suffix('\n').unwrap().into()
+            std::fs::read_to_string(self.payload_file.clone().unwrap())
+                .expect("unable to read payload file")
+                .strip_suffix('\n')
+                .unwrap()
+                .into()
         } else {
             status_err!("payload and payload_file are undefined");
             process::exit(1);
@@ -133,7 +137,12 @@ impl UploadCommand {
             config.adapter.vault_cacert.to_owned(),
             config.adapter.vault_skip_verify.to_owned(),
         )
-        .unwrap_or_else(|_| panic!("Unable to connect to Vault at {}", config.adapter.vault_addr));
+        .unwrap_or_else(|_| {
+            panic!(
+                "Unable to connect to Vault at {}",
+                config.adapter.vault_addr
+            )
+        });
 
         use aes_gcm::KeyInit;
         let v_aes_key = aes_gcm::Aes256Gcm::generate_key(&mut aes_gcm::aead::OsRng);
@@ -188,7 +197,8 @@ fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
         ed25519::SigningKey::try_from(&bytes.as_slice()[..ed25519::SigningKey::BYTE_SIZE])
     } else {
         ed25519::SigningKey::try_from(bytes.as_slice())
-    }.map_err(|e| error::Error::InvalidPubKey(e.to_string()));
+    }
+    .map_err(|e| error::Error::InvalidPubKey(e.to_string()));
 
     let mut secret_key: Vec<u8> = secret_key?.as_bytes().to_vec();
 
@@ -206,9 +216,9 @@ fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryFrom;
+    use crate::config::provider::hashicorp::{AdapterConfig, AuthConfig, SigningKeyConfig};
     use rand_core::{OsRng, RngCore};
-    use crate::config::provider::hashicorp::{AuthConfig, AdapterConfig, SigningKeyConfig};
+    use std::convert::TryFrom;
 
     use super::*;
 
@@ -298,8 +308,11 @@ mod tests {
             keys: [SigningKeyConfig {
                 chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
                 key: KEY_NAME.into(),
-                auth: AuthConfig::String { access_token: VAULT_TOKEN.into() },
-            }].to_vec(),
+                auth: AuthConfig::String {
+                    access_token: VAULT_TOKEN.into(),
+                },
+            }]
+            .to_vec(),
         };
 
         // init

@@ -29,13 +29,17 @@ impl AuthConfig {
             AuthConfig::Path { access_token_file } => {
                 let password =
                     Zeroizing::new(fs::read_to_string(access_token_file).unwrap_or_else(|e| {
-                        status_err!("couldn't read access token from {}: {}", access_token_file.display(), e);
+                        status_err!(
+                            "couldn't read access token from {}: {}",
+                            access_token_file.display(),
+                            e
+                        );
                         process::exit(1);
                     }));
 
                 password.trim_end().to_owned()
             }
-            AuthConfig::String { access_token } => { access_token.to_owned() }
+            AuthConfig::String { access_token } => access_token.to_owned(),
         }
     }
 }
