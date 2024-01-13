@@ -172,10 +172,14 @@ impl KmsProcess {
             #[cfg(feature = "hashicorp")]
             SigningProvider::HashiCorp => writeln!(config_file, r#"
                 [[providers.hashicorp]]
+
+                [[providers.hashicorp.keys]]
                 chain_id = "test_chain_id"
-                api_endpoint= "http://127.0.0.1:8400"
-                pk_name="cosmoshub-sign-key"
+                key = "cosmoshub-sign-key"
                 # key_type: {}
+
+                [providers.hashicorp.adapter]
+                vault_addr = "http://127.0.0.1:8400"
 
                 [providers.hashicorp.auth]
                 access_token="test"
@@ -221,10 +225,14 @@ impl KmsProcess {
             #[cfg(feature = "hashicorp")]
             SigningProvider::HashiCorp => writeln!(config_file, r#"
                 [[providers.hashicorp]]
+
+                [[providers.hashicorp.keys]]
                 chain_id = "test_chain_id"
-                api_endpoint= "http://127.0.0.1:8400"
-                pk_name="cosmoshub-sign-key"
+                key = "cosmoshub-sign-key"
                 # key_type: {}
+
+                [providers.hashicorp.adapter]
+                vault_addr = "http://127.0.0.1:8400"
 
                 [providers.hashicorp.auth]
                 access_token="test"
@@ -433,7 +441,7 @@ fn handle_and_sign_proposal(key_type: KeyType, provider: SigningProvider) {
         };
 
         let signable_bytes = signable_msg
-            .signable_bytes(chain_id.parse().unwrap())
+            .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let prop = response
@@ -521,7 +529,7 @@ fn handle_and_sign_vote(key_type: KeyType, provider: SigningProvider) {
         };
 
         let signable_bytes = signable_msg
-            .signable_bytes(chain_id.parse().unwrap())
+            .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let vote_msg: proto::types::Vote = request
@@ -613,7 +621,7 @@ fn exceed_max_height(key_type: KeyType, provider: SigningProvider) {
         };
 
         let signable_bytes = signable_msg
-            .signable_bytes(chain_id.parse().unwrap())
+            .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
         let vote_msg = response

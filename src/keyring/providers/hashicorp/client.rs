@@ -1,5 +1,6 @@
 use abscissa_core::prelude::*;
 use std::collections::{BTreeMap, HashMap};
+use std::{fs, sync};
 
 use super::error::Error;
 
@@ -120,21 +121,37 @@ impl std::fmt::Display for CreateKeyType {
     }
 }
 
+
 impl TendermintValidatorApp {
-    pub fn connect(api_endpoint: &str, token: &str, key_name: &str) -> Result<Self, Error> {
+    pub fn connect(api_endpoint: &str, token: &str, key_name: &str, ca_cert: Option<String>, skip_verify: Option<bool>) -> Result<Self, Error> {
         // this call performs token self lookup, to fail fast
         // let mut client = Client::new(host, token)?;
 
         // default conect timeout is 30s, this should be ok, since we block
-        let agent: Agent = ureq::AgentBuilder::new()
+        let mut agent_builder = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
             .timeout_write(Duration::from_secs(5))
             .user_agent(&format!(
                 "{}/{}",
                 env!("CARGO_PKG_NAME"),
                 env!("CARGO_PKG_VERSION")
-            ))
-            .build();
+            ));
+
+        if let Some(ca_cert) = ca_cert {
+            let cert_bytes = fs::read(ca_cert).expect("Failed to read cert file");
+            let root_cert = native_tls::Certificate::from_pem(&cert_bytes).expect("Failed to parse PEM certificate");
+            let mut builder = native_tls::TlsConnector::builder();
+            builder.add_root_certificate(root_cert);
+
+            if skip_verify.is_some_and(|x| x) {
+                builder.danger_accept_invalid_certs(true);
+            }
+
+            let connector = builder.build().expect("failed to construct TLS connector");
+            agent_builder = agent_builder.tls_connector(sync::Arc::new(connector))
+        }
+
+        let agent: Agent = agent_builder.build();
 
         let app = TendermintValidatorApp {
             agent,
@@ -390,6 +407,8 @@ mod tests {
             &format!("http://{}", server_address()),
             TEST_TOKEN,
             TEST_KEY_NAME,
+            None,
+            None
         );
 
         assert!(app.is_ok());
@@ -409,6 +428,8 @@ mod tests {
             &format!("http://{}", server_address()),
             TEST_TOKEN,
             TEST_KEY_NAME,
+            None,
+            None
         )
         .expect("Failed to connect");
 
@@ -455,6 +476,8 @@ mod tests {
             &format!("http://{}", server_address()),
             TEST_TOKEN,
             TEST_KEY_NAME,
+            None,
+            None
         )
         .expect("Failed to connect");
 
@@ -497,6 +520,8 @@ mod tests {
             &format!("http://{}", server_address()),
             TEST_TOKEN,
             TEST_KEY_NAME,
+            None,
+            None
         )
         .expect("Failed to connect");
 

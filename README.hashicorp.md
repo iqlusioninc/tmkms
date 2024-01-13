@@ -122,9 +122,13 @@ You can specifty the path to the config with either `-c /path/to/tmkms.toml` or 
 example: 
 ```toml
 [[providers.hashicorp]]
+
+[[providers.hashicorp.keys]]
 chain_id = "<...chain id...>"
-api_endpoint= "https://<...host...>:8200"
-pk_key_name="<...ed25519 signing key...>"
+key = "<...ed25519 signing key...>"
+
+[providers.hashicorp.adapter]
+vault_addr = "https://<...host...>:8200"
 
 [providers.hashicorp.auth]
 access_token="<...token...>"
