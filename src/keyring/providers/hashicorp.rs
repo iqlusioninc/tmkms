@@ -39,7 +39,7 @@ pub fn init(
     for key_config in &config.keys {
         let mut app = client::TendermintValidatorApp::connect(
             &config.adapter.vault_addr,
-            &config.auth.access_token(),
+            &key_config.auth.access_token(),
             &key_config.key,
             config.adapter.vault_cacert.to_owned(),
             config.adapter.vault_skip_verify.to_owned(),

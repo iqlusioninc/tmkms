@@ -29,10 +29,6 @@ pub struct TestCommand {
     /// test message
     #[clap(help = "message to sign")]
     test_messsage: String,
-
-    /// verify that provided key name is defined in the config
-    #[clap(long = "no-check-defined-key")]
-    no_check_defined_key: bool,
 }
 
 impl Runnable for TestCommand {
@@ -54,19 +50,16 @@ impl Runnable for TestCommand {
 
         let cfg = &config.providers.hashicorp[0];
 
-        if !self.no_check_defined_key && !cfg.keys.iter().any(|k| k.key == self.key_name) {
-            status_err!(
-                "expected the key: {} to be present in the config, but it isn't there",
-                self.key_name
-            );
-            process::exit(1);
-        }
+        let signing_key = &cfg.keys.
+            iter()
+            .find(|k| k.key == self.key_name)
+            .expect("Unable to find key name in the config");
 
         let started_at = Instant::now();
 
         let app = crate::keyring::providers::hashicorp::client::TendermintValidatorApp::connect(
             &cfg.adapter.vault_addr,
-            &cfg.auth.access_token(),
+            &signing_key.auth.access_token(),
             &self.key_name,
             None,
             None

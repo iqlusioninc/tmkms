@@ -100,8 +100,18 @@ impl UploadCommand {
         // https://learn.hashicorp.com/tutorials/vault/eaas-transit
 
         // root token or token with enough admin rights
-        let vault_token = std::env::var("VAULT_TOKEN")
-            .expect("root token \"VAULT_TOKEN\" is not set (confg token is NOT used)!");
+        let vault_token = if !self.no_check_defined_key {
+            let signing_key = config
+                .keys
+                .iter()
+                .find(|k| k.key == self.key_name)
+                .expect("unable to find key name in the config");
+
+            signing_key.auth.access_token()
+        } else {
+            std::env::var("VAULT_TOKEN")
+                .expect("root token \"VAULT_TOKEN\" is not set (confg token is NOT used)!")
+        };
 
         let base64_key: String = if self.payload.is_some() {
             self.payload.clone().unwrap()
@@ -280,7 +290,6 @@ mod tests {
         };
 
         let config = HashiCorpConfig {
-            auth: AuthConfig::String { access_token: "crazy-long-string".to_string() },
             adapter: AdapterConfig {
                 vault_addr: format!("http://{}", server_address()),
                 vault_cacert: None,
@@ -289,10 +298,9 @@ mod tests {
             keys: [SigningKeyConfig {
                 chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
                 key: KEY_NAME.into(),
+                auth: AuthConfig::String { access_token: VAULT_TOKEN.into() },
             }].to_vec(),
         };
-
-        std::env::set_var("VAULT_TOKEN", VAULT_TOKEN);
 
         // init
         let lookup_self = mock("GET", "/v1/auth/token/lookup-self")

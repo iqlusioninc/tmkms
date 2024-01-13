@@ -63,6 +63,9 @@ pub struct SigningKeyConfig {
 
     /// Signing key ID
     pub key: String,
+
+    /// Authentication configuration
+    pub auth: AuthConfig,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -74,7 +77,4 @@ pub struct HashiCorpConfig {
 
     /// Adapter configuration
     pub adapter: AdapterConfig,
-
-    /// Authentication configuration
-    pub auth: AuthConfig,
 }

@@ -176,13 +176,11 @@ impl KmsProcess {
                 [[providers.hashicorp.keys]]
                 chain_id = "test_chain_id"
                 key = "cosmoshub-sign-key"
+                auth.access_token = "test"
                 # key_type: {}
 
                 [providers.hashicorp.adapter]
                 vault_addr = "http://127.0.0.1:8400"
-
-                [providers.hashicorp.auth]
-                access_token="test"
                 "#, key_type),
 
             #[allow(unreachable_patterns)]
@@ -229,13 +227,11 @@ impl KmsProcess {
                 [[providers.hashicorp.keys]]
                 chain_id = "test_chain_id"
                 key = "cosmoshub-sign-key"
+                auth.access_token = "test"
                 # key_type: {}
 
                 [providers.hashicorp.adapter]
                 vault_addr = "http://127.0.0.1:8400"
-
-                [providers.hashicorp.auth]
-                access_token="test"
                 "#, key_type),
 
             #[allow(unreachable_patterns)]

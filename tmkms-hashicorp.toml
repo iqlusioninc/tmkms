@@ -13,17 +13,18 @@ key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_
 state_file = "/home/soleinik/work/rust/tmkms/state/cosmoshub-3-consensus.json"
 
 ## Signing Provider Configuration
-[[providers.hashicorp]]
+[[providers.hashicorp.keys]]
 chain_id = "cosmoshub-4"
-api_endpoint= "http://127.0.0.1:8200"
-access_token="hvs.CAESIBwDAKQh2JKuxibeHOV-jmc2T68loAKLNWO2_QX1l7L3Gh4KHGh2cy5iYnRJRVVLdHBqTVMwUGdLZFNGWjNCZkc"
-pk_name="cosmoshub-sign-key"
+access_token = "hvs.CAESIBwDAKQh2JKuxibeHOV-jmc2T68loAKLNWO2_QX1l7L3Gh4KHGh2cy5iYnRJRVVLdHBqTVMwUGdLZFNGWjNCZkc"
+key = "cosmoshub-sign-key"
 
-[[providers.hashicorp]]
+[[providers.hashicorp.keys]]
 chain_id = "cosmoshub-4"
-api_endpoint= "http://127.0.0.1:8200"
-access_token="hvs.CAESIBwDAKQh2JKuxibeHOV-jmc2T68loAKLNWO2_QX1l7L3Gh4KHGh2cy5iYnRJRVVLdHBqTVMwUGdLZFNGWjNCZkc"
-pk_name="cosmoshub-sign-key"
+access_token = "hvs.CAESIBwDAKQh2JKuxibeHOV-jmc2T68loAKLNWO2_QX1l7L3Gh4KHGh2cy5iYnRJRVVLdHBqTVMwUGdLZFNGWjNCZkc"
+key = "cosmoshub-sign-key"
+
+[providers.hashicorp.adapter]
+vault_addr = "http://127.0.0.1:8200"
 
 ## Validator Configuration
 

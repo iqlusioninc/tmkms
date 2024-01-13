@@ -13,7 +13,7 @@ Start vault instance as per Hashicorp tutorial
 following script sets up Vault's configuration. Script designed for single chain signing... Extend it with additional keys+policies for additional chains. These are steps for `admin`
 ```
 #!/bin/bash
-#login with root token 
+#login with root token
 vault login
 
 echo "\nenabling transit engine..."
@@ -126,30 +126,30 @@ example:
 [[providers.hashicorp.keys]]
 chain_id = "<...chain id...>"
 key = "<...ed25519 signing key...>"
+auth.access_token = "<...token...>"
 
 [providers.hashicorp.adapter]
 vault_addr = "https://<...host...>:8200"
-
-[providers.hashicorp.auth]
-access_token="<...token...>"
+vault_cacert = ...
+vault_skip_verify = ...
 ```
 
 You can [get](https://learn.hashicorp.com/tutorials/vault/tokens) the access token from the HashiCorp Vault.
 
 ### Generating keys in HashiCorp Vault, transit engine
-1. Enable transit engine 
+1. Enable transit engine
 ```bash
 vault secrets enable transit
 ```
-2. Enable sign path on transit engine 
+2. Enable sign path on transit engine
 ```bash
 vault secrets enable -path=sign transit
 ```
-3. Create a key 
+3. Create a key
 ```bash
 vault write transit/keys/<..key-name...> type=ed25519
 ```
-4. Create a policy for the key 
+4. Create a policy for the key
  ```bash
 vault policy write tmkms-transit-sign-policy -
 path "transit/sign/<...key name...>" {
@@ -167,7 +167,7 @@ vault token create \
  -no-default-policy  \
  -non-interactive \
  -renewable=false \
- -period=0 
+ -period=0
 ```
 6.  To import an existing tendermint key (this is TODO).
 ```

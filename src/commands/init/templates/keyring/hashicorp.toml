@@ -5,11 +5,9 @@
 chain_id = "$CHAIN_ID"
 # Vault's transit secret engine key - vault write transit/keys/<cosmoshub-sign-key> type=ed25519
 key = "cosmoshub-sign-key"
+# Vault's access token - vault token create -policy=<tmkms-transit-sign-policy>
+auth.access_token = "hvs.CAESINi91lCOFj-_dOGiUfpdZUPKk93LD8YyHz-qZcYLVwH_Gh4KHGh2cy5kdXV1T2tpcXliakFFblU1SUpqanczYjU"
 
 [providers.hashicorp.adapter]
 # Vault's api url - VAULT_ADDR
 vault_addr = "http://127.0.0.1:8200"
-
-[providers.hashicorp.auth]
-# Vault's access token - vault token create -policy=<tmkms-transit-sign-policy>
-access_token="hvs.CAESINi91lCOFj-_dOGiUfpdZUPKk93LD8YyHz-qZcYLVwH_Gh4KHGh2cy5kdXV1T2tpcXliakFFblU1SUpqanczYjU"
