@@ -554,7 +554,7 @@ mod tests {
 
     // curl --header "X-Vault-Token: $VAULT_TOKEN" "${VAULT_ADDR}/v1/transit/keys/<signing_key_name>"
     const READ_KEY_RESP: &str = r#"
-    {"request_id":"9cb10d0a-1877-6da5-284b-8ece4b131ae3","lease_id":"","renewable":false,"lease_duration":0,"data":{"allow_plaintext_backup":false,"auto_rotate_period":0,"deletion_allowed":false,"derived":false,"exportable":false,"imported_key":false,"keys":{"1":{"creation_time":"2022-08-23T09:30:16.676998915Z","name":"ed25519","public_key":"ng+ab41LawVupIXX3ocMn+AfV2W1DEMCfjAdtrwXND8="}},"latest_version":1,"min_available_version":0,"min_decryption_version":1,"min_encryption_version":0,"name":"cosmoshub-sign-key","supports_decryption":false,"supports_derivation":true,"supports_encryption":false,"supports_signing":true,"type":"ed25519"},"wrap_info":null,"warnings":null,"auth":null}    
+    {"request_id":"9cb10d0a-1877-6da5-284b-8ece4b131ae3","lease_id":"","renewable":false,"lease_duration":0,"data":{"allow_plaintext_backup":false,"auto_rotate_period":0,"deletion_allowed":false,"derived":false,"exportable":false,"imported_key":false,"keys":{"1":{"creation_time":"2022-08-23T09:30:16.676998915Z","name":"ed25519","public_key":"ng+ab41LawVupIXX3ocMn+AfV2W1DEMCfjAdtrwXND8="}},"latest_version":1,"min_available_version":0,"min_decryption_version":1,"min_encryption_version":0,"name":"cosmoshub-sign-key","supports_decryption":false,"supports_derivation":true,"supports_encryption":false,"supports_signing":true,"type":"ed25519"},"wrap_info":null,"warnings":null,"auth":null}
     "#;
 
     // curl --request POST --header "X-Vault-Token: $VAULT_TOKEN" "${VAULT_ADDR}/v1/transit/sign/<..key_name...>" -d '{"input":"base64 encoded"}'
