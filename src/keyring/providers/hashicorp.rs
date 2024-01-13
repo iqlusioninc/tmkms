@@ -52,15 +52,19 @@ pub fn init(
         });
 
         let public_key = app.public_key().unwrap_or_else(|e| {
-            panic!("Failed to get public key for chain id:{}, err: {}", key_config.chain_id, e)
-        });
-
-        let public_key = ed25519::VerifyingKey::try_from(public_key.as_slice()).unwrap_or_else(|_| {
             panic!(
-                "invalid Ed25519 public key for chain id:{}",
-                key_config.chain_id
+                "Failed to get public key for chain id:{}, err: {}",
+                key_config.chain_id, e
             )
         });
+
+        let public_key =
+            ed25519::VerifyingKey::try_from(public_key.as_slice()).unwrap_or_else(|_| {
+                panic!(
+                    "invalid Ed25519 public key for chain id:{}",
+                    key_config.chain_id
+                )
+            });
 
         let provider = Ed25519HashiCorpAppSigner::new(app);
 
