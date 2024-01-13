@@ -40,20 +40,41 @@ impl AuthConfig {
     }
 }
 
+/// Configuration for an individual YubiHSM
+#[derive(Clone, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct AdapterConfig {
+    /// HashiCorp Vault API endpoint, e.g. https://127.0.0.1:8200
+    pub vault_addr: String,
+
+    /// Path to a PEM-encoded CA certificate file on the local disk. This file is used to verify the HashiCorp Vault server's SSL certificate
+    pub vault_cacert: Option<String>,
+
+    /// Do not verify HashiCorp Vault's presented certificate before communicating with it
+    pub vault_skip_verify: Option<bool>,
+}
+
+/// Signing key configuration
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SigningKeyConfig {
+    /// Chains this signing key is authorized to be used from
+    pub chain_id: chain::Id,
+
+    /// Signing key ID
+    pub key: String,
+}
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 /// Hashicorp Vault signer configuration
 pub struct HashiCorpConfig {
-    /// Chains this signing key is authorized to be used from
-    pub chain_id: chain::Id,
+    /// List of signing keys in the HashiCorp Vault
+    pub keys: Vec<SigningKeyConfig>,
 
-    /// HashiCorp Vault API endpoint, e.g. https://127.0.0.1:8200
-    pub api_endpoint: String,
+    /// Adapter configuration
+    pub adapter: AdapterConfig,
 
     /// Authentication configuration
     pub auth: AuthConfig,
-
-    /// Vault's key name with ed25519 pub+priv key
-    pub pk_name: String,
 }

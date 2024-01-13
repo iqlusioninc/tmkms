@@ -27,46 +27,45 @@ pub fn init(
         return Ok(());
     }
 
-    let mut chains = Vec::<String>::new();
+    if configs.len() != 1 {
+        fail!(
+            ConfigError,
+            "expected one [hashicorp.provider] in config, found: {}",
+            configs.len()
+        );
+    }
 
-    for config in configs {
-        // misconfiguration check
-        if chains.contains(&config.chain_id.to_string()) {
-            fail!(
-                ConfigError,
-                format!("already configured! chain id:{}", config.chain_id)
-            )
-        } else {
-            chains.push(config.chain_id.to_string())
-        }
-
+    let config = &configs[0];
+    for key_config in &config.keys {
         let mut app = client::TendermintValidatorApp::connect(
-            &config.api_endpoint,
+            &config.adapter.vault_addr,
             &config.auth.access_token(),
-            &config.pk_name,
+            &key_config.key,
+            config.adapter.vault_cacert.to_owned(),
+            config.adapter.vault_skip_verify.to_owned(),
         )
         .unwrap_or_else(|_| {
             panic!(
                 "Failed to authenticate to Vault for chain id:{}",
-                config.chain_id
+                key_config.chain_id
             )
         });
 
         let public_key = app.public_key().unwrap_or_else(|e| {
-            panic!("Failed to get public key for chain id:{}, err: {}", config.chain_id, e)
+            panic!("Failed to get public key for chain id:{}, err: {}", key_config.chain_id, e)
         });
 
         let public_key = ed25519::VerifyingKey::try_from(public_key.as_slice()).unwrap_or_else(|_| {
             panic!(
                 "invalid Ed25519 public key for chain id:{}",
-                config.chain_id
+                key_config.chain_id
             )
         });
 
         let provider = Ed25519HashiCorpAppSigner::new(app);
 
         chain_registry.add_consensus_key(
-            &config.chain_id,
+            &key_config.chain_id,
             // avoiding need for clone
             Signer::new(
                 SigningProvider::HashiCorp,

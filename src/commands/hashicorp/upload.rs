@@ -11,9 +11,9 @@ use crate::keyring::ed25519;
 use crate::keyring::providers::hashicorp::{client, error};
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
-///AES256 key length
-const KEY_SIZE_AES256: usize = 32; //256 bits
-///PKCS8 header
+/// AES256 key length
+const KEY_SIZE_AES256: usize = 32; // 256 bits
+/// PKCS8 header
 const PKCS8_HEADER: &[u8; 16] = b"\x30\x2e\x02\x01\x00\x30\x05\x06\x03\x2b\x65\x70\x04\x22\x04\x20";
 
 /// The `hashicorp test` subcommand
@@ -32,16 +32,24 @@ pub struct UploadCommand {
     #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 
-    ///key ID in Hashicorp Vault
+    /// key ID in Hashicorp Vault
     #[clap(help = "Key ID")]
-    pk_name: String,
+    key_name: String,
+
+    /// base64 encoded key file to upload
+    #[clap(group = "payload_arg", long = "payload-file")]
+    pub payload_file: Option<String>,
 
     /// base64 encoded key to upload
-    #[clap(long = "payload")]
-    pub payload: String,
+    #[clap(group = "payload_arg", long = "payload")]
+    pub payload: Option<String>,
+
+    /// verify that provided key name is defined in the config
+    #[clap(long = "no-check-defined-key")]
+    no_check_defined_key: bool,
 }
 
-///Import Secret Key Request
+/// Import Secret Key Request
 #[derive(Debug, Serialize)]
 struct ImportRequest {
     #[serde(default = "ed25519")]
@@ -53,57 +61,69 @@ struct ImportRequest {
 impl Runnable for UploadCommand {
     /// Perform a import using the current TMKMS configuration
     fn run(&self) {
-        if self.pk_name.is_empty() {
-            status_err!("pk_name cannot be empty!");
+        if self.key_name.is_empty() {
+            status_err!("key_name cannot be empty!");
+            process::exit(1);
+        }
+
+        if self.payload.is_none() && self.payload_file.is_none() {
+            status_err!("either --payload or --payload_file must be set");
             process::exit(1);
         }
 
         let config = APP.config();
 
-        //finding key in config will point to correct Vault's URL
-        let config = if let Some(c) = config
-            .providers
-            .hashicorp
-            .iter()
-            .find(|c| c.pk_name == self.pk_name)
-        {
-            c
-        } else {
-            let cfg_path = if let Some(path) = self.config.as_ref() {
-                path.clone()
-            } else {
-                PathBuf::from("./tmkms.toml")
-            };
+        if config.providers.hashicorp.len() != 1 {
             status_err!(
-                "pk_name is not configured in provided \"{}\"!",
-                cfg_path.as_path().to_str().unwrap()
+                "expected one [hashicorp.provider] in config, found: {}",
+                config.providers.hashicorp.len()
+            );
+        }
+
+        let cfg = &config.providers.hashicorp[0];
+
+        if !self.no_check_defined_key && !cfg.keys.iter().any(|k| k.key == self.key_name) {
+            status_err!(
+                "expected the key: {} to be present in the config, but it isn't there",
+                self.key_name
             );
             process::exit(1);
-        };
+        }
 
-        self.upload(config);
+        self.upload(cfg);
     }
 }
 
 impl UploadCommand {
     fn upload(&self, config: &HashiCorpConfig) {
-        //https://www.vaultproject.io/docs/secrets/transit#bring-your-own-key-byok
-        //https://learn.hashicorp.com/tutorials/vault/eaas-transit
+        // https://www.vaultproject.io/docs/secrets/transit#bring-your-own-key-byok
+        // https://learn.hashicorp.com/tutorials/vault/eaas-transit
 
-        //root token or token with enough admin rights
+        // root token or token with enough admin rights
         let vault_token = std::env::var("VAULT_TOKEN")
             .expect("root token \"VAULT_TOKEN\" is not set (confg token is NOT used)!");
 
-        let ed25519_input_key = input_key(&self.payload)
+        let base64_key: String = if self.payload.is_some() {
+            self.payload.clone().unwrap()
+        } else if self.payload_file.is_some() {
+            std::fs::read_to_string(self.payload_file.clone().unwrap()).expect("unable to read payload file").strip_suffix('\n').unwrap().into()
+        } else {
+            status_err!("payload and payload_file are undefined");
+            process::exit(1);
+        };
+
+        let ed25519_input_key = input_key(&base64_key)
             .expect("secret: error converting \"key-to-upload\"[ed25519] with PKCS8 wrapping");
 
-        //create app instance
+        // create app instance
         let app = client::TendermintValidatorApp::connect(
-            &config.api_endpoint,
+            &config.adapter.vault_addr,
             &vault_token,
-            &self.pk_name,
+            &self.key_name,
+            config.adapter.vault_cacert.to_owned(),
+            config.adapter.vault_skip_verify.to_owned(),
         )
-        .unwrap_or_else(|_| panic!("Unable to connect to Vault at {}", config.api_endpoint));
+        .unwrap_or_else(|_| panic!("Unable to connect to Vault at {}", config.adapter.vault_addr));
 
         use aes_gcm::KeyInit;
         let v_aes_key = aes_gcm::Aes256Gcm::generate_key(&mut aes_gcm::aead::OsRng);
@@ -142,7 +162,7 @@ impl UploadCommand {
         let wrapped_aes: Vec<u8> = [wrapped_aes.as_slice(), wrapped_input_key.as_slice()].concat();
 
         app.import_key(
-            &self.pk_name,
+            &self.key_name,
             client::CreateKeyType::Ed25519,
             &base64::encode(wrapped_aes),
         )
@@ -159,7 +179,6 @@ fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
     } else {
         ed25519::SigningKey::try_from(bytes.as_slice())
     }.map_err(|e| error::Error::InvalidPubKey(e.to_string()));
-    // TODO(mkaczanowski): invalid pubkey is not the best error tyep
 
     let mut secret_key: Vec<u8> = secret_key?.as_bytes().to_vec();
 
@@ -179,7 +198,7 @@ fn input_key(input_key: &str) -> Result<Vec<u8>, error::Error> {
 mod tests {
     use std::convert::TryFrom;
     use rand_core::{OsRng, RngCore};
-    use crate::config::provider::hashicorp::AuthConfig;
+    use crate::config::provider::hashicorp::{AuthConfig, AdapterConfig, SigningKeyConfig};
 
     use super::*;
 
@@ -241,7 +260,7 @@ mod tests {
         );
     }
 
-    const PK_NAME: &str = "upload-test";
+    const KEY_NAME: &str = "upload-test";
     const VAULT_TOKEN: &str = "access-token";
     const CHAIN_ID: &str = "mock-chain-id";
     const ED25519: &str =
@@ -253,16 +272,24 @@ mod tests {
     fn test_upload() {
         let cmd = UploadCommand {
             verbose: false,
-            pk_name: PK_NAME.into(),
+            key_name: KEY_NAME.into(),
             config: None,
-            payload: ED25519.into(),
+            payload: Some(ED25519.into()),
+            payload_file: None,
+            no_check_defined_key: false,
         };
 
         let config = HashiCorpConfig {
             auth: AuthConfig::String { access_token: "crazy-long-string".to_string() },
-            api_endpoint: format!("http://{}", server_address()),
-            pk_name: PK_NAME.into(),
-            chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
+            adapter: AdapterConfig {
+                vault_addr: format!("http://{}", server_address()),
+                vault_cacert: None,
+                vault_skip_verify: Some(false),
+            },
+            keys: [SigningKeyConfig {
+                chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
+                key: KEY_NAME.into(),
+            }].to_vec(),
         };
 
         std::env::set_var("VAULT_TOKEN", VAULT_TOKEN);
@@ -279,12 +306,12 @@ mod tests {
             .with_body(WRAPPING_KEY_RESPONSE)
             .create();
 
-        let end_point = format!("/v1/transit/keys/{}/import", PK_NAME);
+        let end_point = format!("/v1/transit/keys/{}/import", KEY_NAME);
 
         // upload
         let export = mock("POST", end_point.as_str())
             .match_header("X-Vault-Token", VAULT_TOKEN)
-            //.match_body(req.as_str()) //sipher string will be always different
+            //.match_body(req.as_str()) // sipher string will be always different
             .create();
 
         // test
@@ -295,7 +322,7 @@ mod tests {
         wrapping_key.expect(1).assert();
     }
 
-    //curl --header "X-Vault-Token: hvs.<...valid.token...>>" http://127.0.0.1:8200/v1/auth/token/lookup-self
+    // curl --header "X-Vault-Token: hvs.<...valid.token...>>" http://127.0.0.1:8200/v1/auth/token/lookup-self
     const TOKEN_DATA: &str = r#"
     {"request_id":"119fcc9e-85e2-1fcf-c2a2-96cfb20f7446","lease_id":"","renewable":false,"lease_duration":0,"data":{"accessor":"k1g6PqNWVIlKK9NDCWLiTvrG","creation_time":1661247016,"creation_ttl":2764800,"display_name":"token","entity_id":"","expire_time":"2022-09-24T09:30:16.898359776Z","explicit_max_ttl":0,"id":"hvs.CAESIEzWRWLvyYLGlYsCRI_Vt653K26b-cx_lrxBlFo3_2GBGh4KHGh2cy5GVzZ5b25nMVFpSkwzM1B1eHM2Y0ZqbXA","issue_time":"2022-08-23T09:30:16.898363509Z","meta":null,"num_uses":0,"orphan":false,"path":"auth/token/create","policies":["tmkms-transit-sign-policy"],"renewable":false,"ttl":2758823,"type":"service"},"wrap_info":null,"warnings":null,"auth":null}
     "#;
