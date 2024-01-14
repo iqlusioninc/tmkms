@@ -795,18 +795,20 @@ fn read_response(pt: &mut ProtocolTester) -> proto::privval::message::Sum {
 }
 
 #[cfg(feature = "hashicorp")]
-fn start_vault() -> Child {
-    let vault = Command::new("sh")
-        .arg("-c")
-        .arg("./tests/support/start_vault.sh start background http 8400 0")
-        .spawn()
-        .expect("Failed to start vault server");
+fn start_vault() {
+    let no_vault_server = std::env::var("NO_VAULT_SERVER");
+
+    if no_vault_server.is_err() {
+        Command::new("sh")
+            .arg("-c")
+            .arg("./tests/support/start_vault.sh start background http 8400 0")
+            .spawn()
+            .expect("Failed to start vault server");
+    }
 
     Command::new("bash")
         .arg("-c")
         .arg("./tests/support/start_vault.sh setup http 8400")
         .output()
         .expect("Failed to initalize vault server");
-
-    vault
 }
