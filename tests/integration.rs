@@ -99,7 +99,9 @@ impl KmsProcess {
         let listener = TcpListener::bind(format!("{}:{}", "127.0.0.1", port)).unwrap();
 
         #[cfg(feature = "hashicorp")]
-        KmsProcess::load_vault_key(key_type, config.path().to_str().unwrap());
+        if provider == SigningProvider::HashiCorp {
+            KmsProcess::load_vault_key(key_type, config.path().to_str().unwrap());
+        }
 
         let args = &["start", "-c", config.path().to_str().unwrap()];
         let process = Command::new(KMS_EXE_PATH).args(args).spawn().unwrap();
@@ -124,7 +126,9 @@ impl KmsProcess {
         let listener = UnixListener::bind(socket_path).unwrap();
 
         #[cfg(feature = "hashicorp")]
-        KmsProcess::load_vault_key(key_type, config.path().to_str().unwrap());
+        if provider == SigningProvider::HashiCorp {
+            KmsProcess::load_vault_key(key_type, config.path().to_str().unwrap());
+        }
 
         // Fire up the KMS process and allow it to connect to our Unix socket
         let args = &["start", "-c", config.path().to_str().unwrap()];
@@ -335,9 +339,11 @@ impl ProtocolTester {
         F: FnOnce(ProtocolTester),
     {
         #[cfg(feature = "hashicorp")]
-        VAULT.call_once(|| {
-            start_vault();
-        });
+        if provider == SigningProvider::HashiCorp {
+            VAULT.call_once(|| {
+                start_vault();
+            });
+        }
 
         let tcp_device = KmsProcess::create_tcp(&key_type, provider);
         let tcp_connection = tcp_device.create_connection();
