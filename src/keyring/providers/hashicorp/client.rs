@@ -26,7 +26,7 @@ pub(crate) struct TendermintValidatorApp {
 #[allow(unsafe_code)]
 unsafe impl Send for TendermintValidatorApp {}
 
-///Vault message envelop
+/// Vault message envelop
 #[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Root<T> {
@@ -44,13 +44,13 @@ pub struct Root<T> {
     pub auth: Value,
 }
 
-///Sign Request Struct
+/// Sign Request Struct
 #[derive(Debug, Serialize)]
 struct SignRequest {
     input: String, // Base64 encoded
 }
 
-///Sign Response Struct
+/// Sign Response Struct
 #[derive(Debug, Deserialize)]
 struct SignResponse {
     signature: String, // Base64 encoded
@@ -199,7 +199,7 @@ impl TendermintValidatorApp {
 
         debug!("fetching public key for {}...", self.key_name);
 
-        ///Response struct
+        /// Response struct
         #[derive(Debug, Deserialize)]
         struct PublicKeyResponse {
             keys: BTreeMap<usize, HashMap<String, String>>,
@@ -336,7 +336,7 @@ impl TendermintValidatorApp {
         Ok(array)
     }
 
-    ///fetch RSA wraping key from Vault/Transit. Returned key will be a 4096-bit RSA public key.
+    /// fetch RSA wraping key from Vault/Transit. Returned key will be a 4096-bit RSA public key.
     pub fn wrapping_key_pem(&self) -> Result<String, Error> {
         debug!("getting wraping key...");
         #[derive(Debug, Deserialize)]
@@ -457,7 +457,7 @@ mod tests {
             base64::decode(TEST_PUB_KEY_VALUE).unwrap().as_slice()
         );
 
-        // cached vaule
+        // cached value
         let res = app.public_key();
         assert!(res.is_ok());
         assert_eq!(
