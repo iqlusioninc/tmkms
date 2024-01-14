@@ -10,6 +10,17 @@ env:
   RUSTFLAGS: "-Dwarnings"
 
 jobs:
+  integration:
+    services:
+      vault:
+        image: vault:1.13.3
+        ports:
+          - "8400:8400"
+        options: >-
+          -dev
+          -dev-listen-address="127.0.0.1:8400"
+          -dev-root-token-id="test"
+          -dev-no-store-token
   check:
     name: Check
     runs-on: ubuntu-latest
