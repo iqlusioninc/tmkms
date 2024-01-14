@@ -23,7 +23,7 @@ use tmkms::{
 };
 
 #[cfg(feature = "hashicorp")]
-use zeroize::Zeroizing;
+use {std::sync::Once, zeroize::Zeroizing};
 
 /// Integration tests for the KMS command-line interface
 mod cli;
@@ -34,6 +34,9 @@ const KMS_EXE_PATH: &str = "target/debug/tmkms";
 /// Path to the example validator signing key
 const SIGNING_ED25519_KEY_PATH: &str = "tests/support/signing_ed25519.key";
 const SIGNING_SECP256K1_KEY_PATH: &str = "tests/support/signing_secp256k1.key";
+
+#[cfg(feature = "hashicorp")]
+static VAULT: Once = Once::new();
 
 enum KmsSocket {
     /// TCP socket type
@@ -331,6 +334,11 @@ impl ProtocolTester {
     where
         F: FnOnce(ProtocolTester),
     {
+        #[cfg(feature = "hashicorp")]
+        VAULT.call_once(|| {
+            start_vault();
+        });
+
         let tcp_device = KmsProcess::create_tcp(&key_type, provider);
         let tcp_connection = tcp_device.create_connection();
         let unix_device = KmsProcess::create_unix(&key_type, provider);
@@ -784,4 +792,21 @@ fn read_response(pt: &mut ProtocolTester) -> proto::privval::message::Sum {
 
     let message = proto::privval::Message::decode_length_delimited(resp_bytes.as_ref()).unwrap();
     message.sum.expect("no sum field in message")
+}
+
+#[cfg(feature = "hashicorp")]
+fn start_vault() -> Child {
+    let vault = Command::new("sh")
+        .arg("-c")
+        .arg("./tests/support/start_vault.sh start background http 8400 0")
+        .spawn()
+        .expect("Failed to start vault server");
+
+    Command::new("bash")
+        .arg("-c")
+        .arg("./tests/support/start_vault.sh setup http 8400")
+        .output()
+        .expect("Failed to initalize vault server");
+
+    vault
 }
