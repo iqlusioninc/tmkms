@@ -47,6 +47,10 @@ pub struct UploadCommand {
     /// verify that provided key name is defined in the config
     #[clap(long = "no-check-defined-key")]
     no_check_defined_key: bool,
+
+    /// this allows for all the valid keys in the key ring to be exported. Once set, this cannot be disabled.
+    #[clap(long = "exportable")]
+    exportable: bool,
 }
 
 /// Import Secret Key Request
@@ -184,6 +188,7 @@ impl UploadCommand {
             &self.key_name,
             client::CreateKeyType::Ed25519,
             &base64::encode(wrapped_aes),
+            self.exportable,
         )
         .expect("import key error!");
     }
@@ -297,6 +302,7 @@ mod tests {
             payload: Some(ED25519.into()),
             payload_file: None,
             no_check_defined_key: false,
+            exportable: false,
         };
 
         let config = HashiCorpConfig {

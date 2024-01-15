@@ -61,6 +61,7 @@ pub(crate) struct ImportRequest {
     pub r#type: String,
     pub ciphertext: String,
     pub hash_function: String,
+    pub exportable: bool,
 }
 
 #[allow(dead_code)]
@@ -365,11 +366,13 @@ impl TendermintValidatorApp {
         key_name: &str,
         key_type: CreateKeyType,
         ciphertext: &str,
+        exportable: bool,
     ) -> Result<(), Error> {
         let body = ImportRequest {
             r#type: key_type.to_string(),
             ciphertext: ciphertext.into(),
             hash_function: "SHA256".into(),
+            exportable,
         };
 
         let _ = self
