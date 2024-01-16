@@ -143,12 +143,15 @@ impl TendermintValidatorApp {
                 env!("CARGO_PKG_VERSION")
             ));
 
-        if let Some(ca_cert) = ca_cert {
-            let cert_bytes = fs::read(ca_cert).expect("Failed to read cert file");
-            let root_cert = native_tls::Certificate::from_pem(&cert_bytes)
-                .expect("Failed to parse PEM certificate");
+        if ca_cert.is_some() || skip_verify.is_some() {
             let mut builder = native_tls::TlsConnector::builder();
-            builder.add_root_certificate(root_cert);
+
+            if let Some(ca_cert) = ca_cert {
+                let cert_bytes = fs::read(ca_cert).expect("Failed to read cert file");
+                let root_cert = native_tls::Certificate::from_pem(&cert_bytes)
+                    .expect("Failed to parse PEM certificate");
+                builder.add_root_certificate(root_cert);
+            }
 
             if skip_verify.is_some_and(|x| x) {
                 builder.danger_accept_invalid_certs(true);
