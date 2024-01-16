@@ -50,7 +50,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - 1.72.0 # MSRV
+          - 1.72.0  # MSRV
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -91,11 +91,24 @@ jobs:
 
   test:
     name: Test Suite
+    services:
+      vault:
+        image: vault:1.13.3
+        ports:
+          - "8400:8400"
+        env:
+           VAULT_DEV_ROOT_TOKEN_ID: test
+           VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8400
+        options: >-
+           --health-cmd "vault status -address='http://127.0.0.1:8400'"
+           --health-interval 10s
+           --health-timeout 5s
+           --health-retries 5
     strategy:
       matrix:
         toolchain:
           - stable
-          - 1.72.0 # MSRV
+          - 1.72.0  # MSRV
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -128,8 +141,17 @@ jobs:
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
 
+      # used by integration test to configure running hashicorp vault container
+      - name: Install HashiCorp vault CLI
+        run: wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg &&
+          gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint &&
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list &&
+          sudo apt update && sudo apt install vault
+
       - name: Run cargo test
         uses: actions-rs/cargo@v1
+        env:
+          NO_VAULT_SERVER: true
         with:
           command: test
           args: --all-features -- --test-threads 1
@@ -222,7 +244,7 @@ jobs:
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.72.0 # MSRV
+          toolchain: 1.72.0  # MSRV
           override: true
 
       - name: Install libudev-dev
