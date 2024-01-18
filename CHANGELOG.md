@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.13.1 (2024-01-18)
+### Added
+- `CanonicalVoteExtension` signature support ([#837])
+
+[#837]: https://github.com/iqlusioninc/tmkms/pull/837
+
 ## 0.13.0 (2023-10-23)
 ### Added
 - Support for secp256k1 consensus keys ([#644], [#790])
