@@ -89,22 +89,24 @@ impl SignableMsg {
     pub fn extension_bytes(&self, chain_id: chain::Id) -> Result<Option<Bytes>, EncodeError> {
         match self {
             Self::Proposal(_) => Ok(None),
-            Self::Vote(vote) => {
-                // Only sign extension if actually present
-                if vote.extension.is_empty() {
-                    return Ok(None);
+            Self::Vote(v) => {
+                match (v.vote_type, v.block_id) {
+                    // Only sign extension if it's a precommit for a non-nil block.
+                    // Note that extension can be empty.
+                    (vote::Type::Precommit, Some(_)) => {
+                        let canonical = proto::types::CanonicalVoteExtension {
+                            extension: v.extension.clone(),
+                            height: v.height.into(),
+                            round: v.round.value().into(),
+                            chain_id: chain_id.to_string(),
+                        };
+
+                        let mut bytes = BytesMut::new();
+                        canonical.encode_length_delimited(&mut bytes)?;
+                        Ok(Some(bytes.into()))
+                    }
+                    _ => Ok(None),
                 }
-
-                let canonical = proto::types::CanonicalVoteExtension {
-                    extension: vote.extension.clone(),
-                    height: vote.height.into(),
-                    round: vote.round.value().into(),
-                    chain_id: chain_id.to_string(),
-                };
-
-                let mut bytes = BytesMut::new();
-                canonical.encode_length_delimited(&mut bytes)?;
-                Ok(Some(bytes.into()))
             }
         }
     }
