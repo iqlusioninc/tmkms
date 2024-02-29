@@ -234,7 +234,7 @@ limitations under the License.
 [build-link]: https://github.com/iqlusioninc/tmkms/actions
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/iqlusioninc/tmkms/blob/main/LICENSE
-[rustc-image]: https://img.shields.io/badge/rustc-1.72+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.74+-blue.svg
 
 [//]: # (general links)
 
