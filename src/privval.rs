@@ -151,12 +151,6 @@ impl SignableMsg {
     ) -> Result<(), Error> {
         match self {
             SignableMsg::Vote(vote) => {
-                if vote.extension.is_empty() {
-                    return Err(Error::protocol(
-                        "can't add signature to empty extension".into(),
-                    ));
-                }
-
                 vote.extension_signature = Some(signature.into());
                 Ok(())
             }
