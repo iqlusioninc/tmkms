@@ -185,7 +185,7 @@ impl ImportCommand {
             DEFAULT_DOMAINS,
             yubihsm::Capability::SIGN_EDDSA | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
             yubihsm::asymmetric::Algorithm::Ed25519,
-            seed.as_bytes().as_ref(),
+            seed.as_bytes(),
         ) {
             status_err!("couldn't import key #{}: {}", self.key_id.unwrap(), e);
             process::exit(1);
