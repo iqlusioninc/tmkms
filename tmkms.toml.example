@@ -16,6 +16,7 @@
 [[chain]]
 id = "cosmoshub-3"
 key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }
+sign_extensions = false # Should vote extensions for this chain be signed? (default: false)
 # state_file = "/path/to/cosmoshub_priv_validator_state.json"
 # state_hook = { cmd = ["/path/to/block/height_script", "--example-arg", "cosmoshub"] }
 
