@@ -16,9 +16,9 @@ fn keys_import_priv_validator_test() {
 
     let out = cli::run_successfully(args.as_slice());
 
-    assert_eq!(true, out.status.success());
-    assert_eq!(true, out.stderr.is_empty());
+    assert!(out.status.success());
+    assert!(out.stderr.is_empty());
 
     let message = str::from_utf8(&out.stdout).unwrap().trim().to_owned();
-    assert_eq!(true, message.contains("key 0x0001"));
+    assert!(message.contains("key 0x0001"));
 }

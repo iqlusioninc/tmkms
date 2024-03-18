@@ -1,7 +1,6 @@
 //! Unix domain socket connection to a validator
 
 use std::io;
-use std::marker::{Send, Sync};
 
 /// Protocol implementation of the UNIX socket domain connection
 pub struct UnixConnection<IoHandler> {

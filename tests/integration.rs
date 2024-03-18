@@ -152,7 +152,7 @@ impl KmsProcess {
             path = "{}"
             key_type = "{}"
         "#,
-            &peer_id.to_string(), port, signing_key_path(&key_type), key_type
+            &peer_id.to_string(), port, signing_key_path(key_type), key_type
         )
         .unwrap();
 
@@ -162,7 +162,7 @@ impl KmsProcess {
     /// Create a config file for a UNIX KMS and return its path
     fn create_unix_config(socket_path: &str, key_type: &KeyType) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
-        let key_path = signing_key_path(&key_type);
+        let key_path = signing_key_path(key_type);
         writeln!(
             config_file,
             r#"
@@ -230,9 +230,9 @@ impl ProtocolTester {
     where
         F: FnOnce(ProtocolTester),
     {
-        let tcp_device = KmsProcess::create_tcp(&key_type);
+        let tcp_device = KmsProcess::create_tcp(key_type);
         let tcp_connection = tcp_device.create_connection();
-        let unix_device = KmsProcess::create_unix(&key_type);
+        let unix_device = KmsProcess::create_unix(key_type);
         let unix_connection = unix_device.create_connection();
 
         functor(Self {

@@ -1,7 +1,7 @@
 //! List keys inside the YubiHSM2
 
 use crate::{chain, keyring, prelude::*, Map};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use clap::Parser;
 use k256::elliptic_curve::generic_array::GenericArray;
 use std::{path::PathBuf, process};

@@ -1,8 +1,8 @@
 //! Create encrypted backups of YubiHSM2 keys
 
-use super::*;
+use super::DEFAULT_WRAP_KEY;
 use crate::{key_utils, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use clap::Parser;
 use std::{path::PathBuf, process};
 

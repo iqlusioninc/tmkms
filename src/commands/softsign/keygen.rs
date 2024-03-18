@@ -1,7 +1,7 @@
 //! `tmkms softsign keygen` subcommand
 
 use crate::{key_utils, keyring::ed25519, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use clap::Parser;
 use k256::ecdsa;
 use rand_core::{OsRng, RngCore};

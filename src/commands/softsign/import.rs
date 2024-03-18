@@ -1,7 +1,7 @@
 //! `tmkms softsign import` command
 
 use crate::{config::provider::softsign::KeyFormat, key_utils, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use clap::Parser;
 use std::{path::PathBuf, process};
 use tendermint::PrivateKey;
