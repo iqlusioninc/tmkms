@@ -23,6 +23,9 @@ pub struct Chain {
     /// ID of a particular chain
     pub id: Id,
 
+    /// Should extensions for this chain be signed?
+    pub sign_extensions: bool,
+
     /// Signing keyring for this chain
     pub keyring: KeyRing,
 
@@ -56,6 +59,7 @@ impl Chain {
 
         Ok(Self {
             id: config.id.clone(),
+            sign_extensions: config.sign_extensions,
             keyring: KeyRing::new(config.key_format.clone()),
             state: Mutex::new(state),
         })
