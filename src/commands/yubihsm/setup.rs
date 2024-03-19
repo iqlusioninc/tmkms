@@ -1,7 +1,7 @@
 //! Set up a new YubiHSM2 or restore from backup
 
 use crate::prelude::*;
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use chrono::{SecondsFormat, Utc};
 use clap::Parser;
 use getrandom::getrandom;

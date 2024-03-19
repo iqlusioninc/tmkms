@@ -1,8 +1,8 @@
 //! Import keys either from encrypted backups or existing plaintext keys
 
-use super::*;
+use super::{DEFAULT_DOMAINS, DEFAULT_WRAP_KEY};
 use crate::{keyring::ed25519, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use clap::Parser;
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;

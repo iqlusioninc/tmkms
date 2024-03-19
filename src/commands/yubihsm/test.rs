@@ -1,7 +1,7 @@
 //! Test the YubiHSM2 is working by performing signatures successively
 
 use crate::prelude::*;
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use clap::Parser;
 use std::{
     path::PathBuf,

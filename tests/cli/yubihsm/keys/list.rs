@@ -13,8 +13,8 @@ fn keys_command_test() {
 
     let out = cli::run_successfully(args.as_slice());
 
-    assert_eq!(true, out.status.success());
-    assert_eq!(true, out.stdout.is_empty());
+    assert!(out.status.success());
+    assert!(out.stdout.is_empty());
 
     let stderr = str::from_utf8(&out.stderr).unwrap().trim().to_owned();
     assert!(stderr.contains("no keys in this YubiHSM"));

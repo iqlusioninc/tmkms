@@ -5,7 +5,7 @@ pub mod networks;
 
 use self::{config_builder::ConfigBuilder, networks::Network};
 use crate::{config::CONFIG_FILE_NAME, key_utils, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use clap::Parser;
 use std::{
     fs,

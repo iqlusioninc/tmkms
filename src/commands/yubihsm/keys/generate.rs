@@ -1,8 +1,8 @@
 //! Generate a new key within the YubiHSM2
 
-use super::*;
+use super::{DEFAULT_DOMAINS, DEFAULT_WRAP_KEY};
 use crate::{config::provider::KeyType, key_utils, prelude::*};
-use abscissa_core::{Command, Runnable};
+use abscissa_core::Command;
 use chrono::{SecondsFormat, Utc};
 use clap::Parser;
 use std::{
