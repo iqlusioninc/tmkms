@@ -53,6 +53,7 @@ uuid = { version = "1", features = ["serde"], optional = true }
 wait-timeout = "0.2"
 yubihsm = { version = "0.42", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
+ed25519-dalek = { version = "2.1.1", features = ["hazmat"] }
 
 [dev-dependencies]
 abscissa_core = { version = "0.7", features = ["testing"] }
