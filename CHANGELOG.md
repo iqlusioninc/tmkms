@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.14.0 (2024-03-28)
+
+NOTE: this release adds a new `sign_extensions` configuration option in
+`tmkms.toml` which needs to be configured for any `[[chain]]` which uses
+extension signing. For an example of how to configure it,
+[see `tmkms.toml.example`](https://github.com/iqlusioninc/tmkms/blob/621bd41/tmkms.toml.example#L19).
+
+### Added
+- Optional `sign_extensions` field to `[[chain]]` config ([#882])
+
+### Changed
+- Always sign extension even when it's empty ([#857], [#867])
+- Bump tendermint-rs dependencies to v0.35; cosmrs v0.16 ([#881])
+
+### Fixed
+- Unused imports and future clippy warnings ([#883])
+
+[#857]: https://github.com/iqlusioninc/tmkms/pull/857
+[#867]: https://github.com/iqlusioninc/tmkms/pull/867
+[#881]: https://github.com/iqlusioninc/tmkms/pull/881
+[#882]: https://github.com/iqlusioninc/tmkms/pull/882
+[#883]: https://github.com/iqlusioninc/tmkms/pull/883
+
 ## 0.13.1 (2024-01-18)
 ### Added
 - `CanonicalVoteExtension` signature support ([#837])
