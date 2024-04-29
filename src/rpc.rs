@@ -7,11 +7,8 @@ use crate::privval::SignableMsg;
 use prost::Message as _;
 use std::io::Read;
 use tendermint::{chain, Proposal, Vote};
+use tendermint_p2p::secret_connection::DATA_MAX_SIZE;
 use tendermint_proto as proto;
-
-// TODO(tarcieri): use `tendermint_p2p::secret_connection::DATA_MAX_SIZE`
-// See informalsystems/tendermint-rs#1356
-const DATA_MAX_SIZE: usize = 262144;
 
 use crate::{
     error::{Error, ErrorKind},
@@ -31,12 +28,36 @@ pub enum Request {
 impl Request {
     /// Read a request from the given readable.
     pub fn read(conn: &mut impl Read, expected_chain_id: &chain::Id) -> Result<Self, Error> {
-        let msg_bytes = read_msg(conn)?;
+        let mut msg_bytes: Vec<u8> = vec![];
+        let msg;
 
-        // Parse Protobuf-encoded request message
-        let msg = proto::privval::Message::decode_length_delimited(msg_bytes.as_ref())
-            .map_err(|e| format_err!(ErrorKind::ProtocolError, "malformed message packet: {}", e))?
-            .sum;
+        // fix for Sei: collect incoming bytes of Protobuf from incoming msg
+        loop {
+            let mut msg_chunk = read_msg(conn)?;
+            let chunk_len = msg_chunk.len();
+            msg_bytes.append(&mut msg_chunk);
+
+            // if we can decode it, great, break the loop
+            match proto::privval::Message::decode_length_delimited(msg_bytes.as_ref()) {
+                Ok(m) => {
+                    msg = m.sum;
+                    break;
+                }
+                Err(e) => {
+                    // if chunk_len < DATA_MAX_SIZE (1024) we assume it was the end of the message and it is malformed
+                    if chunk_len < DATA_MAX_SIZE {
+                        return Err(format_err!(
+                            ErrorKind::ProtocolError,
+                            "malformed message packet: {}",
+                            e
+                        )
+                        .into());
+                    }
+                    // otherwise, we go to start of the loop assuming next chunk(s)
+                    // will fill the message
+                }
+            }
+        }
 
         let (req, chain_id) = match msg {
             Some(proto::privval::message::Sum::SignVoteRequest(
