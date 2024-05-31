@@ -497,7 +497,7 @@ checksum = "82e23f6ab56d5f031cde05b8b82a5fefd3a1a223595c79e32317a97189e612bc"
 dependencies = [
  "prost",
  "prost-types",
- "tendermint-proto",
+ "tendermint-proto 0.35.0",
 ]
 
 [[package]]
@@ -2233,7 +2233,7 @@ dependencies = [
  "signature",
  "subtle",
  "subtle-encoding",
- "tendermint-proto",
+ "tendermint-proto 0.35.0",
  "time",
  "zeroize",
 ]
@@ -2273,7 +2273,7 @@ dependencies = [
  "signature",
  "subtle",
  "tendermint",
- "tendermint-proto",
+ "tendermint-proto 0.35.0",
  "tendermint-std-ext",
  "zeroize",
 ]
@@ -2288,6 +2288,22 @@ dependencies = [
  "flex-error",
  "num-derive",
  "num-traits",
+ "prost",
+ "prost-types",
+ "serde",
+ "serde_bytes",
+ "subtle-encoding",
+ "time",
+]
+
+[[package]]
+name = "tendermint-proto"
+version = "0.37.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc87024548c7f3da479885201e3da20ef29e85a3b13d04606b380ac4c7120d87"
+dependencies = [
+ "bytes",
+ "flex-error",
  "prost",
  "prost-types",
  "serde",
@@ -2435,7 +2451,7 @@ dependencies = [
  "tendermint",
  "tendermint-config",
  "tendermint-p2p",
- "tendermint-proto",
+ "tendermint-proto 0.37.0",
  "thiserror",
  "url 2.5.0",
  "uuid",
