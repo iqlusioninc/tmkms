@@ -60,7 +60,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
                 let consensus_pubkey =
                     TendermintKey::ConsensusKey(signing_key.verifying_key().into());
 
-                let signer = keyring::ed25519::Signer::new(
+                let signer = ed25519::Signer::new(
                     SigningProvider::SoftSign,
                     consensus_pubkey,
                     Box::new(signing_key),
