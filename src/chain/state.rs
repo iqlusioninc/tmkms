@@ -137,7 +137,7 @@ impl State {
             let delta = hook_height - last_height;
 
             if delta < hook::BLOCK_HEIGHT_SANITY_LIMIT {
-                let new_state = tendermint::consensus::State {
+                let new_state = consensus::State {
                     height: output.latest_block_height,
                     ..Default::default()
                 };
@@ -164,7 +164,7 @@ impl State {
 
     /// Write the initial state to the given path on disk
     fn write_initial_state(path: &Path) -> Result<Self, Error> {
-        let consensus_state = tendermint::consensus::State {
+        let consensus_state = consensus::State {
             height: 0u32.into(),
             ..Default::default()
         };
