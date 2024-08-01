@@ -176,8 +176,7 @@ impl ImportCommand {
             _ => unreachable!(),
         };
 
-        let label =
-            yubihsm::object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
+        let label = object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
 
         if let Err(e) = crate::yubihsm::client().put_asymmetric_key(
             key_id,
@@ -222,8 +221,7 @@ impl ImportCommand {
             process::exit(1);
         });
 
-        let label =
-            yubihsm::object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
+        let label = object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
 
         if let Err(e) = crate::yubihsm::client().put_asymmetric_key(
             key_id,

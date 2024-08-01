@@ -194,7 +194,7 @@ fn add_key(
             }
         }
         KeyType::Consensus => {
-            let signer = keyring::ed25519::Signer::new(
+            let signer = ed25519::Signer::new(
                 SigningProvider::FortanixDsm,
                 public_key,
                 Box::new(signing_key),
