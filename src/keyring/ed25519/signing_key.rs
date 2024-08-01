@@ -113,8 +113,12 @@ impl TryFrom<&[u8]> for SigningKey {
                 )
         } else if slice.len() == (SigningKey::EXPANDED_BYTE_SIZE + SigningKey::PUBLIC_KEY_BYTE_SIZE) {
             // Assume key is little-endian encoded expanded secret key. (Exported from YubiHSM.)
-            slice[0..32].reverse();
-            slice[0..SigningKey::EXPANDED_BYTE_SIZE]
+            let mut slice_copy: [u8; SigningKey::EXPANDED_BYTE_SIZE
+                + SigningKey::PUBLIC_KEY_BYTE_SIZE] =
+                [0; SigningKey::EXPANDED_BYTE_SIZE + SigningKey::PUBLIC_KEY_BYTE_SIZE];
+            slice_copy.copy_from_slice(slice);
+            slice_copy[0..32].reverse();
+            slice_copy[0..SigningKey::EXPANDED_BYTE_SIZE]
                 .try_into()
                 .map(|e| SigningKey::Ed25519Expanded(e))
                 .map_err(|_| ErrorKind::InvalidKey.into()
