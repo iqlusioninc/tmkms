@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use prost::Message;
 use rand::Rng;
 use signature::Verifier;
+use std::fs::File;
 use std::{
     fs,
     io::{self, Cursor, Read, Write},
@@ -617,6 +618,20 @@ fn test_handle_and_sign_ping_pong() {
     });
 }
 
+#[test]
+fn test_buffer_underflow_sign_proposal() {
+    let key_type = KeyType::Consensus;
+    ProtocolTester::apply(&key_type, |mut pt| {
+        send_buffer_underflow_request(&mut pt);
+        let response: Result<(), ()> = match read_response(&mut pt) {
+            proto::privval::message::Sum::SignedProposalResponse(_) => Ok(()),
+            other => panic!("unexpected message type in response: {other:?}"),
+        };
+
+        assert!(response.is_ok());
+    });
+}
+
 /// Encode request as a Protobuf message
 fn send_request(request: proto::privval::message::Sum, pt: &mut ProtocolTester) {
     let mut buf = vec![];
@@ -624,6 +639,15 @@ fn send_request(request: proto::privval::message::Sum, pt: &mut ProtocolTester) 
         .encode_length_delimited(&mut buf)
         .unwrap();
 
+    pt.write_all(&buf).unwrap();
+}
+
+/// Opens a binary file with big proposal (> 1024 bytes, from Sei network)
+/// and sends via protocol tester
+fn send_buffer_underflow_request(pt: &mut ProtocolTester) {
+    let mut file = File::open("tests/support/buffer-underflow-proposal.bin").unwrap();
+    let mut buf = Vec::<u8>::new();
+    file.read_to_end(&mut buf).unwrap();
     pt.write_all(&buf).unwrap();
 }
 
