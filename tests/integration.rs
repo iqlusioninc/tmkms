@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use prost::Message;
 use rand::Rng;
 use signature::Verifier;
+use std::fs::File;
 use std::{
     fs,
     io::{self, Cursor, Read, Write},
@@ -756,8 +757,9 @@ fn test_handle_and_sign_ping_pong() {
 
 #[test]
 fn test_buffer_underflow_sign_proposal() {
+    let provider = SigningProvider::SoftSign;
     let key_type = KeyType::Consensus;
-    ProtocolTester::apply(&key_type, |mut pt| {
+    ProtocolTester::apply(&key_type, provider, |mut pt| {
         send_buffer_underflow_request(&mut pt);
         let response: Result<(), ()> = match read_response(&mut pt) {
             proto::privval::message::Sum::SignedProposalResponse(_) => Ok(()),
