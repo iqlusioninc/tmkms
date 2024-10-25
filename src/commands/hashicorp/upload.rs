@@ -5,7 +5,6 @@ use crate::{config::provider::hashicorp::HashiCorpConfig, prelude::*};
 use abscissa_core::{Command, Runnable};
 use aes_kw;
 use clap::Parser;
-use serde::Serialize;
 use std::{path::PathBuf, process};
 
 use crate::keyring::providers::hashicorp::{client, error};
@@ -51,15 +50,6 @@ pub struct UploadCommand {
     /// this allows for all the valid keys in the key ring to be exported. Once set, this cannot be disabled.
     #[clap(long = "exportable")]
     exportable: bool,
-}
-
-/// Import Secret Key Request
-#[derive(Debug, Serialize)]
-struct ImportRequest {
-    #[serde(default = "ed25519")]
-    r#type: String,
-
-    ciphertext: String,
 }
 
 impl Runnable for UploadCommand {

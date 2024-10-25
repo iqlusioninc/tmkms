@@ -184,7 +184,7 @@ impl TendermintValidatorApp {
             .set(VAULT_TOKEN, &self.token)
             .call()
             .map_err(|e| {
-                super::error::Error::Combined(
+                Error::Combined(
                     "Is \"access_token\" value correct?".into(),
                     Box::new(e.into()),
                 )
