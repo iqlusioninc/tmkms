@@ -1,8 +1,9 @@
 //! Test the Hashicorp is working by performing signatures successively
 
 use crate::keyring::ed25519;
-use crate::{config::provider::hashicorp::HashiCorpConfig, prelude::*};
-use abscissa_core::{Command, Runnable};
+use crate::config::KmsConfig;
+use crate::{config::provider::hashicorp::{HashiCorpConfig, AuthConfig, SigningKeyConfig}, prelude::*};
+use abscissa_core::{Config, Command, Runnable, path::AbsPathBuf};
 use aes_kw;
 use clap::Parser;
 use std::{path::PathBuf, process};
@@ -35,6 +36,10 @@ pub struct UploadCommand {
     #[clap(help = "Key ID")]
     key_name: String,
 
+    /// signing key chain-id (if there are multiple keys with the same name)
+    #[clap(long = "chain-id", help = "signing key chain-id")]
+    chain_id: Option<String>,
+
     /// base64 encoded key file to upload
     #[clap(group = "payload_arg", long = "payload-file")]
     pub payload_file: Option<String>,
@@ -42,10 +47,6 @@ pub struct UploadCommand {
     /// base64 encoded key to upload
     #[clap(group = "payload_arg", long = "payload")]
     pub payload: Option<String>,
-
-    /// verify that provided key name is defined in the config
-    #[clap(long = "no-check-defined-key")]
-    no_check_defined_key: bool,
 
     /// this allows for all the valid keys in the key ring to be exported. Once set, this cannot be disabled.
     #[clap(long = "exportable")]
@@ -65,26 +66,53 @@ impl Runnable for UploadCommand {
             process::exit(1);
         }
 
-        let config = APP.config();
+        if self.config.is_some() {
+            let canonical_path = AbsPathBuf::canonicalize(self.config.as_ref().unwrap()).unwrap();
+            let config = KmsConfig::load_toml_file(canonical_path).expect("error loading config file");
 
-        if config.providers.hashicorp.len() != 1 {
-            status_err!(
-                "expected one [hashicorp.provider] in config, found: {}",
-                config.providers.hashicorp.len()
-            );
+            if config.providers.hashicorp.len() != 1 {
+                status_err!(
+                    "expected one [hashicorp.provider] in config, found: {}",
+                    config.providers.hashicorp.len()
+                );
+            }
+
+            let cfg = &config.providers.hashicorp[0];
+
+            if self.config.is_some() && !cfg.keys.iter().any(|k| k.key == self.key_name) {
+                status_err!(
+                    "expected the key: {} to be present in the config, but it isn't there",
+                    self.key_name
+                );
+                process::exit(1);
+            }
+
+            self.upload(cfg);
+        } else {
+            let vault_addr: String = std::env::var("VAULT_ADDR").expect("VAULT_ADDR is not set!");
+            let vault_token: String = std::env::var("VAULT_TOKEN").expect("VAULT_TOKEN is not set!");
+            let vault_cacert: Option<String> = std::env::var("VAULT_CACERT").ok();
+            let vault_skip_verify: Option<bool> = std::env::var("VAULT_SKIP_VERIFY").ok().map(|v| v.parse().unwrap());
+
+            let cfg = HashiCorpConfig{
+                keys: vec![
+                    SigningKeyConfig {
+                        chain_id: tendermint::chain::Id::try_from("mock-chain-id").unwrap(),
+                        key: self.key_name.clone(),
+                        auth: AuthConfig::String {
+                            access_token: vault_token,
+                        }
+                    }
+                ],
+                adapter: crate::config::provider::hashicorp::AdapterConfig {
+                    vault_addr,
+                    vault_cacert,
+                    vault_skip_verify,
+                }
+            };
+
+            self.upload(&cfg);
         }
-
-        let cfg = &config.providers.hashicorp[0];
-
-        if !self.no_check_defined_key && !cfg.keys.iter().any(|k| k.key == self.key_name) {
-            status_err!(
-                "expected the key: {} to be present in the config, but it isn't there",
-                self.key_name
-            );
-            process::exit(1);
-        }
-
-        self.upload(cfg);
     }
 }
 
@@ -94,26 +122,12 @@ impl UploadCommand {
         // https://learn.hashicorp.com/tutorials/vault/eaas-transit
 
         // root token or token with enough admin rights
-        let vault_token = if !self.no_check_defined_key {
-            let signing_key = config
-                .keys
-                .iter()
-                .find(|k| k.key == self.key_name)
-                .expect("unable to find key name in the config");
-
-            signing_key.auth.access_token()
-        } else {
-            std::env::var("VAULT_TOKEN")
-                .expect("root token \"VAULT_TOKEN\" is not set (confg token is NOT used)!")
-        };
-
         let base64_key: String = if self.payload.is_some() {
             self.payload.clone().unwrap()
         } else if self.payload_file.is_some() {
             std::fs::read_to_string(self.payload_file.clone().unwrap())
                 .expect("unable to read payload file")
-                .strip_suffix('\n')
-                .unwrap()
+                .trim_end_matches('\n')
                 .into()
         } else {
             status_err!("payload and payload_file are undefined");
@@ -126,7 +140,12 @@ impl UploadCommand {
         // create app instance
         let app = client::TendermintValidatorApp::connect(
             &config.adapter.vault_addr,
-            &vault_token,
+            &config.keys.iter().find(|k| {
+                if self.chain_id.is_some() && self.chain_id.clone().unwrap() != k.chain_id.as_str() {
+                    return false;
+                }
+                k.key == self.key_name
+            }).unwrap().auth.access_token(),
             &self.key_name,
             config.adapter.vault_cacert.to_owned(),
             config.adapter.vault_skip_verify.to_owned(),
@@ -291,7 +310,6 @@ mod tests {
             config: None,
             payload: Some(ED25519.into()),
             payload_file: None,
-            no_check_defined_key: false,
             exportable: false,
         };
 

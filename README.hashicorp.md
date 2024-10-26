@@ -171,3 +171,19 @@ vault token create \
 ```
 6.  To import an existing tendermint key (this is TODO).
 ```
+
+### Uploading a new key with the CLI
+```bash
+# generate new key
+tmkms softsign keygen -t consensus ./new-softsign-key
+
+# setup VAULT env
+export VAULT_ADDR="https://..."
+export VAULT_TOKEN="..."
+
+# upload key
+tmkms hashicorp upload new-key --payload-file ./new-softsign-key
+
+# test the key
+tmkms hashicorp test new-key "test message"
+```
