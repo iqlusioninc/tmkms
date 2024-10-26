@@ -229,5 +229,8 @@ pub fn load_config(registry: &mut chain::Registry, config: &ProviderConfig) -> R
     #[cfg(feature = "fortanixdsm")]
     providers::fortanixdsm::init(registry, &config.fortanixdsm)?;
 
+    #[cfg(feature = "hashicorp")]
+    providers::hashicorp::init(registry, &config.hashicorp)?;
+
     Ok(())
 }

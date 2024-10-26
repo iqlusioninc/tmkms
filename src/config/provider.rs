@@ -2,6 +2,8 @@
 
 #[cfg(feature = "fortanixdsm")]
 pub mod fortanixdsm;
+#[cfg(feature = "hashicorp")]
+pub mod hashicorp;
 #[cfg(feature = "ledger")]
 pub mod ledgertm;
 #[cfg(feature = "softsign")]
@@ -11,6 +13,8 @@ pub mod yubihsm;
 
 #[cfg(feature = "fortanixdsm")]
 use self::fortanixdsm::FortanixDsmConfig;
+#[cfg(feature = "hashicorp")]
+use self::hashicorp::HashiCorpConfig;
 #[cfg(feature = "ledger")]
 use self::ledgertm::LedgerTendermintConfig;
 #[cfg(feature = "softsign")]
@@ -44,6 +48,11 @@ pub struct ProviderConfig {
     #[cfg(feature = "fortanixdsm")]
     #[serde(default)]
     pub fortanixdsm: Vec<FortanixDsmConfig>,
+
+    /// HashiCorp Vault provider configurations
+    #[cfg(feature = "hashicorp")]
+    #[serde(default)]
+    pub hashicorp: Vec<HashiCorpConfig>,
 }
 
 /// Types of cryptographic keys
