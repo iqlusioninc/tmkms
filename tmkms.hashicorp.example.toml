@@ -13,14 +13,15 @@ key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_
 state_file = "/home/soleinik/work/rust/tmkms/state/cosmoshub-3-consensus.json"
 
 ## Signing Provider Configuration
+[[providers.hashicorp]]
 [[providers.hashicorp.keys]]
 chain_id = "cosmoshub-4"
-access_token = "hvs.CAESIBwDAKQh2JKuxibeHOV-jmc2T68loAKLNWO2_QX1l7L3Gh4KHGh2cy5iYnRJRVVLdHBqTVMwUGdLZFNGWjNCZkc"
+auth.access_token = "..."
 key = "cosmoshub-sign-key"
 
 [[providers.hashicorp.keys]]
-chain_id = "cosmoshub-4"
-access_token = "hvs.CAESIBwDAKQh2JKuxibeHOV-jmc2T68loAKLNWO2_QX1l7L3Gh4KHGh2cy5iYnRJRVVLdHBqTVMwUGdLZFNGWjNCZkc"
+chain_id = "cosmoshub-3"
+auth.access_token = "..."
 key = "cosmoshub-sign-key"
 
 [providers.hashicorp.adapter]
@@ -34,4 +35,3 @@ vault_addr = "http://127.0.0.1:8200"
 # secret_key = "/home/soleinik/work/rust/tmkms/secrets/kms-identity.key"
 # protocol_version = "legacy"
 # reconnect = true
-

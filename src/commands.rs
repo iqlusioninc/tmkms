@@ -85,8 +85,6 @@ impl Configurable<KmsConfig> for KmsCommand {
             KmsCommand::Yubihsm(yubihsm) => yubihsm.config_path(),
             #[cfg(feature = "ledger")]
             KmsCommand::Ledger(ledger) => ledger.config_path(),
-            #[cfg(feature = "hashicorp")]
-            KmsCommand::Hashicorp(hashicorp) => hashicorp.config_path(),
             _ => return None,
         };
 
