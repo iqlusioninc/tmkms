@@ -1,6 +1,6 @@
 use abscissa_core::prelude::*;
 use std::collections::{BTreeMap, HashMap};
-use std::{fs, sync};
+use std::sync;
 
 use super::error::Error;
 
@@ -10,6 +10,10 @@ use ureq::Agent;
 use crate::keyring::ed25519;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use rustls::pki_types::{CertificateDer, ServerName, UnixTime, pem::PemObject};
+use rustls::client::danger::{ServerCertVerifier, ServerCertVerified, HandshakeSignatureValid};
+use rustls::{DigitallySignedStruct, SignatureScheme};
 
 pub const CONSENUS_KEY_TYPE: &str = "ed25519";
 const VAULT_TOKEN: &str = "X-Vault-Token";
@@ -122,6 +126,58 @@ impl std::fmt::Display for CreateKeyType {
     }
 }
 
+#[derive(Debug)]
+struct NoVerification;
+
+impl ServerCertVerifier for NoVerification {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _server_name: &ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: UnixTime,
+    ) -> Result<ServerCertVerified, rustls::Error> {
+        Ok(ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, rustls::Error> {
+        Ok(HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, rustls::Error> {
+        Ok(HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+        vec![
+            SignatureScheme::RSA_PKCS1_SHA1,
+            SignatureScheme::ECDSA_SHA1_Legacy,
+            SignatureScheme::RSA_PKCS1_SHA256,
+            SignatureScheme::ECDSA_NISTP256_SHA256,
+            SignatureScheme::RSA_PKCS1_SHA384,
+            SignatureScheme::ECDSA_NISTP384_SHA384,
+            SignatureScheme::RSA_PKCS1_SHA512,
+            SignatureScheme::ECDSA_NISTP521_SHA512,
+            SignatureScheme::RSA_PSS_SHA256,
+            SignatureScheme::RSA_PSS_SHA384,
+            SignatureScheme::RSA_PSS_SHA512,
+            SignatureScheme::ED25519,
+            SignatureScheme::ED448,
+        ]
+    }
+}
+
 impl TendermintValidatorApp {
     pub fn connect(
         api_endpoint: &str,
@@ -144,21 +200,31 @@ impl TendermintValidatorApp {
             ));
 
         if ca_cert.is_some() || skip_verify.is_some() {
-            let mut builder = native_tls::TlsConnector::builder();
+            // see https://docs.rs/rustls/latest/rustls/crypto/struct.CryptoProvider.html#method.install_default
+            rustls::crypto::ring::default_provider().install_default().expect("Failed to install rustls crypto provider");
 
-            if let Some(ca_cert) = ca_cert {
-                let cert_bytes = fs::read(ca_cert).expect("Failed to read cert file");
-                let root_cert = native_tls::Certificate::from_pem(&cert_bytes)
-                    .expect("Failed to parse PEM certificate");
-                builder.add_root_certificate(root_cert);
-            }
+            let tls_config_builder = rustls::ClientConfig::builder();
 
             if skip_verify.is_some_and(|x| x) {
-                builder.danger_accept_invalid_certs(true);
-            }
+                let tls_config = tls_config_builder
+                    .dangerous()
+                    .with_custom_certificate_verifier(sync::Arc::new(NoVerification))
+                    .with_no_client_auth();
 
-            let connector = builder.build().expect("failed to construct TLS connector");
-            agent_builder = agent_builder.tls_connector(sync::Arc::new(connector))
+                agent_builder = agent_builder.tls_config(sync::Arc::new(tls_config));
+            } else if let Some(ca_cert) = ca_cert {
+                let mut roots = rustls::RootCertStore::empty();
+
+                let certs: Vec<_> = CertificateDer::pem_file_iter(ca_cert).unwrap().collect();
+                for cert in certs {
+                    roots.add(cert.unwrap()).unwrap();
+                }
+
+                let tls_config = tls_config_builder
+                    .with_root_certificates(roots)
+                    .with_no_client_auth();
+                agent_builder = agent_builder.tls_config(sync::Arc::new(tls_config));
+            }
         }
 
         let agent: Agent = agent_builder.build();

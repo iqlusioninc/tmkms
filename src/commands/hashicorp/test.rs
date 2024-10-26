@@ -108,8 +108,8 @@ impl Runnable for TestCommand {
             &cfg.adapter.vault_addr,
             &signing_key.auth.access_token(),
             &self.key_name,
-            None,
-            None,
+            cfg.adapter.vault_cacert,
+            cfg.adapter.vault_skip_verify,
         )
         .unwrap_or_else(|e| {
             panic!(

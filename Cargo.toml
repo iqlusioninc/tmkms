@@ -55,13 +55,13 @@ yubihsm = { version = "0.42", features = ["secp256k1", "setup", "usb"], optional
 zeroize = "1"
 
 # HashiCorp deps
-ureq = { version = "~2.5", default-features=false, features = ["tls", "native-tls", "json", "gzip"], optional = true}
-native-tls = { version = "0.2", optional = true }
+ureq = { version = "2.10.1", default-features=false, features = ["tls", "json", "gzip"], optional = true}
 base64 = { version = "0.13.0", optional = true}
 aes-kw = { version = "0.2.1", features = ["std"], optional = true}
 rsa = { version = "0.6.1", default = true, optional = true}
 rand = { version = "0.7", optional = true}
 aes-gcm = { version = "0.10.1", optional = true}
+rustls = { version = "0.23.15", features = ["ring"] }
 
 [dev-dependencies]
 abscissa_core = { version = "0.8", features = ["testing"] }
@@ -74,7 +74,7 @@ softsign = []
 yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
-hashicorp = ["ureq", "base64", "aes-kw", "rsa", "rand", "aes-gcm", "native-tls"]
+hashicorp = ["ureq", "base64", "aes-kw", "rsa", "rand", "aes-gcm"]
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]
