@@ -3,13 +3,13 @@
 use crate::commands::hashicorp::util::read_config;
 use crate::prelude::*;
 use abscissa_core::{Command, Runnable};
+use base64;
 use clap::Parser;
-use signature::SignerMut;
-use std::{path::PathBuf, process, time::Instant};
+use std::{path::PathBuf, process};
 
 /// The `hashicorp test` subcommand
 #[derive(Command, Debug, Default, Parser)]
-pub struct TestCommand {
+pub struct PubkeyCommand {
     /// path to tmkms.toml
     #[clap(
         short = 'c',
@@ -27,16 +27,12 @@ pub struct TestCommand {
     #[clap(help = "vault's transit secret engine signing key")]
     key_name: String,
 
-    /// test message
-    #[clap(help = "message to sign")]
-    test_messsage: String,
-
     /// signing key chain-id (if there are multiple keys with the same name)
     #[clap(long = "chain-id", help = "signing key chain-id")]
     chain_id: Option<String>,
 }
 
-impl Runnable for TestCommand {
+impl Runnable for PubkeyCommand {
     /// Perform a signing test using the current TMKMS configuration
     fn run(&self) {
         if self.key_name.is_empty() {
@@ -57,32 +53,24 @@ impl Runnable for TestCommand {
             })
             .expect("Unable to find key name in the config");
 
-        let started_at = Instant::now();
-
-        let app = crate::keyring::providers::hashicorp::client::TendermintValidatorApp::connect(
-            &cfg.adapter.vault_addr,
-            &signing_key.auth.access_token(),
-            &self.key_name,
-            cfg.adapter.vault_cacert,
-            cfg.adapter.vault_skip_verify,
-            cfg.adapter.cache_pk,
-        )
-        .unwrap_or_else(|e| {
-            panic!(
-                "Unable to connect to Vault {} {}",
-                cfg.adapter.vault_addr, e
-            )
-        });
-
         let mut app =
-            crate::keyring::providers::hashicorp::signer::Ed25519HashiCorpAppSigner::new(app);
+            crate::keyring::providers::hashicorp::client::TendermintValidatorApp::connect(
+                &cfg.adapter.vault_addr,
+                &signing_key.auth.access_token(),
+                &self.key_name,
+                cfg.adapter.vault_cacert,
+                cfg.adapter.vault_skip_verify,
+                cfg.adapter.cache_pk,
+            )
+            .unwrap_or_else(|e| {
+                panic!(
+                    "Unable to connect to Vault {} {}",
+                    cfg.adapter.vault_addr, e
+                )
+            });
 
-        let signature = app.try_sign(self.test_messsage.as_bytes()).unwrap();
+        let t = app.public_key().unwrap();
 
-        println!(
-            "Elapsed:{} ms. Result: {:?}",
-            started_at.elapsed().as_millis(),
-            signature
-        );
+        println!("{}", base64::encode(t));
     }
 }

@@ -2,6 +2,7 @@
 pub(crate) mod client;
 pub(crate) mod error;
 pub(crate) mod signer;
+pub(crate) mod vault_client;
 
 use crate::{
     chain,
@@ -43,6 +44,7 @@ pub fn init(
             &key_config.key,
             config.adapter.vault_cacert.to_owned(),
             config.adapter.vault_skip_verify.to_owned(),
+            config.adapter.cache_pk,
         )
         .unwrap_or_else(|_| {
             panic!(

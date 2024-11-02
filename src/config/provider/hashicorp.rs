@@ -56,6 +56,9 @@ pub struct AdapterConfig {
 
     /// Do not verify HashiCorp Vault's presented certificate before communicating with it
     pub vault_skip_verify: Option<bool>,
+
+    /// Enable public key caching. Vault API returns all key versions which may be expensive, in such case you can cache the public key and return it from tmkms cache
+    pub cache_pk: bool,
 }
 
 /// Signing key configuration

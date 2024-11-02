@@ -1,14 +1,14 @@
 //! Test the Hashicorp is working by performing signatures successively
 
 use crate::keyring::ed25519;
-use crate::config::KmsConfig;
-use crate::{config::provider::hashicorp::{HashiCorpConfig, AuthConfig, SigningKeyConfig}, prelude::*};
-use abscissa_core::{Config, Command, Runnable, path::AbsPathBuf};
+use crate::{config::provider::hashicorp::HashiCorpConfig, prelude::*};
+use abscissa_core::{Command, Runnable};
 use aes_kw;
 use clap::Parser;
 use std::{path::PathBuf, process};
 
-use crate::keyring::providers::hashicorp::{client, error};
+use crate::commands::hashicorp::util::read_config;
+use crate::keyring::providers::hashicorp::{client, error, vault_client};
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 /// AES256 key length
@@ -66,53 +66,8 @@ impl Runnable for UploadCommand {
             process::exit(1);
         }
 
-        if self.config.is_some() {
-            let canonical_path = AbsPathBuf::canonicalize(self.config.as_ref().unwrap()).unwrap();
-            let config = KmsConfig::load_toml_file(canonical_path).expect("error loading config file");
-
-            if config.providers.hashicorp.len() != 1 {
-                status_err!(
-                    "expected one [hashicorp.provider] in config, found: {}",
-                    config.providers.hashicorp.len()
-                );
-            }
-
-            let cfg = &config.providers.hashicorp[0];
-
-            if self.config.is_some() && !cfg.keys.iter().any(|k| k.key == self.key_name) {
-                status_err!(
-                    "expected the key: {} to be present in the config, but it isn't there",
-                    self.key_name
-                );
-                process::exit(1);
-            }
-
-            self.upload(cfg);
-        } else {
-            let vault_addr: String = std::env::var("VAULT_ADDR").expect("VAULT_ADDR is not set!");
-            let vault_token: String = std::env::var("VAULT_TOKEN").expect("VAULT_TOKEN is not set!");
-            let vault_cacert: Option<String> = std::env::var("VAULT_CACERT").ok();
-            let vault_skip_verify: Option<bool> = std::env::var("VAULT_SKIP_VERIFY").ok().map(|v| v.parse().unwrap());
-
-            let cfg = HashiCorpConfig{
-                keys: vec![
-                    SigningKeyConfig {
-                        chain_id: tendermint::chain::Id::try_from("mock-chain-id").unwrap(),
-                        key: self.key_name.clone(),
-                        auth: AuthConfig::String {
-                            access_token: vault_token,
-                        }
-                    }
-                ],
-                adapter: crate::config::provider::hashicorp::AdapterConfig {
-                    vault_addr,
-                    vault_cacert,
-                    vault_skip_verify,
-                }
-            };
-
-            self.upload(&cfg);
-        }
+        let cfg = read_config(&self.config, self.key_name.as_str());
+        self.upload(&cfg);
     }
 }
 
@@ -140,15 +95,24 @@ impl UploadCommand {
         // create app instance
         let app = client::TendermintValidatorApp::connect(
             &config.adapter.vault_addr,
-            &config.keys.iter().find(|k| {
-                if self.chain_id.is_some() && self.chain_id.clone().unwrap() != k.chain_id.as_str() {
-                    return false;
-                }
-                k.key == self.key_name
-            }).unwrap().auth.access_token(),
+            &config
+                .keys
+                .iter()
+                .find(|k| {
+                    if self.chain_id.is_some()
+                        && self.chain_id.clone().unwrap() != k.chain_id.as_str()
+                    {
+                        return false;
+                    }
+                    k.key == self.key_name
+                })
+                .unwrap()
+                .auth
+                .access_token(),
             &self.key_name,
             config.adapter.vault_cacert.to_owned(),
             config.adapter.vault_skip_verify.to_owned(),
+            config.adapter.cache_pk,
         )
         .unwrap_or_else(|_| {
             panic!(
@@ -195,7 +159,7 @@ impl UploadCommand {
 
         app.import_key(
             &self.key_name,
-            client::CreateKeyType::Ed25519,
+            vault_client::CreateKeyType::Ed25519,
             &base64::encode(wrapped_aes),
             self.exportable,
         )
@@ -307,6 +271,7 @@ mod tests {
         let cmd = UploadCommand {
             verbose: false,
             key_name: KEY_NAME.into(),
+            chain_id: None,
             config: None,
             payload: Some(ED25519.into()),
             payload_file: None,
@@ -318,6 +283,7 @@ mod tests {
                 vault_addr: format!("http://{}", server_address()),
                 vault_cacert: None,
                 vault_skip_verify: Some(false),
+                cache_pk: false,
             },
             keys: [SigningKeyConfig {
                 chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),

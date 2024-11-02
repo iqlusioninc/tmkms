@@ -1,8 +1,11 @@
 //! `tmkms hashicorp` CLI (sub)commands
 
+mod pubkey;
 mod test;
 mod upload;
+mod util;
 
+pub use self::pubkey::PubkeyCommand;
 pub use self::test::TestCommand;
 pub use self::upload::UploadCommand;
 
@@ -17,6 +20,9 @@ pub enum HashicorpCommand {
 
     /// upload priv/pub key
     Upload(UploadCommand),
+
+    /// print public key
+    Pubkey(PubkeyCommand),
 }
 
 impl HashicorpCommand {
@@ -24,6 +30,7 @@ impl HashicorpCommand {
         match self {
             HashicorpCommand::Test(test) => test.verbose,
             HashicorpCommand::Upload(test) => test.verbose,
+            HashicorpCommand::Pubkey(test) => test.verbose,
         }
     }
 }
