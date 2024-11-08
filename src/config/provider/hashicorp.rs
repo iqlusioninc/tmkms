@@ -45,7 +45,35 @@ impl AuthConfig {
     }
 }
 
-/// Configuration for an individual YubiHSM
+/// Endpoints configuration for Hashicorp Vault instance
+#[derive(Clone, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct VaultEndpointConfig {
+    /// HashiCorp Vault API endpoint path to retrieve public keys etc.
+    pub keys: String,
+
+    /// HashiCorp Vault API endpoint path to perform a handshake
+    pub hand_shake: String,
+
+    /// HashiCorp Vault API endpoint path to recieve a wrapping key
+    pub wrapping_key: String,
+
+    /// HashiCorp Vault API endpoint path to sign a message (e.g. prevote)
+    pub sign: String,
+}
+
+impl Default for VaultEndpointConfig {
+    fn default() -> Self {
+        VaultEndpointConfig {
+            keys: "/v1/transit/keys".into(),
+            hand_shake: "/v1/auth/token/lookup-self".into(),
+            wrapping_key: "/v1/transit/wrapping_key".into(),
+            sign: "/v1/transit/sign".into(),
+        }
+    }
+}
+
+/// Configuration for Hashicorp Vault instance
 #[derive(Clone, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct AdapterConfig {
@@ -60,6 +88,9 @@ pub struct AdapterConfig {
 
     /// Enable tmkms in-memory public key caching. Vault API returns all key versions which may be expensive, in such case you can cache the public key and return it from tmkms cache
     pub cache_pk: Option<bool>,
+
+    /// Endpoints configuration for Vault core operations
+    pub endpoints: Option<VaultEndpointConfig>,
 }
 
 /// Signing key configuration

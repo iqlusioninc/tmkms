@@ -10,6 +10,7 @@ use ureq::Agent;
 use crate::keyring::ed25519;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use crate::config::provider::hashicorp::VaultEndpointConfig;
 
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::{pem::PemObject, CertificateDer, ServerName, UnixTime};
@@ -167,6 +168,7 @@ impl ServerCertVerifier for NoVerification {
 pub(crate) struct VaultClient {
     agent: Agent,
     api_endpoint: String,
+    endpoints: VaultEndpointConfig,
     token: String,
 }
 
@@ -177,6 +179,7 @@ impl VaultClient {
     pub fn new(
         api_endpoint: &str,
         token: &str,
+        endpoints: Option<VaultEndpointConfig>,
         ca_cert: Option<String>,
         skip_verify: Option<bool>,
     ) -> Self {
@@ -227,6 +230,7 @@ impl VaultClient {
 
         VaultClient {
             api_endpoint: api_endpoint.into(),
+            endpoints: endpoints.unwrap_or_default(),
             agent,
             token: token.into(),
         }
@@ -246,8 +250,8 @@ impl VaultClient {
         let data = if let Some(data) = self
             .agent
             .get(&format!(
-                "{}/v1/transit/keys/{}",
-                self.api_endpoint, key_name
+                "{}{}/{}",
+                self.api_endpoint, self.endpoints.keys, key_name
             ))
             .set(VAULT_TOKEN, &self.token)
             .call()?
@@ -311,7 +315,10 @@ impl VaultClient {
     pub fn hand_shake(&self) -> Result<(), Error> {
         let _ = self
             .agent
-            .get(&format!("{}/v1/auth/token/lookup-self", self.api_endpoint))
+            .get(&format!(
+                "{}{}",
+                self.api_endpoint, self.endpoints.hand_shake,
+            ))
             .set(VAULT_TOKEN, &self.token)
             .call()
             .map_err(|e| {
@@ -345,8 +352,8 @@ impl VaultClient {
         let data = if let Some(data) = self
             .agent
             .post(&format!(
-                "{}/v1/transit/sign/{}",
-                self.api_endpoint, key_name
+                "{}{}/{}",
+                self.api_endpoint, self.endpoints.sign, key_name
             ))
             .set(VAULT_TOKEN, &self.token)
             .send_json(body)?
@@ -397,7 +404,10 @@ impl VaultClient {
 
         let data = if let Some(data) = self
             .agent
-            .get(&format!("{}/v1/transit/wrapping_key", self.api_endpoint))
+            .get(&format!(
+                "{}{}",
+                self.api_endpoint, self.endpoints.wrapping_key
+            ))
             .set(VAULT_TOKEN, &self.token)
             .call()?
             .into_json::<Root<PublicKeyResponse>>()?
@@ -428,8 +438,8 @@ impl VaultClient {
         let _ = self
             .agent
             .post(&format!(
-                "{}/v1/transit/keys/{}/import",
-                self.api_endpoint, key_name
+                "{}{}/{}/import",
+                self.api_endpoint, self.endpoints.keys, key_name
             ))
             .set(VAULT_TOKEN, &self.token)
             .send_json(body)?;

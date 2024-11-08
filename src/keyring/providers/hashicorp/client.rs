@@ -1,6 +1,7 @@
 use super::error::Error;
 use crate::keyring::ed25519;
 use crate::keyring::providers::hashicorp::vault_client::{CreateKeyType, VaultClient};
+use crate::config::provider::hashicorp::VaultEndpointConfig;
 use abscissa_core::prelude::*;
 
 pub(crate) struct TendermintValidatorApp {
@@ -20,11 +21,12 @@ impl TendermintValidatorApp {
         api_endpoint: &str,
         token: &str,
         key_name: &str,
+        endpoints: Option<VaultEndpointConfig>,
         ca_cert: Option<String>,
         skip_verify: Option<bool>,
         enable_pk_cache: Option<bool>,
     ) -> Result<Self, Error> {
-        let vault_client = VaultClient::new(api_endpoint, token, ca_cert, skip_verify);
+        let vault_client = VaultClient::new(api_endpoint, token, endpoints, ca_cert, skip_verify);
 
         let app = TendermintValidatorApp {
             vault_client,
@@ -119,6 +121,7 @@ mod tests {
             TEST_KEY_NAME,
             None,
             None,
+            None,
             Some(false),
         );
 
@@ -139,6 +142,7 @@ mod tests {
             &format!("http://{}", server_address()),
             TEST_TOKEN,
             TEST_KEY_NAME,
+            None,
             None,
             None,
             Some(true),
@@ -190,6 +194,7 @@ mod tests {
             TEST_KEY_NAME,
             None,
             None,
+            None,
             Some(false),
         )
         .expect("Failed to connect");
@@ -233,6 +238,7 @@ mod tests {
             &format!("http://{}", server_address()),
             TEST_TOKEN,
             TEST_KEY_NAME,
+            None,
             None,
             None,
             Some(false),

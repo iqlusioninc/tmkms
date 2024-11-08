@@ -58,6 +58,7 @@ impl Runnable for PubkeyCommand {
                 &cfg.adapter.vault_addr,
                 &signing_key.auth.access_token(),
                 &self.key_name,
+                cfg.adapter.endpoints,
                 cfg.adapter.vault_cacert,
                 cfg.adapter.vault_skip_verify,
                 cfg.adapter.cache_pk,

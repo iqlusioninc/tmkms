@@ -110,6 +110,7 @@ impl UploadCommand {
                 .auth
                 .access_token(),
             &self.key_name,
+            config.adapter.endpoints.to_owned(),
             config.adapter.vault_cacert.to_owned(),
             config.adapter.vault_skip_verify.to_owned(),
             config.adapter.cache_pk,
@@ -284,6 +285,7 @@ mod tests {
                 vault_cacert: None,
                 vault_skip_verify: Some(false),
                 cache_pk: Some(false),
+                endpoints: None,
             },
             keys: [SigningKeyConfig {
                 chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
