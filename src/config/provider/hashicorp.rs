@@ -53,7 +53,7 @@ pub struct VaultEndpointConfig {
     pub keys: String,
 
     /// HashiCorp Vault API endpoint path to perform a handshake
-    pub hand_shake: String,
+    pub handshake: String,
 
     /// HashiCorp Vault API endpoint path to recieve a wrapping key
     pub wrapping_key: String,
@@ -66,7 +66,7 @@ impl Default for VaultEndpointConfig {
     fn default() -> Self {
         VaultEndpointConfig {
             keys: "/v1/transit/keys".into(),
-            hand_shake: "/v1/auth/token/lookup-self".into(),
+            handshake: "/v1/auth/token/lookup-self".into(),
             wrapping_key: "/v1/transit/wrapping_key".into(),
             sign: "/v1/transit/sign".into(),
         }

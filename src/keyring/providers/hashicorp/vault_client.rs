@@ -312,12 +312,12 @@ impl VaultClient {
         Ok(array)
     }
 
-    pub fn hand_shake(&self) -> Result<(), Error> {
+    pub fn handshake(&self) -> Result<(), Error> {
         let _ = self
             .agent
             .get(&format!(
                 "{}{}",
-                self.api_endpoint, self.endpoints.hand_shake,
+                self.api_endpoint, self.endpoints.handshake,
             ))
             .set(VAULT_TOKEN, &self.token)
             .call()

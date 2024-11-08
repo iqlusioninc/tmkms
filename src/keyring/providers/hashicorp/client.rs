@@ -36,13 +36,13 @@ impl TendermintValidatorApp {
         };
 
         debug!("Initialized with Vault host at {}", api_endpoint);
-        app.hand_shake()?;
+        app.handshake()?;
 
         Ok(app)
     }
 
-    fn hand_shake(&self) -> Result<(), Error> {
-        let _ = self.vault_client.hand_shake();
+    fn handshake(&self) -> Result<(), Error> {
+        let _ = self.vault_client.handshake();
         Ok(())
     }
 
