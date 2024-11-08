@@ -1,5 +1,6 @@
 //! Configuration for HashiCorp Vault
 
+use super::KeyType;
 use crate::chain;
 use crate::prelude::*;
 use serde::Deserialize;
@@ -57,8 +58,8 @@ pub struct AdapterConfig {
     /// Do not verify HashiCorp Vault's presented certificate before communicating with it
     pub vault_skip_verify: Option<bool>,
 
-    /// Enable public key caching. Vault API returns all key versions which may be expensive, in such case you can cache the public key and return it from tmkms cache
-    pub cache_pk: bool,
+    /// Enable tmkms in-memory public key caching. Vault API returns all key versions which may be expensive, in such case you can cache the public key and return it from tmkms cache
+    pub cache_pk: Option<bool>,
 }
 
 /// Signing key configuration
@@ -70,6 +71,10 @@ pub struct SigningKeyConfig {
 
     /// Signing key ID
     pub key: String,
+
+    /// Type of key (account vs consensus, default consensus)
+    #[serde(default)]
+    pub key_type: KeyType,
 
     /// Authentication configuration
     pub auth: AuthConfig,

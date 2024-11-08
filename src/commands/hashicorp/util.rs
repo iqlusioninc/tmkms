@@ -1,4 +1,7 @@
-use crate::config::provider::hashicorp::{AuthConfig, HashiCorpConfig, SigningKeyConfig};
+use crate::config::provider::{
+    hashicorp::{AuthConfig, HashiCorpConfig, SigningKeyConfig},
+    KeyType,
+};
 use crate::config::KmsConfig;
 use crate::prelude::*;
 use abscissa_core::{path::AbsPathBuf, Config};
@@ -42,12 +45,13 @@ pub fn read_config(config_path: &Option<PathBuf>, key_name: &str) -> HashiCorpCo
                 auth: AuthConfig::String {
                     access_token: vault_token,
                 },
+                key_type: KeyType::Consensus,
             }],
             adapter: crate::config::provider::hashicorp::AdapterConfig {
                 vault_addr,
                 vault_cacert,
                 vault_skip_verify,
-                cache_pk: false,
+                cache_pk: Some(false),
             },
         }
     }

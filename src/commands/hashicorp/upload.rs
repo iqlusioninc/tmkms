@@ -283,7 +283,7 @@ mod tests {
                 vault_addr: format!("http://{}", server_address()),
                 vault_cacert: None,
                 vault_skip_verify: Some(false),
-                cache_pk: false,
+                cache_pk: Some(false),
             },
             keys: [SigningKeyConfig {
                 chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
@@ -291,6 +291,7 @@ mod tests {
                 auth: AuthConfig::String {
                     access_token: VAULT_TOKEN.into(),
                 },
+                key_type: crate::config::provider::KeyType::Consensus,
             }]
             .to_vec(),
         };

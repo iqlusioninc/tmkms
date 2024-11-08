@@ -7,7 +7,7 @@ pub(crate) struct TendermintValidatorApp {
     vault_client: VaultClient,
     key_name: String,
 
-    enable_pk_cache: bool,
+    enable_pk_cache: Option<bool>,
     pk_cache: Option<[u8; ed25519::VerifyingKey::BYTE_SIZE]>,
 }
 
@@ -22,7 +22,7 @@ impl TendermintValidatorApp {
         key_name: &str,
         ca_cert: Option<String>,
         skip_verify: Option<bool>,
-        enable_pk_cache: bool,
+        enable_pk_cache: Option<bool>,
     ) -> Result<Self, Error> {
         let vault_client = VaultClient::new(api_endpoint, token, ca_cert, skip_verify);
 
@@ -46,7 +46,7 @@ impl TendermintValidatorApp {
 
     pub fn public_key(&mut self) -> Result<[u8; ed25519::VerifyingKey::BYTE_SIZE], Error> {
         // if cache is enabled and we have a cached pk, return it
-        if self.enable_pk_cache {
+        if self.enable_pk_cache.is_some() && self.enable_pk_cache.unwrap() {
             if let Some(v) = self.pk_cache {
                 debug!("using cached public key {}...", self.key_name);
                 return Ok(v);
@@ -56,7 +56,7 @@ impl TendermintValidatorApp {
         let pk = self.vault_client.public_key(&self.key_name).unwrap();
 
         // if cache is enabled, store the pk
-        if self.enable_pk_cache {
+        if self.enable_pk_cache.is_some() && self.enable_pk_cache.unwrap() {
             self.pk_cache = Some(pk);
             debug!("Public key: value cached {}", self.key_name,);
         }
@@ -119,6 +119,7 @@ mod tests {
             TEST_KEY_NAME,
             None,
             None,
+            Some(false),
         );
 
         assert!(app.is_ok());
@@ -140,6 +141,7 @@ mod tests {
             TEST_KEY_NAME,
             None,
             None,
+            Some(true),
         )
         .expect("Failed to connect");
 
@@ -188,6 +190,7 @@ mod tests {
             TEST_KEY_NAME,
             None,
             None,
+            Some(false),
         )
         .expect("Failed to connect");
 
@@ -232,6 +235,7 @@ mod tests {
             TEST_KEY_NAME,
             None,
             None,
+            Some(false),
         )
         .expect("Failed to connect");
 
