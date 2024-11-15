@@ -6,10 +6,7 @@ pub(crate) mod vault_client;
 
 use crate::{
     chain,
-    config::provider::{
-        hashicorp::HashiCorpConfig,
-        KeyType,
-    },
+    config::provider::{hashicorp::HashiCorpConfig, KeyType},
     error::{Error, ErrorKind::*},
     keyring::{
         ed25519::{self, Signer},
@@ -76,8 +73,8 @@ pub fn init(
                     )
                 });
 
-                let public_key =
-                    ed25519::VerifyingKey::try_from(public_key.as_slice()).unwrap_or_else(|_| {
+                let public_key = ed25519::VerifyingKey::try_from(public_key.as_slice())
+                    .unwrap_or_else(|_| {
                         panic!(
                             "invalid Ed25519 public key for chain id:{}",
                             key_config.chain_id

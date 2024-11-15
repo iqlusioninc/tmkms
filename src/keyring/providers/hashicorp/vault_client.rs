@@ -7,10 +7,10 @@ use super::error::Error;
 use std::time::Duration;
 use ureq::Agent;
 
+use crate::config::provider::hashicorp::VaultEndpointConfig;
 use crate::keyring::ed25519;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::config::provider::hashicorp::VaultEndpointConfig;
 
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::{pem::PemObject, CertificateDer, ServerName, UnixTime};

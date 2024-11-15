@@ -1,7 +1,7 @@
 use super::error::Error;
+use crate::config::provider::hashicorp::VaultEndpointConfig;
 use crate::keyring::ed25519;
 use crate::keyring::providers::hashicorp::vault_client::{CreateKeyType, VaultClient};
-use crate::config::provider::hashicorp::VaultEndpointConfig;
 use abscissa_core::prelude::*;
 
 pub(crate) struct TendermintValidatorApp {
