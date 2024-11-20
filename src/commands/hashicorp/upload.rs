@@ -8,8 +8,11 @@ use clap::Parser;
 use std::{path::PathBuf, process};
 
 use crate::commands::hashicorp::util::read_config;
+use crate::config::provider::softsign::KeyFormat;
 use crate::keyring::providers::hashicorp::{client, error, vault_client};
 use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey};
+use tendermint::PrivateKey;
+use tendermint_config::PrivValidatorKey;
 
 /// AES256 key length
 const KEY_SIZE_AES256: usize = 32; // 256 bits
@@ -39,6 +42,10 @@ pub struct UploadCommand {
     /// signing key chain-id (if there are multiple keys with the same name)
     #[clap(long = "chain-id", help = "signing key chain-id")]
     chain_id: Option<String>,
+
+    /// payload format to import: 'json' or 'raw' (default 'json')
+    #[clap(short = 'f', long = "payload-format")]
+    pub payload_format: Option<String>,
 
     /// base64 encoded key file to upload
     #[clap(group = "payload_arg", long = "payload-file")]
@@ -76,8 +83,18 @@ impl UploadCommand {
         // https://www.vaultproject.io/docs/secrets/transit#bring-your-own-key-byok
         // https://learn.hashicorp.com/tutorials/vault/eaas-transit
 
-        // root token or token with enough admin rights
-        let base64_key: String = if self.payload.is_some() {
+        let payload_format = self
+            .payload_format
+            .as_ref()
+            .map(|f| {
+                f.parse::<KeyFormat>().unwrap_or_else(|e| {
+                    status_err!("{} (must be 'json' or 'raw')", e);
+                    process::exit(1);
+                })
+            })
+            .unwrap_or(KeyFormat::Json);
+
+        let unknown_format_key: String = if self.payload.is_some() {
             self.payload.clone().unwrap()
         } else if self.payload_file.is_some() {
             std::fs::read_to_string(self.payload_file.clone().unwrap())
@@ -87,6 +104,25 @@ impl UploadCommand {
         } else {
             status_err!("payload and payload_file are undefined");
             process::exit(1);
+        };
+
+        let base64_key: String = match payload_format {
+            KeyFormat::Json => {
+                let secret_key = PrivValidatorKey::parse_json(unknown_format_key.clone())
+                    .unwrap_or_else(|e| {
+                        status_err!("couldn't parse json {}: {}", unknown_format_key, e);
+                        process::exit(1);
+                    })
+                    .priv_key;
+
+                match secret_key {
+                    PrivateKey::Ed25519(sk) => base64::encode(sk.as_bytes()),
+                    PrivateKey::Secp256k1(sk) => base64::encode(sk.to_bytes()),
+                    _ => unreachable!("unsupported priv_validator.json algorithm"),
+                }
+            }
+
+            KeyFormat::Base64 => unknown_format_key,
         };
 
         let ed25519_input_key = input_key(&base64_key)
