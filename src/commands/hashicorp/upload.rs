@@ -43,7 +43,7 @@ pub struct UploadCommand {
     #[clap(long = "chain-id", help = "signing key chain-id")]
     chain_id: Option<String>,
 
-    /// payload format to import: 'json' or 'raw' (default 'json')
+    /// payload format to import: 'json' or 'base64' (default 'json')
     #[clap(short = 'f', long = "payload-format")]
     pub payload_format: Option<String>,
 
@@ -88,7 +88,7 @@ impl UploadCommand {
             .as_ref()
             .map(|f| {
                 f.parse::<KeyFormat>().unwrap_or_else(|e| {
-                    status_err!("{} (must be 'json' or 'raw')", e);
+                    status_err!("{} (must be 'json' or 'base64')", e);
                     process::exit(1);
                 })
             })
