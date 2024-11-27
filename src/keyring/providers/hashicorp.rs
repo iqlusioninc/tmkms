@@ -51,13 +51,9 @@ pub fn init(
                 }
 
                 let mut app = client::TendermintValidatorApp::connect(
-                    &config.adapter.vault_addr,
                     &key_config.auth.access_token(),
                     &key_config.key,
-                    config.adapter.endpoints.to_owned(),
-                    config.adapter.vault_cacert.to_owned(),
-                    config.adapter.vault_skip_verify.to_owned(),
-                    config.adapter.cache_pk,
+                    &config.adapter,
                 )
                 .unwrap_or_else(|_| {
                     panic!(

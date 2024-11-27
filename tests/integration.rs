@@ -316,6 +316,8 @@ impl KmsProcess {
             payload_arg.as_str(),
             "-c",
             config_path,
+            "-f",
+            "base64",
         ];
 
         // the first import will succeed, the latter won't (because key is already uploaded)

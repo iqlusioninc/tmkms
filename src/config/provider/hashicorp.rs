@@ -91,6 +91,10 @@ pub struct AdapterConfig {
 
     /// Endpoints configuration for Vault core operations
     pub endpoints: Option<VaultEndpointConfig>,
+
+    /// Exit tmkms on given error codes. This is especially useful when operator manually revokes the Vault token and tmkms should exit because
+    /// it can't sign anymore (403) unless the new token is provided
+    pub exit_on_error: Option<Vec<u16>>,
 }
 
 /// Signing key configuration

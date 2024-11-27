@@ -53,6 +53,7 @@ pub fn read_config(config_path: &Option<PathBuf>, key_name: &str) -> HashiCorpCo
                 vault_skip_verify,
                 cache_pk: Some(false),
                 endpoints: None,
+                exit_on_error: None,
             },
         }
     }

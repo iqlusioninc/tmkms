@@ -130,7 +130,6 @@ impl UploadCommand {
 
         // create app instance
         let app = client::TendermintValidatorApp::connect(
-            &config.adapter.vault_addr,
             &config
                 .keys
                 .iter()
@@ -146,10 +145,7 @@ impl UploadCommand {
                 .auth
                 .access_token(),
             &self.key_name,
-            config.adapter.endpoints.to_owned(),
-            config.adapter.vault_cacert.to_owned(),
-            config.adapter.vault_skip_verify.to_owned(),
-            config.adapter.cache_pk,
+            &config.adapter,
         )
         .unwrap_or_else(|_| {
             panic!(
@@ -313,6 +309,7 @@ mod tests {
             payload: Some(ED25519.into()),
             payload_file: None,
             exportable: false,
+            payload_format: Some(String::from("base64")),
         };
 
         let config = HashiCorpConfig {
@@ -322,6 +319,7 @@ mod tests {
                 vault_skip_verify: Some(false),
                 cache_pk: Some(false),
                 endpoints: None,
+                exit_on_error: None,
             },
             keys: [SigningKeyConfig {
                 chain_id: tendermint::chain::Id::try_from(CHAIN_ID).unwrap(),
@@ -340,7 +338,7 @@ mod tests {
             .with_body(TOKEN_DATA)
             .create();
 
-        // upload
+        // wrap key
         let wrapping_key = mock("GET", "/v1/transit/wrapping_key")
             .match_header("X-Vault-Token", VAULT_TOKEN)
             .with_body(WRAPPING_KEY_RESPONSE)

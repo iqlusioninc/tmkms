@@ -55,13 +55,9 @@ impl Runnable for PubkeyCommand {
 
         let mut app =
             crate::keyring::providers::hashicorp::client::TendermintValidatorApp::connect(
-                &cfg.adapter.vault_addr,
                 &signing_key.auth.access_token(),
                 &self.key_name,
-                cfg.adapter.endpoints,
-                cfg.adapter.vault_cacert,
-                cfg.adapter.vault_skip_verify,
-                cfg.adapter.cache_pk,
+                &cfg.adapter,
             )
             .unwrap_or_else(|e| {
                 panic!(
