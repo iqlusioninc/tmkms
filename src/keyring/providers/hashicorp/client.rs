@@ -38,7 +38,10 @@ impl TendermintValidatorApp {
             pk_cache: None,
         };
 
-        debug!("Initialized with Vault host at {}", adapter_config.vault_addr);
+        debug!(
+            "Initialized with Vault host at {}",
+            adapter_config.vault_addr
+        );
         app.handshake()?;
 
         Ok(app)
