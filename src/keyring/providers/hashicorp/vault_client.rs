@@ -262,10 +262,7 @@ impl VaultClient {
 
         self.check_response_status_code(&response);
 
-        let data = if let Some(data) = response
-            .into_json::<Root<PublicKeyResponse>>()?
-            .data
-        {
+        let data = if let Some(data) = response.into_json::<Root<PublicKeyResponse>>()?.data {
             data
         } else {
             return Err(Error::InvalidPubKey(
@@ -335,12 +332,10 @@ impl VaultClient {
                 self.check_response_status_code(&response);
                 Ok(())
             }
-            Err(e) => {
-                Err(Error::Combined(
-                    "Is \"access_token\" value correct?".into(),
-                    Box::new(e.into()),
-                ))
-            }
+            Err(e) => Err(Error::Combined(
+                "Is \"access_token\" value correct?".into(),
+                Box::new(e.into()),
+            )),
         }
     }
 
@@ -374,10 +369,7 @@ impl VaultClient {
 
         self.check_response_status_code(&response);
 
-        let data = if let Some(data) = response
-            .into_json::<Root<SignResponse>>()?
-            .data
-        {
+        let data = if let Some(data) = response.into_json::<Root<SignResponse>>()?.data {
             data
         } else {
             return Err(Error::NoSignature);
@@ -431,10 +423,7 @@ impl VaultClient {
 
         self.check_response_status_code(&response);
 
-        let data = if let Some(data) = response
-            .into_json::<Root<PublicKeyResponse>>()?
-            .data
-        {
+        let data = if let Some(data) = response.into_json::<Root<PublicKeyResponse>>()?.data {
             data
         } else {
             return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
