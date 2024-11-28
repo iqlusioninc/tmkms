@@ -28,8 +28,9 @@ pub enum Error {
     #[error("IO error")]
     Io(std::io::Error),
 
-    #[error("Help:{0}, Error:{1} ")]
-    Combined(String, Box<Error>),
+    // PoisonError prefix is required for the application to exit
+    #[error("PoisonError prohibited Vault HTTP response code: {0}, URL: {1}, exiting...")]
+    ProhibitedResponseCode(String, String),
 }
 
 impl From<ureq::Error> for Error {

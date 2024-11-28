@@ -241,6 +241,52 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "PoisonError prohibited Vault HTTP response code: 403, URL: http://127.0.0.1:1234/v1/transit/sign/test-key-name, exiting...")]
+    fn hashicorp_exit_on_error() {
+        // setup
+        let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
+            .match_header("X-Vault-Token", TEST_TOKEN)
+            .with_body(TOKEN_DATA)
+            .create();
+
+        // app
+        let app = TendermintValidatorApp::connect(
+            TEST_TOKEN,
+            TEST_KEY_NAME,
+            &AdapterConfig {
+                vault_addr: format!("http://{}", server_address()),
+                endpoints: Default::default(),
+                vault_cacert: None,
+                vault_skip_verify: None,
+                exit_on_error: Some(vec![403]),
+                cache_pk: Some(false),
+            },
+        )
+        .expect("Failed to connect");
+
+        let body = serde_json::to_string(&SignRequest {
+            input: TEST_PAYLOAD_TO_SIGN_BASE64.into(),
+        })
+        .unwrap();
+
+        let sign_mock = mock(
+            "POST",
+            format!("/v1/transit/sign/{}", TEST_KEY_NAME).as_str(),
+        )
+        .match_header("X-Vault-Token", TEST_TOKEN)
+        .match_body(body.as_str())
+        .with_body(SIGN_RESPONSE)
+        .with_status(403)
+        .create();
+
+        // server call
+        let _ = app.sign(TEST_PAYLOAD_TO_SIGN);
+
+        lookup_self.assert();
+        sign_mock.assert();
+    }
+
+    #[test]
     fn hashicorp_sign_empty_payload_should_fail() {
         // setup
         let lookup_self = mock("GET", "/v1/auth/token/lookup-self")

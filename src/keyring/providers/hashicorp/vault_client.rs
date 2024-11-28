@@ -15,7 +15,6 @@ use serde_json::Value;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::{pem::PemObject, CertificateDer, ServerName, UnixTime};
 use rustls::{DigitallySignedStruct, SignatureScheme};
-use std::process;
 
 /// Vault message envelop
 #[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -251,17 +250,16 @@ impl VaultClient {
         }
 
         // https://developer.hashicorp.com/vault/api-docs/secret/transit#read-key
-        let response = self
+        let res = self
             .agent
             .get(&format!(
                 "{}{}/{}",
                 self.api_endpoint, self.endpoints.keys, key_name
             ))
             .set(VAULT_TOKEN, &self.token)
-            .call()?;
+            .call();
 
-        self.check_response_status_code(&response);
-
+        let response = self.check_response_status_code(res)?;
         let data = if let Some(data) = response.into_json::<Root<PublicKeyResponse>>()?.data {
             data
         } else {
@@ -274,7 +272,7 @@ impl VaultClient {
         let key_data = data.keys.iter().last();
 
         let pubk = if let Some((version, map)) = key_data {
-            debug!("public key vetion:{}", version);
+            debug!("public key version:{}", version);
             if let Some(pubk) = map.get("public_key") {
                 if let Some(key_type) = map.get("name") {
                     if CONSENUS_KEY_TYPE != key_type {
@@ -318,7 +316,7 @@ impl VaultClient {
     }
 
     pub fn handshake(&self) -> Result<(), Error> {
-        let response = self
+        let res = self
             .agent
             .get(&format!(
                 "{}{}",
@@ -327,16 +325,8 @@ impl VaultClient {
             .set(VAULT_TOKEN, &self.token)
             .call();
 
-        match response {
-            Ok(response) => {
-                self.check_response_status_code(&response);
-                Ok(())
-            }
-            Err(e) => Err(Error::Combined(
-                "Is \"access_token\" value correct?".into(),
-                Box::new(e.into()),
-            )),
-        }
+        self.check_response_status_code(res)?;
+        Ok(())
     }
 
     // vault write transit/sign/cosmoshub-sign-key plaintext=$(base64 <<< "some-data")
@@ -358,17 +348,16 @@ impl VaultClient {
 
         debug!("signing request: base64 encoded and about to submit for signing...");
 
-        let response = self
+        let res = self
             .agent
             .post(&format!(
                 "{}{}/{}",
                 self.api_endpoint, self.endpoints.sign, key_name
             ))
             .set(VAULT_TOKEN, &self.token)
-            .send_json(body)?;
+            .send_json(body);
 
-        self.check_response_status_code(&response);
-
+        let response = self.check_response_status_code(res)?;
         let data = if let Some(data) = response.into_json::<Root<SignResponse>>()?.data {
             data
         } else {
@@ -406,23 +395,21 @@ impl VaultClient {
     }
 
     pub fn wrapping_key_pem(&self) -> Result<String, Error> {
-        debug!("getting wraping key...");
         #[derive(Debug, Deserialize)]
         struct PublicKeyResponse {
             public_key: String,
         }
 
-        let response = self
+        let res = self
             .agent
             .get(&format!(
                 "{}{}",
                 self.api_endpoint, self.endpoints.wrapping_key
             ))
             .set(VAULT_TOKEN, &self.token)
-            .call()?;
+            .call();
 
-        self.check_response_status_code(&response);
-
+        let response = self.check_response_status_code(res)?;
         let data = if let Some(data) = response.into_json::<Root<PublicKeyResponse>>()?.data {
             data
         } else {
@@ -446,28 +433,40 @@ impl VaultClient {
             exportable,
         };
 
-        let response = self
+        let res = self
             .agent
             .post(&format!(
                 "{}{}/{}/import",
                 self.api_endpoint, self.endpoints.keys, key_name
             ))
             .set(VAULT_TOKEN, &self.token)
-            .send_json(body)?;
+            .send_json(body);
 
-        self.check_response_status_code(&response);
+        self.check_response_status_code(res)?;
 
         Ok(())
     }
 
-    fn check_response_status_code(&self, response: &ureq::Response) {
-        if self.exit_on_error.contains(&response.status()) {
-            status_err!(
-                "Vault API error: {}, exiting due to status code: {}",
-                response.get_url(),
-                response.status()
-            );
-            process::exit(1)
+    fn check_response_status_code(
+        &self,
+        response: Result<ureq::Response, ureq::Error>,
+    ) -> Result<ureq::Response, Error> {
+        match response {
+            Ok(response) => Ok(response),
+            Err(ureq::Error::Status(code, response)) => {
+                if self.exit_on_error.contains(&code) {
+                    panic!(
+                        "{}",
+                        Error::ProhibitedResponseCode(
+                            code.to_string(),
+                            response.get_url().to_string(),
+                        )
+                    );
+                } else {
+                    Err(ureq::Error::Status(code, response))?
+                }
+            }
+            Err(err) => Err(err.into()),
         }
     }
 }
