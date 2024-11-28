@@ -241,7 +241,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "PoisonError prohibited Vault HTTP response code: 403, URL: http://127.0.0.1:1234/v1/transit/sign/test-key-name, exiting...")]
+    #[should_panic(
+        expected = "PoisonError prohibited Vault HTTP response code: 403, URL: http://127.0.0.1:1234/v1/transit/sign/test-key-name, exiting..."
+    )]
     fn hashicorp_exit_on_error() {
         // setup
         let lookup_self = mock("GET", "/v1/auth/token/lookup-self")
