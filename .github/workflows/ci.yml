@@ -83,11 +83,7 @@ jobs:
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
 
-      - run: cargo build --no-default-features --features softsign --release
-      - run: cargo build --features=yubihsm --release
-      - run: cargo build --features=yubihsm-server --release
-      - run: cargo build --features=ledger --release
-      - run: cargo build --features=yubihsm-server,ledger,softsign --release
+      - run: cargo build --features=softsign,fortanixdsm --release
 
   test:
     name: Test Suite
