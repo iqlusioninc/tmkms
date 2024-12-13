@@ -1,12 +1,13 @@
 //! Configuration file structures (with serde-derived parser)
 
 pub mod chain;
+pub mod metrics;
 pub mod provider;
 pub mod validator;
 
 pub use self::validator::*;
 
-use self::{chain::ChainConfig, provider::ProviderConfig};
+use self::{chain::ChainConfig, metrics::MetricsConfig, provider::ProviderConfig};
 use serde::Deserialize;
 
 /// Environment variable containing path to config file
@@ -29,4 +30,7 @@ pub struct KmsConfig {
     /// Addresses of validator nodes
     #[serde(default)]
     pub validator: Vec<ValidatorConfig>,
+
+    /// Metrics configuration
+    pub metrics: MetricsConfig,
 }

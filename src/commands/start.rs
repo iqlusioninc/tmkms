@@ -2,6 +2,7 @@
 
 use crate::{chain, client::Client, prelude::*};
 use abscissa_core::Command;
+use autometrics::prometheus_exporter;
 use clap::Parser;
 use std::{path::PathBuf, process};
 
@@ -26,6 +27,25 @@ impl Runnable for StartCommand {
             env!("CARGO_PKG_VERSION")
         );
 
+        let metrics_config = APP.config().metrics.clone();
+        if let Some(address) = metrics_config.bind_address {
+            info!("Starting up prometheus server on {}", address);
+            prometheus_exporter::init();
+            let thread_name = abscissa_core::thread::Name::new("prometheus-thread").unwrap();
+            APP.state()
+                .threads_mut()
+                .spawn(thread_name, move || {
+                    let server =
+                        tiny_http::Server::http(address).expect("Unable to bind to address");
+                    for request in server.incoming_requests() {
+                        let response = prometheus_exporter::encode_to_string().unwrap();
+                        request
+                            .respond(tiny_http::Response::from_string(response))
+                            .unwrap();
+                    }
+                })
+                .expect("Unable to start prometheus exporter thread");
+        }
         run_app(self.spawn_clients());
     }
 }

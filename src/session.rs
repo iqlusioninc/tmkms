@@ -9,10 +9,27 @@ use crate::{
     privval::SignableMsg,
     rpc::{Request, Response},
 };
+use autometrics::{
+    autometrics,
+    objectives::{Objective, ObjectiveLatency, ObjectivePercentile},
+};
 use std::{os::unix::net::UnixStream, time::Instant};
 use tendermint::{consensus, TendermintKey};
 use tendermint_config::net;
 use tendermint_proto as proto;
+
+const REQUEST_SLO: Objective =
+    Objective::new("validator-request").success_rate(ObjectivePercentile::P99_9);
+
+const SIGN_SLO: Objective = Objective::new("sign-request")
+    .success_rate(ObjectivePercentile::P99_9)
+    .latency(ObjectiveLatency::Ms500, ObjectivePercentile::P99)
+    .latency(ObjectiveLatency::Ms1000, ObjectivePercentile::P99_9);
+
+const GET_PUBKEY_SLO: Objective = Objective::new("pubkey-request")
+    .success_rate(ObjectivePercentile::P99_9)
+    .latency(ObjectiveLatency::Ms500, ObjectivePercentile::P99)
+    .latency(ObjectiveLatency::Ms1000, ObjectivePercentile::P99_9);
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -95,6 +112,7 @@ impl Session {
     }
 
     /// Handle an incoming request from the validator
+    #[autometrics(objective = REQUEST_SLO, ok_if = Result::is_ok)]
     fn handle_request(&mut self) -> Result<bool, Error> {
         let request = Request::read(&mut self.connection, &self.config.chain_id)?;
         debug!(
@@ -123,6 +141,7 @@ impl Session {
     }
 
     /// Perform a digital signature operation
+    #[autometrics(objective = SIGN_SLO, ok_if = Result::is_ok)]
     fn sign(&mut self, mut signable_msg: SignableMsg) -> Result<Response, Error> {
         self.check_max_height(&signable_msg)?;
 
@@ -222,6 +241,7 @@ impl Session {
     }
 
     /// Get the public key for (the only) public key in the keyring
+    #[autometrics(objective = GET_PUBKEY_SLO, ok_if = Result::is_ok)]
     fn get_public_key(&mut self) -> Result<Response, Error> {
         let registry = chain::REGISTRY.get();
 
@@ -266,6 +286,7 @@ impl Session {
 }
 
 /// Double signing handler.
+#[autometrics]
 fn double_sign(consensus_state: consensus::State) -> proto::privval::RemoteSignerError {
     /// Double signing error code.
     const DOUBLE_SIGN_ERROR: i32 = 2;
