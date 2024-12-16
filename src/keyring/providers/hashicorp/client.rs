@@ -66,7 +66,7 @@ impl TendermintValidatorApp {
         // if cache is enabled, store the pk
         if self.enable_pk_cache.is_some() && self.enable_pk_cache.unwrap() {
             self.pk_cache = Some(pk);
-            debug!("Public key: value cached {}", self.key_name,);
+            debug!("Public key: value cached {}", self.key_name);
         }
 
         Ok(pk)
