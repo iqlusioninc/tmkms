@@ -83,3 +83,5 @@ path = "path/to/consensus-ed25519.key" # generate using `tmkms softsign keygen -
 # source = { protocol = "jsonrpc", uri = "http://127.0.0.1:23456" }
 # rpc = { addr = "tcp://127.0.0.1:26657" }
 # seq_file = "irishub-account-seq.json"
+[metrics]
+bind_address = "localhost:3333"

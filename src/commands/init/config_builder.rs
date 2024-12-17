@@ -43,6 +43,7 @@ impl ConfigBuilder {
         self.add_chain_config();
         self.add_provider_config();
         self.add_validator_config();
+        self.add_metrics_config();
 
         self.contents
     }
@@ -146,6 +147,12 @@ impl ConfigBuilder {
     fn add_fortanixdsm_provider_config(&mut self) {
         self.add_str("### Fortanix DSM Signer Configuration\n\n");
         self.add_template_with_chain_id(include_str!("templates/keyring/fortanixdsm.toml"));
+    }
+
+    /// Add `[metrics]` configurations
+    fn add_metrics_config(&mut self) {
+        self.add_section_comment("Metrics exporter configuration");
+        self.add_template(include_str!("templates/metrics.toml"));
     }
 
     /// Append a template to the config file, substituting `$KMS_HOME`

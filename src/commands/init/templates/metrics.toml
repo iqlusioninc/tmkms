@@ -1,0 +1,2 @@
+[metrics]
+bind_address = "localhost:3333"

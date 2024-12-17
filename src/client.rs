@@ -10,6 +10,7 @@ use crate::{
     config::ValidatorConfig,
     error::{Error, ErrorKind},
     prelude::*,
+    prometheus::initialize_consensus_metrics,
     session::Session,
 };
 use std::{panic, process::exit, thread, time::Duration};
@@ -88,7 +89,7 @@ fn main_loop(config: ValidatorConfig) -> Result<(), Error> {
 /// Ensure chain with given ID is properly registered
 pub fn register_chain(chain_id: &chain::Id) {
     let registry = chain::REGISTRY.get();
-
+    initialize_consensus_metrics(chain_id);
     debug!("registering chain: {}", chain_id);
     registry.get_chain(chain_id).unwrap_or_else(|| {
         status_err!(

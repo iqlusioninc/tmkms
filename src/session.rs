@@ -7,6 +7,9 @@ use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
     privval::SignableMsg,
+    prometheus::{
+        increment_consensus_counter, record_request_duration, ConsensusUpdateStatus, RpcRequestType,
+    },
     rpc::{Request, Response},
 };
 use std::{os::unix::net::UnixStream, time::Instant};
@@ -101,6 +104,8 @@ impl Session {
             "[{}@{}] received request: {:?}",
             &self.config.chain_id, &self.config.addr, &request
         );
+        let request_start = Instant::now();
+        let request_type = RpcRequestType::from(&request);
 
         let response = match request {
             Request::SignProposal(_) | Request::SignVote(_) => {
@@ -117,6 +122,13 @@ impl Session {
         );
 
         let response_bytes = response.encode()?;
+
+        record_request_duration(
+            &self.config.chain_id,
+            &request_type,
+            request_start.elapsed(),
+        );
+
         self.connection.write_all(&response_bytes)?;
 
         Ok(true)
@@ -197,9 +209,11 @@ impl Session {
         let msg_type = signable_msg.msg_type();
         let request_state = signable_msg.consensus_state();
         let mut chain_state = chain.state.lock().unwrap();
-
         match chain_state.update_consensus_state(request_state.clone()) {
-            Ok(()) => Ok(None),
+            Ok(()) => {
+                increment_consensus_counter(&chain.id, ConsensusUpdateStatus::Success);
+                Ok(None)
+            }
             Err(e) if e.kind() == StateErrorKind::DoubleSign => {
                 // Report double signing error back to the validator
                 let original_block_id = chain_state.consensus_state().block_id_prefix();
@@ -214,10 +228,14 @@ impl Session {
                     request_state.block_id_prefix()
                 );
 
+                increment_consensus_counter(&chain.id, ConsensusUpdateStatus::DoubleSign);
                 let remote_err = double_sign(request_state);
                 Ok(Some(remote_err))
             }
-            Err(e) => Err(e.into()),
+            Err(e) => {
+                increment_consensus_counter(&chain.id, ConsensusUpdateStatus::Error);
+                Err(e.into())
+            }
         }
     }
 
@@ -269,7 +287,6 @@ impl Session {
 fn double_sign(consensus_state: consensus::State) -> proto::privval::RemoteSignerError {
     /// Double signing error code.
     const DOUBLE_SIGN_ERROR: i32 = 2;
-
     proto::privval::RemoteSignerError {
         code: DOUBLE_SIGN_ERROR,
         description: format!(

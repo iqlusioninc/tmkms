@@ -1,6 +1,6 @@
 //! Start the KMS
 
-use crate::{chain, client::Client, prelude::*};
+use crate::{chain, client::Client, prelude::*, prometheus};
 use abscissa_core::Command;
 use clap::Parser;
 use std::{path::PathBuf, process};
@@ -39,6 +39,16 @@ impl StartCommand {
             status_err!("error loading configuration: {}", e);
             process::exit(1);
         });
+
+        if let Some(config) = &APP.config().metrics {
+            let address = config.bind_address.clone();
+            info!("Starting up prometheus server on {}", address);
+            let thread_name = abscissa_core::thread::Name::new("prometheus-thread").unwrap();
+            APP.state()
+                .threads_mut()
+                .spawn(thread_name, move || prometheus::serve(&address))
+                .expect("Unable to start prometheus exporter thread");
+        }
 
         // Spawn the validator client threads
         config
