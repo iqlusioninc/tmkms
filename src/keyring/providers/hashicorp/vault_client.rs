@@ -1,20 +1,24 @@
 use abscissa_core::prelude::*;
 use std::collections::{BTreeMap, HashMap};
-use std::sync;
+use std::fs;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
 
 use super::error::Error;
 
-use std::time::Duration;
-use ureq::Agent;
+use rustls::pki_types::pem::PemObject;
+use rustls::pki_types::CertificateDer;
+use ureq::{
+    config::AutoHeaderValue,
+    http::Response,
+    tls::{Certificate, RootCerts, TlsConfig},
+    Agent, Body,
+};
 
 use crate::config::provider::hashicorp::VaultEndpointConfig;
 use crate::keyring::ed25519;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::pki_types::{pem::PemObject, CertificateDer, ServerName, UnixTime};
-use rustls::{DigitallySignedStruct, SignatureScheme};
 
 /// Vault message envelop
 #[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -113,58 +117,6 @@ impl std::fmt::Display for CreateKeyType {
 }
 
 #[derive(Debug)]
-struct NoVerification;
-
-impl ServerCertVerifier for NoVerification {
-    fn verify_server_cert(
-        &self,
-        _end_entity: &CertificateDer<'_>,
-        _intermediates: &[CertificateDer<'_>],
-        _server_name: &ServerName<'_>,
-        _ocsp_response: &[u8],
-        _now: UnixTime,
-    ) -> Result<ServerCertVerified, rustls::Error> {
-        Ok(ServerCertVerified::assertion())
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        Ok(HandshakeSignatureValid::assertion())
-    }
-
-    fn verify_tls13_signature(
-        &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        Ok(HandshakeSignatureValid::assertion())
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        vec![
-            SignatureScheme::RSA_PKCS1_SHA1,
-            SignatureScheme::ECDSA_SHA1_Legacy,
-            SignatureScheme::RSA_PKCS1_SHA256,
-            SignatureScheme::ECDSA_NISTP256_SHA256,
-            SignatureScheme::RSA_PKCS1_SHA384,
-            SignatureScheme::ECDSA_NISTP384_SHA384,
-            SignatureScheme::RSA_PKCS1_SHA512,
-            SignatureScheme::ECDSA_NISTP521_SHA512,
-            SignatureScheme::RSA_PSS_SHA256,
-            SignatureScheme::RSA_PSS_SHA384,
-            SignatureScheme::RSA_PSS_SHA512,
-            SignatureScheme::ED25519,
-            SignatureScheme::ED448,
-        ]
-    }
-}
-
-#[derive(Debug)]
 pub(crate) struct VaultClient {
     agent: Agent,
     api_endpoint: String,
@@ -189,46 +141,30 @@ impl VaultClient {
         // let mut client = Client::new(host, token)?;
 
         // default conect timeout is 30s, this should be ok, since we block
-        let mut agent_builder = ureq::AgentBuilder::new()
-            .timeout_read(Duration::from_secs(5))
-            .timeout_write(Duration::from_secs(5))
-            .user_agent(&format!(
+        let mut agent_builder = Agent::config_builder()
+            .timeout_global(Some(Duration::from_secs(5)))
+            .user_agent(AutoHeaderValue::Provided(Arc::new(format!(
                 "{}/{}",
                 env!("CARGO_PKG_NAME"),
                 env!("CARGO_PKG_VERSION")
-            ));
+            ))));
 
         if ca_cert.is_some() || skip_verify.is_some() {
-            // see https://docs.rs/rustls/latest/rustls/crypto/struct.CryptoProvider.html#method.install_default
-            rustls::crypto::ring::default_provider()
-                .install_default()
-                .expect("Failed to install rustls crypto provider");
-
-            let tls_config_builder = rustls::ClientConfig::builder();
-
             if skip_verify.is_some_and(|x| x) {
-                let tls_config = tls_config_builder
-                    .dangerous()
-                    .with_custom_certificate_verifier(sync::Arc::new(NoVerification))
-                    .with_no_client_auth();
+                let tls_config = TlsConfig::builder().disable_verification(true).build();
 
-                agent_builder = agent_builder.tls_config(sync::Arc::new(tls_config));
+                agent_builder = agent_builder.tls_config(tls_config);
             } else if let Some(ca_cert) = ca_cert {
-                let mut roots = rustls::RootCertStore::empty();
+                let cert = read_cert(&ca_cert);
+                let certs: Vec<Certificate<'static>> = vec![Certificate::from_der(cert)];
+                let root_certs = RootCerts::new_with_certs(certs.as_slice());
+                let tls_config = TlsConfig::builder().root_certs(root_certs).build();
 
-                let certs: Vec<_> = CertificateDer::pem_file_iter(ca_cert).unwrap().collect();
-                for cert in certs {
-                    roots.add(cert.unwrap()).unwrap();
-                }
-
-                let tls_config = tls_config_builder
-                    .with_root_certificates(roots)
-                    .with_no_client_auth();
-                agent_builder = agent_builder.tls_config(sync::Arc::new(tls_config));
+                agent_builder = agent_builder.tls_config(tls_config);
             }
         }
 
-        let agent: Agent = agent_builder.build();
+        let agent: Agent = agent_builder.build().new_agent();
 
         VaultClient {
             api_endpoint: api_endpoint.into(),
@@ -249,18 +185,17 @@ impl VaultClient {
             keys: BTreeMap<usize, HashMap<String, String>>,
         }
 
-        // https://developer.hashicorp.com/vault/api-docs/secret/transit#read-key
-        let res = self
-            .agent
-            .get(&format!(
-                "{}{}/{}",
-                self.api_endpoint, self.endpoints.keys, key_name
-            ))
-            .set(VAULT_TOKEN, &self.token)
-            .call();
+        let uri = format!("{}{}/{}", self.api_endpoint, self.endpoints.keys, key_name);
 
-        let response = self.check_response_status_code(res)?;
-        let data = if let Some(data) = response.into_json::<Root<PublicKeyResponse>>()?.data {
+        // https://developer.hashicorp.com/vault/api-docs/secret/transit#read-key
+        let res = self.agent.get(&uri).header(VAULT_TOKEN, &self.token).call();
+
+        let response = self.check_response_status_code(&uri, res)?;
+        let data = if let Some(data) = response
+            .into_body()
+            .read_json::<Root<PublicKeyResponse>>()?
+            .data
+        {
             data
         } else {
             return Err(Error::InvalidPubKey(
@@ -304,7 +239,7 @@ impl VaultClient {
         let pubk = base64::decode(pubk)?;
 
         debug!(
-            "Public key: base64 decoded {}, size:{}",
+            "Public key: base64 decoded {}, size: {}",
             key_name,
             pubk.len()
         );
@@ -316,16 +251,11 @@ impl VaultClient {
     }
 
     pub fn handshake(&self) -> Result<(), Error> {
-        let res = self
-            .agent
-            .get(&format!(
-                "{}{}",
-                self.api_endpoint, self.endpoints.handshake,
-            ))
-            .set(VAULT_TOKEN, &self.token)
-            .call();
+        let uri = format!("{}{}", self.api_endpoint, self.endpoints.handshake,);
 
-        self.check_response_status_code(res)?;
+        let res = self.agent.get(&uri).header(VAULT_TOKEN, &self.token).call();
+
+        self.check_response_status_code(&uri, res)?;
         Ok(())
     }
 
@@ -348,17 +278,17 @@ impl VaultClient {
 
         debug!("signing request: base64 encoded and about to submit for signing...");
 
+        let uri = format!("{}{}/{}", self.api_endpoint, self.endpoints.sign, key_name);
+
         let res = self
             .agent
-            .post(&format!(
-                "{}{}/{}",
-                self.api_endpoint, self.endpoints.sign, key_name
-            ))
-            .set(VAULT_TOKEN, &self.token)
+            .post(&uri)
+            .header(VAULT_TOKEN, &self.token)
             .send_json(body);
 
-        let response = self.check_response_status_code(res)?;
-        let data = if let Some(data) = response.into_json::<Root<SignResponse>>()?.data {
+        let response = self.check_response_status_code(&uri, res)?;
+        let data = if let Some(data) = response.into_body().read_json::<Root<SignResponse>>()?.data
+        {
             data
         } else {
             return Err(Error::NoSignature);
@@ -400,17 +330,16 @@ impl VaultClient {
             public_key: String,
         }
 
-        let res = self
-            .agent
-            .get(&format!(
-                "{}{}",
-                self.api_endpoint, self.endpoints.wrapping_key
-            ))
-            .set(VAULT_TOKEN, &self.token)
-            .call();
+        let uri = format!("{}{}", self.api_endpoint, self.endpoints.wrapping_key);
 
-        let response = self.check_response_status_code(res)?;
-        let data = if let Some(data) = response.into_json::<Root<PublicKeyResponse>>()?.data {
+        let res = self.agent.get(&uri).header(VAULT_TOKEN, &self.token).call();
+
+        let response = self.check_response_status_code(&uri, res)?;
+        let data = if let Some(data) = response
+            .into_body()
+            .read_json::<Root<PublicKeyResponse>>()?
+            .data
+        {
             data
         } else {
             return Err(Error::InvalidPubKey("Error getting wrapping key!".into()));
@@ -433,40 +362,64 @@ impl VaultClient {
             exportable,
         };
 
+        let uri = format!(
+            "{}{}/{}/import",
+            self.api_endpoint, self.endpoints.keys, key_name
+        );
+
         let res = self
             .agent
-            .post(&format!(
-                "{}{}/{}/import",
-                self.api_endpoint, self.endpoints.keys, key_name
-            ))
-            .set(VAULT_TOKEN, &self.token)
+            .post(&uri)
+            .header(VAULT_TOKEN, &self.token)
             .send_json(body);
 
-        self.check_response_status_code(res)?;
+        self.check_response_status_code(&uri, res)?;
 
         Ok(())
     }
 
     fn check_response_status_code(
         &self,
-        response: Result<ureq::Response, ureq::Error>,
-    ) -> Result<ureq::Response, Error> {
+        uri: &str,
+        response: Result<Response<Body>, ureq::Error>,
+    ) -> Result<Response<Body>, Error> {
         match response {
             Ok(response) => Ok(response),
-            Err(ureq::Error::Status(code, response)) => {
+            Err(ureq::Error::StatusCode(code)) => {
                 if self.exit_on_error.contains(&code) {
                     panic!(
                         "{}",
-                        Error::ProhibitedResponseCode(
-                            code.to_string(),
-                            response.get_url().to_string(),
-                        )
+                        Error::ProhibitedResponseCode(code.to_string(), uri.into())
                     );
                 } else {
-                    Err(ureq::Error::Status(code, response))?
+                    Err(ureq::Error::StatusCode(code))?
                 }
             }
             Err(err) => Err(err.into()),
         }
     }
+}
+
+fn read_cert(path: &str) -> &'static [u8] {
+    // a static cache to store file contents per file path
+    static CERT_CACHE: OnceLock<Mutex<HashMap<String, Vec<u8>>>> = OnceLock::new();
+
+    // initialize the cache
+    let cache = CERT_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+
+    // access the cache and ensure the content for the given path
+    let mut map = cache.lock().unwrap();
+    if !map.contains_key(path) {
+        let content = fs::read(path).expect("Failed to read CA certificate");
+
+        // NOTE: `Certificate::from_pem` from ureq crate does not parse the PEM file correctly
+        // in version 3.0.0-rc3, so we use `CertificateDer::from_pem_slice` from rustls crate
+        let cert_der: CertificateDer<'static> = CertificateDer::from_pem_slice(&content).unwrap();
+        map.insert(path.to_string(), cert_der.to_vec());
+    }
+
+    // leak the cert to get a 'static reference
+    let content = map.get(path).unwrap();
+    let static_content: &'static [u8] = Box::leak(content.clone().into_boxed_slice());
+    static_content
 }

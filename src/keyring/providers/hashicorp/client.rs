@@ -214,7 +214,7 @@ mod tests {
         )
         .expect("Failed to connect");
 
-        let body = serde_json::to_string(&SignRequest {
+        let body = serde_json::to_string_pretty(&SignRequest {
             input: TEST_PAYLOAD_TO_SIGN_BASE64.into(),
         })
         .unwrap();
@@ -266,7 +266,7 @@ mod tests {
         )
         .expect("Failed to connect");
 
-        let body = serde_json::to_string(&SignRequest {
+        let body = serde_json::to_string_pretty(&SignRequest {
             input: TEST_PAYLOAD_TO_SIGN_BASE64.into(),
         })
         .unwrap();
