@@ -20,6 +20,20 @@ lazy_static! {
         "request_duration_seconds",
         "Duration of request",
         &["chain", "message_type"],
+        vec![
+            0.005,
+            0.05,
+            0.1,
+            0.150,
+            0.200,
+            0.250,
+            0.300,
+            0.350,
+            0.400,
+            0.500,
+            1.0,
+            std::f64::INFINITY
+        ],
     )
     .unwrap();
 }
