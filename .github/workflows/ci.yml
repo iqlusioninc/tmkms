@@ -7,7 +7,9 @@ on:
 
 env:
   CARGO_INCREMENTAL: 0
-  RUSTFLAGS: "-Dwarnings -Anon-local-definitions"
+  # > 1.84.0 (current stable) introduces new lint, this is to suppress it until
+  # the issue is fixed
+  RUSTFLAGS: "-Dwarnings -Anon-local-definitions -Aunknown-lints"
 
 jobs:
   check:
