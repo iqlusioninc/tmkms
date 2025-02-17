@@ -19,9 +19,12 @@ use tendermint_proto as proto;
 use tmkms::{
     config::provider::KeyType,
     connection::unix::UnixConnection,
-    keyring::ed25519,
+    keyring::{ed25519, SigningProvider},
     privval::{SignableMsg, SignedMsgType},
 };
+
+#[cfg(feature = "hashicorp")]
+use {std::sync::Once, zeroize::Zeroizing};
 
 /// Integration tests for the KMS command-line interface
 mod cli;
@@ -32,6 +35,9 @@ const KMS_EXE_PATH: &str = "target/debug/tmkms";
 /// Path to the example validator signing key
 const SIGNING_ED25519_KEY_PATH: &str = "tests/support/signing_ed25519.key";
 const SIGNING_SECP256K1_KEY_PATH: &str = "tests/support/signing_secp256k1.key";
+
+#[cfg(feature = "hashicorp")]
+static VAULT: Once = Once::new();
 
 enum KmsSocket {
     /// TCP socket type
@@ -85,13 +91,18 @@ struct KmsProcess {
 
 impl KmsProcess {
     /// Spawn the KMS process and wait for an incoming TCP connection
-    pub fn create_tcp(key_type: &KeyType) -> Self {
+    pub fn create_tcp(key_type: &KeyType, provider: SigningProvider) -> Self {
         // Generate a random port and a config file
         let port: u16 = rand::thread_rng().gen_range(60000..=65535);
-        let config = KmsProcess::create_tcp_config(port, key_type);
+        let config = KmsProcess::create_tcp_config(port, key_type, provider);
 
         // Listen on a random port
         let listener = TcpListener::bind(format!("{}:{}", "127.0.0.1", port)).unwrap();
+
+        #[cfg(feature = "hashicorp")]
+        if provider == SigningProvider::HashiCorp {
+            KmsProcess::load_vault_key(key_type, config.path().to_str().unwrap());
+        }
 
         let args = &["start", "-c", config.path().to_str().unwrap()];
         let process = Command::new(KMS_EXE_PATH).args(args).spawn().unwrap();
@@ -104,16 +115,21 @@ impl KmsProcess {
     }
 
     /// Spawn the KMS process and connect to the Unix listener
-    pub fn create_unix(key_type: &KeyType) -> Self {
+    pub fn create_unix(key_type: &KeyType, provider: SigningProvider) -> Self {
         // Create a random socket path and a config file
         let mut rng = rand::thread_rng();
         let letter: char = rng.gen_range(b'a'..=b'z') as char;
         let number: u32 = rng.gen_range(0..=999999);
         let socket_path = format!("/tmp/tmkms-{letter}{number:06}.sock");
-        let config = KmsProcess::create_unix_config(&socket_path, key_type);
+        let config = KmsProcess::create_unix_config(&socket_path, key_type, provider);
 
         // Start listening for connections via the Unix socket
         let listener = UnixListener::bind(socket_path).unwrap();
+
+        #[cfg(feature = "hashicorp")]
+        if provider == SigningProvider::HashiCorp {
+            KmsProcess::load_vault_key(key_type, config.path().to_str().unwrap());
+        }
 
         // Fire up the KMS process and allow it to connect to our Unix socket
         let args = &["start", "-c", config.path().to_str().unwrap()];
@@ -127,7 +143,11 @@ impl KmsProcess {
     }
 
     /// Create a config file for a TCP KMS and return its path
-    fn create_tcp_config(port: u16, key_type: &KeyType) -> NamedTempFile {
+    fn create_tcp_config(
+        port: u16,
+        key_type: &KeyType,
+        provider: SigningProvider,
+    ) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
         let pub_key = test_ed25519_keypair().verifying_key();
         let peer_id = secret_connection::PublicKey::from(pub_key).peer_id();
@@ -146,24 +166,60 @@ impl KmsProcess {
             reconnect = false
             secret_key = "tests/support/secret_connection.key"
             protocol_version = "v0.34"
-
-            [[providers.softsign]]
-            chain_ids = ["test_chain_id"]
-            key_format = "base64"
-            path = "{}"
-            key_type = "{}"
         "#,
-            &peer_id.to_string(), port, signing_key_path(key_type), key_type
+            &peer_id.to_string(), port
         )
+        .unwrap();
+
+        match provider {
+            #[cfg(feature = "softsign")]
+            SigningProvider::SoftSign => writeln!(
+                config_file,
+                r#"
+                [[providers.softsign]]
+                chain_ids = ["test_chain_id"]
+                key_format = "base64"
+                path = "{}"
+                key_type = "{}"
+            "#,
+                signing_key_path(&key_type),
+                key_type
+            ),
+
+            #[cfg(feature = "hashicorp")]
+            SigningProvider::HashiCorp => writeln!(
+                config_file,
+                r#"
+                [[providers.hashicorp]]
+
+                [[providers.hashicorp.keys]]
+                chain_id = "test_chain_id"
+                key = "cosmoshub-sign-key"
+                auth.access_token = "test"
+                # key_type: {}
+
+                [providers.hashicorp.adapter]
+                vault_addr = "http://127.0.0.1:8400"
+                "#,
+                key_type
+            ),
+
+            #[allow(unreachable_patterns)]
+            _ => Ok(()),
+        }
         .unwrap();
 
         config_file
     }
 
     /// Create a config file for a UNIX KMS and return its path
-    fn create_unix_config(socket_path: &str, key_type: &KeyType) -> NamedTempFile {
+    fn create_unix_config(
+        socket_path: &str,
+        key_type: &KeyType,
+        provider: SigningProvider,
+    ) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
-        let key_path = signing_key_path(key_type);
+
         writeln!(
             config_file,
             r#"
@@ -176,14 +232,46 @@ impl KmsProcess {
             chain_id = "test_chain_id"
             max_height = "500000"
             protocol_version = "v0.34"
-
-            [[providers.softsign]]
-            chain_ids = ["test_chain_id"]
-            key_format = "base64"
-            path = "{key_path}"
-            key_type = "{key_type}"
         "#
         )
+        .unwrap();
+
+        match provider {
+            #[cfg(feature = "softsign")]
+            SigningProvider::SoftSign => writeln!(
+                config_file,
+                r#"
+                [[providers.softsign]]
+                chain_ids = ["test_chain_id"]
+                key_format = "base64"
+                path = "{}"
+                key_type = "{}"
+            "#,
+                signing_key_path(&key_type),
+                key_type
+            ),
+
+            #[cfg(feature = "hashicorp")]
+            SigningProvider::HashiCorp => writeln!(
+                config_file,
+                r#"
+                [[providers.hashicorp]]
+
+                [[providers.hashicorp.keys]]
+                chain_id = "test_chain_id"
+                key = "cosmoshub-sign-key"
+                auth.access_token = "test"
+                # key_type: {}
+
+                [providers.hashicorp.adapter]
+                vault_addr = "http://127.0.0.1:8400"
+                "#,
+                key_type
+            ),
+
+            #[allow(unreachable_patterns)]
+            _ => Ok(()),
+        }
         .unwrap();
 
         config_file
@@ -216,6 +304,28 @@ impl KmsProcess {
             }
         }
     }
+
+    #[cfg(feature = "hashicorp")]
+    fn load_vault_key(key_type: &KeyType, config_path: &str) {
+        let base64_key = Zeroizing::new(fs::read_to_string(signing_key_path(key_type)).unwrap());
+        let payload_arg = format!("--payload={}", base64_key.as_str());
+        let args = &[
+            "hashicorp",
+            "upload",
+            "cosmoshub-sign-key",
+            payload_arg.as_str(),
+            "-c",
+            config_path,
+            "-f",
+            "base64",
+        ];
+
+        // the first import will succeed, the latter won't (because key is already uploaded)
+        let _ = Command::new(KMS_EXE_PATH)
+            .env("VAULT_TOKEN", "test")
+            .args(args)
+            .output();
+    }
 }
 
 /// A struct to hold protocol integration tests contexts
@@ -227,13 +337,20 @@ struct ProtocolTester {
 }
 
 impl ProtocolTester {
-    pub fn apply<F>(key_type: &KeyType, functor: F)
+    pub fn apply<F>(key_type: &KeyType, provider: SigningProvider, functor: F)
     where
         F: FnOnce(ProtocolTester),
     {
-        let tcp_device = KmsProcess::create_tcp(key_type);
+        #[cfg(feature = "hashicorp")]
+        if provider == SigningProvider::HashiCorp {
+            VAULT.call_once(|| {
+                start_vault();
+            });
+        }
+
+        let tcp_device = KmsProcess::create_tcp(&key_type, provider);
         let tcp_connection = tcp_device.create_connection();
-        let unix_device = KmsProcess::create_unix(key_type);
+        let unix_device = KmsProcess::create_unix(&key_type, provider);
         let unix_connection = unix_device.create_connection();
 
         functor(Self {
@@ -320,16 +437,21 @@ pub fn extract_actual_len(buf: &[u8]) -> Result<u64, prost::DecodeError> {
 }
 
 #[test]
+#[cfg(feature = "softsign")]
 fn test_handle_and_sign_proposal_account() {
-    handle_and_sign_proposal(KeyType::Account)
+    handle_and_sign_proposal(KeyType::Account, SigningProvider::SoftSign);
 }
 
 #[test]
 fn test_handle_and_sign_proposal_consensus() {
-    handle_and_sign_proposal(KeyType::Consensus)
+    #[cfg(feature = "softsign")]
+    handle_and_sign_proposal(KeyType::Consensus, SigningProvider::SoftSign);
+
+    #[cfg(feature = "hashicorp")]
+    handle_and_sign_proposal(KeyType::Consensus, SigningProvider::HashiCorp)
 }
 
-fn handle_and_sign_proposal(key_type: KeyType) {
+fn handle_and_sign_proposal(key_type: KeyType, provider: SigningProvider) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
@@ -338,7 +460,7 @@ fn handle_and_sign_proposal(key_type: KeyType) {
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
-    ProtocolTester::apply(&key_type, |mut pt| {
+    ProtocolTester::apply(&key_type, provider, |mut pt| {
         let proposal = proto::types::Proposal {
             r#type: SignedMsgType::Proposal.into(),
             height: 12345,
@@ -394,16 +516,21 @@ fn handle_and_sign_proposal(key_type: KeyType) {
 }
 
 #[test]
+#[cfg(feature = "softsign")]
 fn test_handle_and_sign_vote_account() {
-    handle_and_sign_vote(KeyType::Account)
+    handle_and_sign_vote(KeyType::Account, SigningProvider::SoftSign)
 }
 
 #[test]
 fn test_handle_and_sign_vote_consensus() {
-    handle_and_sign_vote(KeyType::Consensus)
+    #[cfg(feature = "softsign")]
+    handle_and_sign_vote(KeyType::Consensus, SigningProvider::SoftSign);
+
+    #[cfg(feature = "hashicorp")]
+    handle_and_sign_vote(KeyType::Consensus, SigningProvider::HashiCorp)
 }
 
-fn handle_and_sign_vote(key_type: KeyType) {
+fn handle_and_sign_vote(key_type: KeyType, provider: SigningProvider) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
@@ -412,7 +539,7 @@ fn handle_and_sign_vote(key_type: KeyType) {
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
-    ProtocolTester::apply(&key_type, |mut pt| {
+    ProtocolTester::apply(&key_type, provider, |mut pt| {
         let vote_msg = proto::types::Vote {
             r#type: 0x01,
             height: 12345,
@@ -480,17 +607,22 @@ fn handle_and_sign_vote(key_type: KeyType) {
 
 #[test]
 #[should_panic]
+#[cfg(feature = "softsign")]
 fn test_exceed_max_height_account() {
-    exceed_max_height(KeyType::Account)
+    exceed_max_height(KeyType::Account, SigningProvider::SoftSign)
 }
 
 #[test]
 #[should_panic]
 fn test_exceed_max_height_consensus() {
-    exceed_max_height(KeyType::Consensus)
+    #[cfg(feature = "softsign")]
+    exceed_max_height(KeyType::Consensus, SigningProvider::SoftSign);
+
+    #[cfg(feature = "hashicorp")]
+    exceed_max_height(KeyType::Consensus, SigningProvider::HashiCorp)
 }
 
-fn exceed_max_height(key_type: KeyType) {
+fn exceed_max_height(key_type: KeyType, provider: SigningProvider) {
     let chain_id = "test_chain_id";
 
     let dt = "2018-02-11T07:09:22.765Z".parse::<DateTime<Utc>>().unwrap();
@@ -499,7 +631,7 @@ fn exceed_max_height(key_type: KeyType) {
         nanos: dt.timestamp_subsec_nanos() as i32,
     };
 
-    ProtocolTester::apply(&key_type, |mut pt| {
+    ProtocolTester::apply(&key_type, provider, |mut pt| {
         let vote_msg = proto::types::Vote {
             r#type: 0x01,
             height: 500001,
@@ -566,19 +698,24 @@ fn exceed_max_height(key_type: KeyType) {
 }
 
 #[test]
+#[cfg(feature = "softsign")]
 fn test_handle_and_sign_get_publickey_account() {
-    handle_and_sign_get_publickey(KeyType::Account)
+    handle_and_sign_get_publickey(KeyType::Account, SigningProvider::SoftSign)
 }
 
 #[test]
 fn test_handle_and_sign_get_publickey_consensus() {
-    handle_and_sign_get_publickey(KeyType::Consensus)
+    #[cfg(feature = "softsign")]
+    handle_and_sign_get_publickey(KeyType::Consensus, SigningProvider::SoftSign);
+
+    #[cfg(feature = "hashicorp")]
+    handle_and_sign_get_publickey(KeyType::Consensus, SigningProvider::HashiCorp)
 }
 
-fn handle_and_sign_get_publickey(key_type: KeyType) {
+fn handle_and_sign_get_publickey(key_type: KeyType, provider: SigningProvider) {
     let chain_id = "test_chain_id";
 
-    ProtocolTester::apply(&key_type, |mut pt| {
+    ProtocolTester::apply(&key_type, provider, |mut pt| {
         let request = proto::privval::PubKeyRequest {
             chain_id: chain_id.into(),
         };
@@ -608,10 +745,12 @@ fn handle_and_sign_get_publickey(key_type: KeyType) {
 }
 
 #[test]
+#[cfg(feature = "softsign")]
 fn test_handle_and_sign_ping_pong() {
     let key_type = KeyType::Consensus;
+    let provider = SigningProvider::SoftSign;
 
-    ProtocolTester::apply(&key_type, |mut pt| {
+    ProtocolTester::apply(&key_type, provider, |mut pt| {
         let request = proto::privval::PingRequest {};
         send_request(proto::privval::message::Sum::PingRequest(request), &mut pt);
         read_response(&mut pt);
@@ -620,8 +759,9 @@ fn test_handle_and_sign_ping_pong() {
 
 #[test]
 fn test_buffer_underflow_sign_proposal() {
+    let provider = SigningProvider::SoftSign;
     let key_type = KeyType::Consensus;
-    ProtocolTester::apply(&key_type, |mut pt| {
+    ProtocolTester::apply(&key_type, provider, |mut pt| {
         send_buffer_underflow_request(&mut pt);
         let response: Result<(), ()> = match read_response(&mut pt) {
             proto::privval::message::Sum::SignedProposalResponse(_) => Ok(()),
@@ -662,4 +802,23 @@ fn read_response(pt: &mut ProtocolTester) -> proto::privval::message::Sum {
 
     let message = proto::privval::Message::decode_length_delimited(resp_bytes.as_ref()).unwrap();
     message.sum.expect("no sum field in message")
+}
+
+#[cfg(feature = "hashicorp")]
+fn start_vault() {
+    let no_vault_server = std::env::var("NO_VAULT_SERVER");
+
+    if no_vault_server.is_err() {
+        Command::new("sh")
+            .arg("-c")
+            .arg("./tests/support/start_vault.sh start background http 8400 0")
+            .spawn()
+            .expect("Failed to start vault server");
+    }
+
+    Command::new("bash")
+        .arg("-c")
+        .arg("./tests/support/start_vault.sh setup http 8400")
+        .output()
+        .expect("Failed to initalize vault server");
 }
