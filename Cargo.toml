@@ -47,7 +47,7 @@ tendermint = { version = "0.35", features = ["secp256k1"] }
 tendermint-config = "0.35"
 tendermint-p2p = "0.35"
 tendermint-proto = "0.35"
-thiserror = "1"
+thiserror = "2"
 url = { version = "2.2.2", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["serde"], optional = true }
 wait-timeout = "0.2"
