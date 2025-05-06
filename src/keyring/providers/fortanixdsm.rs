@@ -213,7 +213,7 @@ const ED_25519_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.101.112
 
 struct Ed25519PublicKey(Ed25519);
 
-impl<'a> TryFrom<SubjectPublicKeyInfoRef<'a>> for Ed25519PublicKey {
+impl TryFrom<SubjectPublicKeyInfoRef<'_>> for Ed25519PublicKey {
     type Error = SpkiError;
 
     fn try_from(spki: SubjectPublicKeyInfoRef<'_>) -> Result<Self, Self::Error> {

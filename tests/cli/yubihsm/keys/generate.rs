@@ -13,9 +13,8 @@ fn keys_generate_command_test() {
 
     let cmd_out = cli::run_successfully(args.as_slice());
     assert!(cmd_out.status.success());
-    assert!(cmd_out.stderr.is_empty());
 
-    let stdout = str::from_utf8(&cmd_out.stdout).unwrap().trim().to_owned();
-    assert!(stdout.contains("Generated"));
-    assert!(stdout.contains("key 0x0001"));
+    let stderr = str::from_utf8(&cmd_out.stderr).unwrap().trim().to_owned();
+    assert!(stderr.contains("Generated"));
+    assert!(stderr.contains("key 0x0001"));
 }
