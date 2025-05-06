@@ -2,7 +2,6 @@
 
 use super::KeyType;
 use crate::{chain, prelude::*};
-use abscissa_core::secret::{CloneableSecret, DebugSecret, ExposeSecret, Secret};
 use serde::Deserialize;
 use std::{fmt, fs, path::PathBuf, process};
 use tendermint_config::net;
@@ -69,7 +68,7 @@ pub enum AuthConfig {
         key: u16,
 
         /// Password to use to authenticate to the YubiHSM
-        password: Secret<Password>,
+        password: Password,
     },
 }
 
@@ -89,7 +88,7 @@ impl AuthConfig {
                 Credentials::from_password(*key, password_trimmed.as_bytes())
             }
             AuthConfig::String { key, password } => {
-                Credentials::from_password(*key, password.expose_secret().0.as_bytes())
+                Credentials::from_password(*key, password.0.as_bytes())
             }
         }
     }
@@ -101,10 +100,9 @@ impl AuthConfig {
 #[zeroize(drop)]
 pub struct Password(String);
 
-impl CloneableSecret for Password {}
 
-impl DebugSecret for Password {
-    fn debug_secret(f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+impl fmt::Debug for Password {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.write_str("REDACTED PASSWORD")
     }
 }
