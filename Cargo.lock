@@ -2645,7 +2645,7 @@ dependencies = [
  "ed25519-consensus",
  "elliptic-curve",
  "eyre",
- "getrandom 0.2.16",
+ "getrandom 0.3.2",
  "hkd32",
  "hkdf",
  "k256",
