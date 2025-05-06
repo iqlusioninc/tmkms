@@ -5,5 +5,5 @@ ignore = [
     "RUSTSEC-2019-0036", # failure: type confusion if __private_get_type_id__ is overridden
     "RUSTSEC-2020-0036", # failure is officially deprecated/unmaintained
     "RUSTSEC-2024-0421",
-    "RUSTSEC-2024-0436", 
+    "RUSTSEC-2024-0436",
 ]
