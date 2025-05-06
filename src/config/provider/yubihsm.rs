@@ -100,7 +100,6 @@ impl AuthConfig {
 #[zeroize(drop)]
 pub struct Password(String);
 
-
 impl fmt::Debug for Password {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.write_str("REDACTED PASSWORD")
