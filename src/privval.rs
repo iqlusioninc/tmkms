@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn serialize_canonical_proposal() {
-        let signable_msg = SignableMsg::try_from(example_proposal()).unwrap();
+        let signable_msg = SignableMsg::from(example_proposal());
         let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn serialize_canonical_vote() {
-        let signable_msg = SignableMsg::try_from(example_vote()).unwrap();
+        let signable_msg = SignableMsg::from(example_vote());
         let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),

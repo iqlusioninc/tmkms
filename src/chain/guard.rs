@@ -11,7 +11,7 @@ impl<'lock> From<RwLockReadGuard<'lock, Registry>> for Guard<'lock> {
     }
 }
 
-impl<'lock> Guard<'lock> {
+impl Guard<'_> {
     /// Get information about a particular chain ID (if registered)
     pub fn get_chain(&self, chain_id: &Id) -> Option<&Chain> {
         self.0.get_chain(chain_id)

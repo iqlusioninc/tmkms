@@ -49,7 +49,7 @@ impl ConfigBuilder {
 
     /// Add a comment describing a particular section
     fn add_section_comment(&mut self, section: &str) {
-        self.add_str(&format!("## {section}\n\n"));
+        self.add_str(format!("## {section}\n\n"));
     }
 
     /// Add `[[chain]]` configurations
@@ -96,7 +96,7 @@ impl ConfigBuilder {
     fn add_yubihsm_provider_config(&mut self) {
         self.add_str("### YubiHSM2 Provider Configuration\n\n");
 
-        self.add_str(&format_template(
+        self.add_str(format_template(
             include_str!("templates/keyring/yubihsm.toml"),
             &[("$KMS_HOME", self.kms_home.as_ref())],
         ));
@@ -108,7 +108,7 @@ impl ConfigBuilder {
 
         for network in self.networks.clone() {
             for key_type in key_types {
-                self.add_str(&format!(
+                self.add_str(format!(
                     "    {{ key = {}, type = \"{}\", chain_ids = [\"{}\"] }}, \n",
                     key_id,
                     key_type,
@@ -150,7 +150,7 @@ impl ConfigBuilder {
 
     /// Append a template to the config file, substituting `$KMS_HOME`
     fn add_template(&mut self, template: &str) {
-        self.add_str(&format_template(
+        self.add_str(format_template(
             template,
             &[("$KMS_HOME", self.kms_home.as_ref())],
         ));
@@ -161,7 +161,7 @@ impl ConfigBuilder {
     /// Append a template to the config file, substituting `$KMS_HOME` and `$CHAIN_ID`
     fn add_template_with_chain_id(&mut self, template: &str) {
         for network in self.networks.clone() {
-            self.add_str(&format_template(
+            self.add_str(format_template(
                 template,
                 &[
                     ("$KMS_HOME", self.kms_home.as_ref()),
