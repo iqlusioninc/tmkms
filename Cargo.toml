@@ -20,7 +20,7 @@ abscissa_core = "0.8"
 bytes = "1"
 chrono = "0.4"
 clap = "4"
-cosmrs = "0.16"
+cosmrs = "0.22"
 ed25519 = "2"
 ed25519-consensus = "2"
 elliptic-curve = { version = "0.13", features = ["pkcs8"], optional = true }
