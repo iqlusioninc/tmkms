@@ -1,30 +1,26 @@
 name: Security Audit
 on:
   pull_request:
-    paths: Cargo.lock
+    paths:
+      - .github/workflows/security_audit.yml
+      - '**/Cargo.lock'
   push:
-    branches: main
-    paths: Cargo.lock
+    branches: master
+    paths: '**/Cargo.lock'
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
 
 jobs:
   security_audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
+    name: Security Audit Workspace
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - name: Cache cargo bin
         uses: actions/cache@v4
         with:
           path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-audit-v0.14.0
-      - uses: actions-rs/toolchain@v1
+          key: ${{ runner.os }}-cargo-audit-v0.20-ubuntu-v24.04
+      - uses: rustsec/audit-check@v2
         with:
-          toolchain: stable
-          override: true
-      - name: Install cargo audit
-        run: cargo install cargo-audit
-      - name: Run cargo audit
-        run: cargo audit --deny warnings
-        
+          token: ${{ secrets.GITHUB_TOKEN }}
