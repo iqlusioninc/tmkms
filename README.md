@@ -239,7 +239,7 @@ limitations under the License.
 [//]: # (general links)
 
 [Tendermint]: https://tendermint.com/
-[Cosmos Validators]: https://cosmos.network/docs/gaia/validators/validator-faq.html
+[Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq
 [YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
 [ed25519-dalek]: https://github.com/dalek-cryptography/ed25519-dalek
