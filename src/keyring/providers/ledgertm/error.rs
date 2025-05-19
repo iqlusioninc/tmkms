@@ -22,7 +22,7 @@ pub enum Error {
     #[error("received an invalid signature")]
     InvalidSignature,
 
-    #[error("ledger error")]
+    #[error("ledger error: {0}")]
     Ledger(ledger::Error),
 }
 
