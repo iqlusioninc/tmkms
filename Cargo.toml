@@ -25,7 +25,7 @@ ed25519 = "2"
 ed25519-consensus = "2"
 elliptic-curve = { version = "0.13", features = ["pkcs8"], optional = true }
 eyre = "0.6"
-getrandom = "0.2"
+getrandom = "0.3"
 hkd32 = { version = "0.7", default-features = false, features = ["mnemonic"] }
 hkdf = "0.12"
 k256 = { version = "0.13", features = ["ecdsa", "sha256"] }
