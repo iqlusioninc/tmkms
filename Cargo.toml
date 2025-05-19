@@ -57,7 +57,7 @@ zeroize = "1"
 [dev-dependencies]
 abscissa_core = { version = "0.8", features = ["testing"] }
 byteorder = "1"
-rand = "0.8"
+rand = "0.9"
 
 [features]
 softsign = []
