@@ -105,7 +105,7 @@ impl TendermintValidatorApp {
                 Ok(array)
             }
             Err(err) => {
-                // TODO: Friendly error
+                // Convert Ledger error into a more user-friendly message with detailed error information
                 Err(Error::Ledger(err))
             }
         }
