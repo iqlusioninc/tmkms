@@ -72,7 +72,7 @@ path = "path/to/consensus-ed25519.key" # generate using `tmkms softsign keygen -
 
 ## (Optional) Transaction signer configuration
 
-# example transaction signer: sign StdTx-strucutred transactions with a KMS-managed key
+# example transaction signer: sign StdTx-structured transactions with a KMS-managed key
 # [[tx_signer]]
 # chain_id = "irishub"
 # schema = "iris_tx_schema.toml" # See example TERRA_SCHEMA at https://docs.rs/stdtx#usage
