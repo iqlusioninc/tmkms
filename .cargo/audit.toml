@@ -4,6 +4,7 @@
 ignore = [
     "RUSTSEC-2019-0036", # failure: type confusion if __private_get_type_id__ is overridden
     "RUSTSEC-2020-0036", # failure is officially deprecated/unmaintained
+    "RUSTSEC-2023-0071", # rsa marvin attack, waiting for an upstream fix (rsa package is used by hashicorp feature)
     "RUSTSEC-2024-0421",
     "RUSTSEC-2024-0436",
 ]
