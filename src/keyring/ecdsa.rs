@@ -10,10 +10,9 @@ use crate::{
 use std::sync::Arc;
 use tendermint::TendermintKey;
 
-#[allow(clippy::redundant_allocation)]
-
 /// ECDSA signer
 #[derive(Clone)]
+#[allow(clippy::redundant_allocation)]
 pub struct Signer {
     /// Provider for this signer
     provider: SigningProvider,
@@ -27,7 +26,6 @@ pub struct Signer {
 
 impl Signer {
     /// Create a new signer
-
     pub fn new(
         provider: SigningProvider,
         public_key: TendermintKey,

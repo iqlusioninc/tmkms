@@ -14,10 +14,10 @@ use crate::{
 use std::sync::Arc;
 use tendermint::TendermintKey;
 
-#[allow(clippy::redundant_allocation)]
 
 /// Ed25519 signer
 #[derive(Clone)]
+#[allow(clippy::redundant_allocation)]
 pub struct Signer {
     /// Provider for this signer
     provider: SigningProvider,
