@@ -14,7 +14,6 @@ use crate::{
 use std::sync::Arc;
 use tendermint::TendermintKey;
 
-
 /// Ed25519 signer
 #[derive(Clone)]
 #[allow(clippy::redundant_allocation)]
