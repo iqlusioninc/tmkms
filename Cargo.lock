@@ -2408,8 +2408,7 @@ dependencies = [
 [[package]]
 name = "tendermint-proto"
 version = "0.40.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c40e13d39ca19082d8a7ed22de7595979350319833698f8b1080f29620a094"
+source = "git+https://github.com/rach-id/tendermint-rs.git?branch=rachid%2Fgenerate-latest-v38-protos#d7ce755d56826e8c5fbe1d059fb5ab1e2cab7c5b"
 dependencies = [
  "bytes",
  "flex-error",

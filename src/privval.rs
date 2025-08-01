@@ -20,9 +20,9 @@ const PRECOMMIT_CODE: SignedMsgCode = 0x02;
 /// Code for precommits.
 const PROPOSAL_CODE: SignedMsgCode = 0x20;
 
-/// Trait for signed messages.
+/// Signable Tendermint/CometBFT consensus messages.
 #[derive(Debug)]
-pub enum SignableMsg {
+pub enum ConsensusMsg {
     /// Proposals
     Proposal(Proposal),
 
@@ -30,11 +30,11 @@ pub enum SignableMsg {
     Vote(Vote),
 }
 
-impl SignableMsg {
+impl ConsensusMsg {
     /// Get the signed message type.
-    pub fn msg_type(&self) -> SignedMsgType {
+    pub fn msg_type(&self) -> ConsensusMsgType {
         match self {
-            Self::Proposal(_) => SignedMsgType::Proposal,
+            Self::Proposal(_) => ConsensusMsgType::Proposal,
             Self::Vote(vote) => vote.vote_type.into(),
         }
     }
@@ -56,7 +56,7 @@ impl SignableMsg {
             Self::Proposal(proposal) => {
                 let canonical = proto::types::CanonicalProposal {
                     chain_id: chain_id.to_string(),
-                    r#type: SignedMsgType::Proposal.into(),
+                    r#type: ConsensusMsgType::Proposal.into(),
                     height: proposal.height.into(),
                     block_id: proposal.block_id.map(Into::into),
                     pol_round: proposal
@@ -135,10 +135,10 @@ impl SignableMsg {
     /// Add a consensus signature to this message.
     pub fn add_consensus_signature(&mut self, signature: impl Into<tendermint::Signature>) {
         match self {
-            SignableMsg::Proposal(proposal) => {
+            ConsensusMsg::Proposal(proposal) => {
                 proposal.signature = Some(signature.into());
             }
-            SignableMsg::Vote(vote) => {
+            ConsensusMsg::Vote(vote) => {
                 vote.signature = Some(signature.into());
             }
         }
@@ -150,7 +150,7 @@ impl SignableMsg {
         signature: impl Into<tendermint::Signature>,
     ) -> Result<(), Error> {
         match self {
-            SignableMsg::Vote(vote) => {
+            ConsensusMsg::Vote(vote) => {
                 vote.extension_signature = Some(signature.into());
                 Ok(())
             }
@@ -159,19 +159,19 @@ impl SignableMsg {
     }
 }
 
-impl From<Proposal> for SignableMsg {
+impl From<Proposal> for ConsensusMsg {
     fn from(proposal: Proposal) -> Self {
         Self::Proposal(proposal)
     }
 }
 
-impl From<Vote> for SignableMsg {
+impl From<Vote> for ConsensusMsg {
     fn from(vote: Vote) -> Self {
         Self::Vote(vote)
     }
 }
 
-impl TryFrom<proto::types::Proposal> for SignableMsg {
+impl TryFrom<proto::types::Proposal> for ConsensusMsg {
     type Error = Error;
 
     fn try_from(proposal: proto::types::Proposal) -> Result<Self, Self::Error> {
@@ -179,7 +179,7 @@ impl TryFrom<proto::types::Proposal> for SignableMsg {
     }
 }
 
-impl TryFrom<proto::types::Vote> for SignableMsg {
+impl TryFrom<proto::types::Vote> for ConsensusMsg {
     type Error = Error;
 
     fn try_from(vote: proto::types::Vote) -> Result<Self, Self::Error> {
@@ -187,13 +187,13 @@ impl TryFrom<proto::types::Vote> for SignableMsg {
     }
 }
 
-/// [`SignedMsgType`] is a type of signed message in the consensus.
+/// [`ConsensusMsgType`] is a type of signed message in the consensus.
 ///
 /// Adapted from:
 /// <https://github.com/cometbft/cometbft/blob/27d2a18/proto/tendermint/types/types.proto#L13>
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(i32)]
-pub enum SignedMsgType {
+pub enum ConsensusMsgType {
     /// Unknown message types.
     Unknown = UNKNOWN_CODE,
 
@@ -207,7 +207,7 @@ pub enum SignedMsgType {
     Proposal = PROPOSAL_CODE,
 }
 
-impl SignedMsgType {
+impl ConsensusMsgType {
     /// Is the message type unknown?
     pub fn is_unknown(self) -> bool {
         self == Self::Unknown
@@ -219,25 +219,25 @@ impl SignedMsgType {
     }
 }
 
-impl From<SignedMsgType> for SignedMsgCode {
-    fn from(msg_type: SignedMsgType) -> SignedMsgCode {
+impl From<ConsensusMsgType> for SignedMsgCode {
+    fn from(msg_type: ConsensusMsgType) -> SignedMsgCode {
         msg_type.code()
     }
 }
 
-impl From<SignedMsgType> for proto::types::SignedMsgType {
-    fn from(msg_type: SignedMsgType) -> proto::types::SignedMsgType {
+impl From<ConsensusMsgType> for proto::types::SignedMsgType {
+    fn from(msg_type: ConsensusMsgType) -> proto::types::SignedMsgType {
         match msg_type {
-            SignedMsgType::Unknown => proto::types::SignedMsgType::Unknown,
-            SignedMsgType::Prevote => proto::types::SignedMsgType::Prevote,
-            SignedMsgType::Precommit => proto::types::SignedMsgType::Precommit,
-            SignedMsgType::Proposal => proto::types::SignedMsgType::Proposal,
+            ConsensusMsgType::Unknown => proto::types::SignedMsgType::Unknown,
+            ConsensusMsgType::Prevote => proto::types::SignedMsgType::Prevote,
+            ConsensusMsgType::Precommit => proto::types::SignedMsgType::Precommit,
+            ConsensusMsgType::Proposal => proto::types::SignedMsgType::Proposal,
         }
     }
 }
 
-impl From<proto::types::SignedMsgType> for SignedMsgType {
-    fn from(proto: proto::types::SignedMsgType) -> SignedMsgType {
+impl From<proto::types::SignedMsgType> for ConsensusMsgType {
+    fn from(proto: proto::types::SignedMsgType) -> ConsensusMsgType {
         match proto {
             proto::types::SignedMsgType::Unknown => Self::Unknown,
             proto::types::SignedMsgType::Prevote => Self::Prevote,
@@ -247,16 +247,16 @@ impl From<proto::types::SignedMsgType> for SignedMsgType {
     }
 }
 
-impl From<vote::Type> for SignedMsgType {
-    fn from(vote_type: vote::Type) -> SignedMsgType {
+impl From<vote::Type> for ConsensusMsgType {
+    fn from(vote_type: vote::Type) -> ConsensusMsgType {
         match vote_type {
-            vote::Type::Prevote => SignedMsgType::Prevote,
-            vote::Type::Precommit => SignedMsgType::Precommit,
+            vote::Type::Prevote => ConsensusMsgType::Prevote,
+            vote::Type::Precommit => ConsensusMsgType::Precommit,
         }
     }
 }
 
-impl TryFrom<SignedMsgCode> for SignedMsgType {
+impl TryFrom<SignedMsgCode> for ConsensusMsgType {
     type Error = Error;
 
     fn try_from(code: SignedMsgCode) -> Result<Self, Self::Error> {
@@ -268,7 +268,7 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
 
 #[cfg(test)]
 mod tests {
-    use super::{SignableMsg, SignedMsgType, chain, proto};
+    use super::{ConsensusMsg, ConsensusMsgType, chain, proto};
     use tendermint::{Proposal, Time, Vote};
 
     fn example_chain_id() -> chain::Id {
@@ -286,7 +286,7 @@ mod tests {
 
     fn example_proposal() -> Proposal {
         proto::types::Proposal {
-            r#type: SignedMsgType::Proposal.into(),
+            r#type: ConsensusMsgType::Proposal.into(),
             height: 12345,
             round: 1,
             timestamp: Some(example_timestamp()),
@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn serialize_canonical_proposal() {
-        let signable_msg = SignableMsg::from(example_proposal());
+        let signable_msg = ConsensusMsg::from(example_proposal());
         let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn serialize_canonical_vote() {
-        let signable_msg = SignableMsg::from(example_vote());
+        let signable_msg = ConsensusMsg::from(example_vote());
         let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
         assert_eq!(
             signable_bytes.as_ref(),

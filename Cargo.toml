@@ -71,3 +71,7 @@ overflow-checks = true
 
 [package.metadata.docs.rs]
 all-features = true
+
+[patch.crates-io.tendermint-proto]
+git = "https://github.com/rach-id/tendermint-rs.git"
+branch = "rachid/generate-latest-v38-protos"
