@@ -20,7 +20,7 @@ use tmkms::{
     config::provider::KeyType,
     connection::unix::UnixConnection,
     keyring::ed25519,
-    privval::{SignableMsg, SignedMsgType},
+    privval::{ConsensusMsg, ConsensusMsgType},
 };
 
 /// Integration tests for the KMS command-line interface
@@ -155,7 +155,7 @@ impl KmsProcess {
         "#,
             &peer_id.to_string(), port, signing_key_path(key_type), key_type
         )
-        .unwrap();
+            .unwrap();
 
         config_file
     }
@@ -184,7 +184,7 @@ impl KmsProcess {
             key_type = "{key_type}"
         "#
         )
-        .unwrap();
+            .unwrap();
 
         config_file
     }
@@ -340,7 +340,7 @@ fn handle_and_sign_proposal(key_type: KeyType) {
 
     ProtocolTester::apply(&key_type, |mut pt| {
         let proposal = proto::types::Proposal {
-            r#type: SignedMsgType::Proposal.into(),
+            r#type: ConsensusMsgType::Proposal.into(),
             height: 12345,
             round: 1,
             timestamp: Some(t),
@@ -349,7 +349,7 @@ fn handle_and_sign_proposal(key_type: KeyType) {
             signature: vec![],
         };
 
-        let signable_msg = SignableMsg::try_from(proposal.clone()).unwrap();
+        let signable_msg = ConsensusMsg::try_from(proposal.clone()).unwrap();
 
         let request = proto::privval::SignProposalRequest {
             proposal: Some(proposal),
@@ -435,7 +435,7 @@ fn handle_and_sign_vote(key_type: KeyType) {
             extension_signature: vec![],
         };
 
-        let signable_msg = SignableMsg::try_from(vote_msg.clone()).unwrap();
+        let signable_msg = ConsensusMsg::try_from(vote_msg.clone()).unwrap();
 
         let vote = proto::privval::SignVoteRequest {
             vote: Some(vote_msg),
@@ -522,7 +522,7 @@ fn exceed_max_height(key_type: KeyType) {
             extension_signature: vec![],
         };
 
-        let signable_msg = SignableMsg::try_from(vote_msg.clone()).unwrap();
+        let signable_msg = ConsensusMsg::try_from(vote_msg.clone()).unwrap();
 
         let vote = proto::privval::SignVoteRequest {
             vote: Some(vote_msg),
