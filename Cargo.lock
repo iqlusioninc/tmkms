@@ -2608,6 +2608,7 @@ dependencies = [
  "cosmrs",
  "ed25519",
  "ed25519-consensus",
+ "ed25519-dalek",
  "elliptic-curve",
  "eyre",
  "getrandom 0.2.16",
