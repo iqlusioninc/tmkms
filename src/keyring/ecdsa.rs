@@ -7,8 +7,8 @@ use crate::{
     keyring::SigningProvider,
     prelude::*,
 };
+use cometbft::CometbftKey;
 use std::sync::Arc;
-use tendermint::TendermintKey;
 
 #[allow(clippy::redundant_allocation)]
 
@@ -19,7 +19,7 @@ pub struct Signer {
     provider: SigningProvider,
 
     /// Tendermint public key
-    public_key: TendermintKey,
+    public_key: CometbftKey,
 
     /// Signer trait object
     signer: Arc<Box<dyn signature::Signer<Signature> + Send + Sync>>,
@@ -30,7 +30,7 @@ impl Signer {
 
     pub fn new(
         provider: SigningProvider,
-        public_key: TendermintKey,
+        public_key: CometbftKey,
         signer: Box<dyn signature::Signer<Signature> + Send + Sync>,
     ) -> Self {
         Self {
@@ -41,7 +41,7 @@ impl Signer {
     }
 
     /// Get the Tendermint public key for this signer
-    pub fn public_key(&self) -> TendermintKey {
+    pub fn public_key(&self) -> CometbftKey {
         self.public_key
     }
 

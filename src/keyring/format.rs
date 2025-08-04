@@ -1,9 +1,9 @@
 //! Chain-specific key configuration
 
-use cosmrs::crypto::PublicKey;
+use cometbft::CometbftKey;
+// use cosmrs::crypto::PublicKey;
 use serde::Deserialize;
 use subtle_encoding::bech32;
-use tendermint::TendermintKey;
 
 /// Options for how keys for this chain are represented
 #[derive(Clone, Debug, Deserialize)]
@@ -29,22 +29,22 @@ pub enum Format {
 }
 
 impl Format {
-    /// Serialize a `TendermintKey` according to chain-specific rules
-    pub fn serialize(&self, public_key: TendermintKey) -> String {
+    /// Serialize a `CometbftKey` according to chain-specific rules
+    pub fn serialize(&self, public_key: CometbftKey) -> String {
         match self {
             Format::Bech32 {
                 account_key_prefix,
                 consensus_key_prefix,
             } => match public_key {
-                TendermintKey::AccountKey(pk) => {
-                    bech32::encode(account_key_prefix, tendermint::account::Id::from(pk))
+                CometbftKey::AccountKey(pk) => {
+                    bech32::encode(account_key_prefix, cometbft::account::Id::from(pk))
                 }
-                TendermintKey::ConsensusKey(pk) => pk.to_bech32(consensus_key_prefix),
+                CometbftKey::ConsensusKey(pk) => pk.to_bech32(consensus_key_prefix),
             },
-            Format::CosmosJson => PublicKey::from(*public_key.public_key()).to_json(),
+            Format::CosmosJson => unimplemented!("cosmrs needs to be updated!"),
             Format::Hex => match public_key {
-                TendermintKey::AccountKey(pk) => pk.to_hex(),
-                TendermintKey::ConsensusKey(pk) => pk.to_hex(),
+                CometbftKey::AccountKey(pk) => pk.to_hex(),
+                CometbftKey::ConsensusKey(pk) => pk.to_hex(),
             },
         }
     }

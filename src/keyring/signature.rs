@@ -34,8 +34,8 @@ impl From<ed25519::Signature> for Signature {
     }
 }
 
-impl From<Signature> for tendermint::Signature {
-    fn from(sig: Signature) -> tendermint::Signature {
+impl From<Signature> for cometbft::Signature {
+    fn from(sig: Signature) -> cometbft::Signature {
         sig.to_vec().try_into().expect("signature should be valid")
     }
 }

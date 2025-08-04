@@ -4,11 +4,14 @@
 #![allow(missing_docs)]
 
 use crate::privval::SignableMsg;
+use cometbft::{chain, Proposal, Vote};
+use cometbft_proto as proto;
 use prost::Message as _;
 use std::io::Read;
-use tendermint::{chain, Proposal, Vote};
-use tendermint_p2p::secret_connection::DATA_MAX_SIZE;
-use tendermint_proto as proto;
+
+// TODO(tarcieri): use `tendermint_p2p::secret_connection::DATA_MAX_SIZE`
+// See informalsystems/tendermint-rs#1356
+const DATA_MAX_SIZE: usize = 262144;
 
 use crate::{
     error::{Error, ErrorKind},
@@ -18,9 +21,10 @@ use crate::{
 /// RPC requests to the KMS
 #[derive(Debug)]
 pub enum Request {
-    /// Sign the given message
+    /// Sign the given proposal
     SignProposal(Proposal),
-    SignVote(Vote),
+    /// Sign the given vote
+    SignVote((Vote, bool)), // skip_extension_signing
     ShowPublicKey,
     PingRequest,
 }
@@ -38,7 +42,7 @@ impl Request {
             msg_bytes.append(&mut msg_chunk);
 
             // if we can decode it, great, break the loop
-            match proto::privval::Message::decode_length_delimited(msg_bytes.as_ref()) {
+            match proto::privval::v1::Message::decode_length_delimited(msg_bytes.as_ref()) {
                 Ok(m) => {
                     msg = m.sum;
                     break;
@@ -60,22 +64,26 @@ impl Request {
         }
 
         let (req, chain_id) = match msg {
-            Some(proto::privval::message::Sum::SignVoteRequest(
-                proto::privval::SignVoteRequest {
+            Some(proto::privval::v1::message::Sum::SignVoteRequest(
+                proto::privval::v1::SignVoteRequest {
                     vote: Some(vote),
                     chain_id,
+                    skip_extension_signing,
                 },
-            )) => (Request::SignVote(vote.try_into()?), chain_id),
-            Some(proto::privval::message::Sum::SignProposalRequest(
-                proto::privval::SignProposalRequest {
+            )) => (
+                Request::SignVote((vote.try_into()?, skip_extension_signing)),
+                chain_id,
+            ),
+            Some(proto::privval::v1::message::Sum::SignProposalRequest(
+                proto::privval::v1::SignProposalRequest {
                     proposal: Some(proposal),
                     chain_id,
                 },
             )) => (Request::SignProposal(proposal.try_into()?), chain_id),
-            Some(proto::privval::message::Sum::PubKeyRequest(req)) => {
+            Some(proto::privval::v1::message::Sum::PubKeyRequest(req)) => {
                 (Request::ShowPublicKey, req.chain_id)
             }
-            Some(proto::privval::message::Sum::PingRequest(_)) => {
+            Some(proto::privval::v1::message::Sum::PingRequest(_)) => {
                 return Ok(Request::PingRequest);
             }
             _ => fail!(ErrorKind::ProtocolError, "invalid RPC message: {:?}", msg),
@@ -98,7 +106,7 @@ impl Request {
     pub fn into_signable_msg(self) -> Result<SignableMsg, Error> {
         match self {
             Self::SignProposal(proposal) => Ok(proposal.into()),
-            Self::SignVote(vote) => Ok(vote.into()),
+            Self::SignVote((vote, _)) => Ok(vote.into()),
             _ => fail!(
                 ErrorKind::InvalidMessageError,
                 "expected a signable message type: {:?}",
@@ -112,10 +120,10 @@ impl Request {
 #[derive(Debug)]
 pub enum Response {
     /// Signature response
-    SignedVote(proto::privval::SignedVoteResponse),
-    SignedProposal(proto::privval::SignedProposalResponse),
-    Ping(proto::privval::PingResponse),
-    PublicKey(proto::privval::PubKeyResponse),
+    SignedVote(proto::privval::v1::SignedVoteResponse),
+    SignedProposal(proto::privval::v1::SignedProposalResponse),
+    Ping(proto::privval::v1::PingResponse),
+    PublicKey(proto::privval::v1::PubKeyResponse),
 }
 
 impl Response {
@@ -123,27 +131,29 @@ impl Response {
     pub fn encode(self) -> Result<Vec<u8>, Error> {
         let mut buf = Vec::new();
         let msg = match self {
-            Response::SignedVote(resp) => proto::privval::message::Sum::SignedVoteResponse(resp),
-            Response::SignedProposal(resp) => {
-                proto::privval::message::Sum::SignedProposalResponse(resp)
+            Response::SignedVote(resp) => {
+                proto::privval::v1::message::Sum::SignedVoteResponse(resp)
             }
-            Response::Ping(resp) => proto::privval::message::Sum::PingResponse(resp),
-            Response::PublicKey(resp) => proto::privval::message::Sum::PubKeyResponse(resp),
+            Response::SignedProposal(resp) => {
+                proto::privval::v1::message::Sum::SignedProposalResponse(resp)
+            }
+            Response::Ping(resp) => proto::privval::v1::message::Sum::PingResponse(resp),
+            Response::PublicKey(resp) => proto::privval::v1::message::Sum::PubKeyResponse(resp),
         };
-        proto::privval::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
+        proto::privval::v1::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
         Ok(buf)
     }
 
     /// Construct an error response for a given [`SignableMsg`].
-    pub fn error(msg: SignableMsg, error: proto::privval::RemoteSignerError) -> Response {
+    pub fn error(msg: SignableMsg, error: proto::privval::v1::RemoteSignerError) -> Response {
         match msg {
             SignableMsg::Proposal(_) => {
-                Response::SignedProposal(proto::privval::SignedProposalResponse {
+                Response::SignedProposal(proto::privval::v1::SignedProposalResponse {
                     proposal: None,
                     error: Some(error),
                 })
             }
-            SignableMsg::Vote(_) => Response::SignedVote(proto::privval::SignedVoteResponse {
+            SignableMsg::Vote(_) => Response::SignedVote(proto::privval::v1::SignedVoteResponse {
                 vote: None,
                 error: Some(error),
             }),
@@ -155,15 +165,17 @@ impl From<SignableMsg> for Response {
     fn from(msg: SignableMsg) -> Response {
         match msg {
             SignableMsg::Proposal(proposal) => {
-                Response::SignedProposal(proto::privval::SignedProposalResponse {
+                Response::SignedProposal(proto::privval::v1::SignedProposalResponse {
                     proposal: Some(proposal.into()),
                     error: None,
                 })
             }
-            SignableMsg::Vote(vote) => Response::SignedVote(proto::privval::SignedVoteResponse {
-                vote: Some(vote.into()),
-                error: None,
-            }),
+            SignableMsg::Vote(vote) => {
+                Response::SignedVote(proto::privval::v1::SignedVoteResponse {
+                    vote: Some(vote.into()),
+                    error: None,
+                })
+            }
         }
     }
 }
