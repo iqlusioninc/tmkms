@@ -37,7 +37,7 @@ In particular, there is presently **no double signing defense** in the case
 that multiple KMS instances are running simultaneously and connecting to
 multiple validators on the same network.
 
-### Signing Providers
+## Signing Providers
 
 You **MUST** select one or more signing provider(s) when compiling the KMS,
 passed as the argument to the `--features` flag (see below for more
@@ -238,7 +238,7 @@ limitations under the License.
 
 [//]: # (general links)
 
-[Tendermint]: https://cometbft.com/
+[Tendermint]: https://tendermint.com
 [Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq
 [YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
