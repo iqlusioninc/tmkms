@@ -3,16 +3,17 @@
 use crate::{
     chain::{self, state::StateErrorKind, Chain},
     config::ValidatorConfig,
+    config::Version,
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
     privval::SignableMsg,
     rpc::{Request, Response},
 };
+use cometbft::{consensus, CometbftKey};
+use cometbft_config::net;
+use cometbft_proto as proto;
 use std::{os::unix::net::UnixStream, time::Instant};
-use tendermint::{consensus, TendermintKey};
-use tendermint_config::net;
-use tendermint_proto as proto;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -107,7 +108,7 @@ impl Session {
                 self.sign(request.into_signable_msg()?)?
             }
             // non-signable requests:
-            Request::PingRequest => Response::Ping(proto::privval::PingResponse {}),
+            Request::PingRequest => Response::Ping(proto::privval::v1::PingResponse {}),
             Request::ShowPublicKey => self.get_public_key()?,
         };
 
@@ -142,7 +143,8 @@ impl Session {
         // TODO(tarcieri): support for non-default public keys
         let public_key = None;
         let chain_id = self.config.chain_id.clone();
-        let canonical_msg = signable_msg.canonical_bytes(chain_id.clone())?;
+        let version = self.config.version;
+        let canonical_msg = signable_msg.canonical_bytes(chain_id.clone(), version)?;
 
         let started_at = Instant::now();
         let consensus_sig = chain.keyring.sign(public_key, &canonical_msg)?;
@@ -151,7 +153,7 @@ impl Session {
 
         // Add extension signature if the message is a precommit for a non-empty block ID.
         if chain.sign_extensions {
-            if let Some(extension_msg) = signable_msg.extension_bytes(chain_id)? {
+            if let Some(extension_msg) = signable_msg.extension_bytes(chain_id, version)? {
                 let started_at = Instant::now();
                 let extension_sig = chain.keyring.sign(public_key, &extension_msg)?;
                 signable_msg.add_extension_signature(extension_sig)?;
@@ -193,7 +195,7 @@ impl Session {
         &mut self,
         chain: &Chain,
         signable_msg: &SignableMsg,
-    ) -> Result<Option<proto::privval::RemoteSignerError>, Error> {
+    ) -> Result<Option<proto::privval::v1::RemoteSignerError>, Error> {
         let msg_type = signable_msg.msg_type();
         let request_state = signable_msg.consensus_state();
         let mut chain_state = chain.state.lock().unwrap();
@@ -232,14 +234,43 @@ impl Session {
             });
 
         let pub_key = match chain.keyring.default_pubkey()? {
-            TendermintKey::AccountKey(pk) => pk,
-            TendermintKey::ConsensusKey(pk) => pk,
+            CometbftKey::AccountKey(pk) => pk,
+            CometbftKey::ConsensusKey(pk) => pk,
+        };
+        use prost::Message;
+        let bytes = match &self.config.version {
+            Version::V0_34 => {
+                let resp = proto::v0_34::privval::PubKeyResponse {
+                    pub_key: Some(pub_key.into()),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
+            Version::V0_37 => {
+                let resp = proto::v0_37::privval::PubKeyResponse {
+                    pub_key: Some(pub_key.into()),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
+            Version::V0_38 => {
+                let resp = proto::v0_38::privval::PubKeyResponse {
+                    pub_key: Some(pub_key.into()),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
+            _ => {
+                let resp = proto::privval::v1::PubKeyResponse {
+                    pub_key_bytes: pub_key.to_bytes(),
+                    pub_key_type: pub_key.type_str().to_owned(),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
         };
 
-        Ok(Response::PublicKey(proto::privval::PubKeyResponse {
-            pub_key: Some(pub_key.into()),
-            error: None,
-        }))
+        Ok(Response::PublicKey(bytes))
     }
 
     /// Write an INFO logline about a signing request
@@ -266,11 +297,11 @@ impl Session {
 }
 
 /// Double signing handler.
-fn double_sign(consensus_state: consensus::State) -> proto::privval::RemoteSignerError {
+fn double_sign(consensus_state: consensus::State) -> proto::privval::v1::RemoteSignerError {
     /// Double signing error code.
     const DOUBLE_SIGN_ERROR: i32 = 2;
 
-    proto::privval::RemoteSignerError {
+    proto::privval::v1::RemoteSignerError {
         code: DOUBLE_SIGN_ERROR,
         description: format!(
             "double signing requested at height: {}",

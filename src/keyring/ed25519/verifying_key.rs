@@ -23,9 +23,9 @@ impl From<&SigningKey> for VerifyingKey {
     }
 }
 
-impl From<VerifyingKey> for tendermint::PublicKey {
-    fn from(verifying_key: VerifyingKey) -> tendermint::PublicKey {
-        tendermint::PublicKey::from_raw_ed25519(verifying_key.as_bytes())
+impl From<VerifyingKey> for cometbft::PublicKey {
+    fn from(verifying_key: VerifyingKey) -> cometbft::PublicKey {
+        cometbft::PublicKey::from_raw_ed25519(verifying_key.as_bytes())
             .expect("invalid Ed25519 key")
     }
 }

@@ -4,10 +4,10 @@ use super::{DEFAULT_DOMAINS, DEFAULT_WRAP_KEY};
 use crate::{keyring::ed25519, prelude::*};
 use abscissa_core::Command;
 use clap::Parser;
+use cometbft::{PrivateKey, PublicKey};
+use cometbft_config::PrivValidatorKey;
 use std::{fs, path::PathBuf, process};
 use subtle_encoding::base64;
-use tendermint::{PrivateKey, PublicKey};
-use tendermint_config::PrivValidatorKey;
 use yubihsm::object;
 use zeroize::Zeroizing;
 
