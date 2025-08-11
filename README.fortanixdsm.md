@@ -1,8 +1,8 @@
-# Fortanix DSM + Tendermint KMS
+# Fortanix DSM + CometBFT KMS
 
 Fortanix Data Security Manager (DSM) provides integrated data security with encryption, multicloud key management, tokenization, and other capabilities from one platform. 
 
-This document describes how to configure Fortanix DSM for production use with Tendermint KMS.
+This document describes how to configure Fortanix DSM for production use with CometBFT KMS.
 
 ## Compiling `tmkms` with Fortanix DSM support
 

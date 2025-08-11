@@ -3,9 +3,9 @@
 use crate::{chain, keyring, prelude::*, Map};
 use abscissa_core::Command;
 use clap::Parser;
+use cometbft::{CometbftKey, PublicKey};
 use k256::elliptic_curve::generic_array::GenericArray;
 use std::{path::PathBuf, process};
-use tendermint::{PublicKey, TendermintKey};
 
 /// The `yubihsm keys list` subcommand
 #[derive(Command, Debug, Default, Parser)]
@@ -121,7 +121,7 @@ fn display_key_info(
 
     let key_id = format!("- 0x{:04x}", key.object_id);
 
-    let tendermint_key = match public_key.algorithm {
+    let cometbft_key = match public_key.algorithm {
         yubihsm::asymmetric::Algorithm::EcK256 => {
             // The YubiHSM2 returns the uncompressed public key, so for
             // compatibility with Tendermint, we have to compress it first
@@ -130,13 +130,13 @@ fn display_key_info(
             )
             .compress();
 
-            TendermintKey::AccountKey(
+            CometbftKey::AccountKey(
                 PublicKey::from_raw_secp256k1(compressed_pubkey.as_ref()).unwrap(),
             )
         }
         yubihsm::asymmetric::Algorithm::Ed25519 => {
             let pk = PublicKey::from_raw_ed25519(public_key.as_ref()).unwrap();
-            TendermintKey::ConsensusKey(pk)
+            CometbftKey::ConsensusKey(pk)
         }
         other => {
             status_attr_err!(key_id, "unsupported algorithm: {:?}", other);
@@ -144,16 +144,16 @@ fn display_key_info(
         }
     };
 
-    let key_type = match tendermint_key {
-        TendermintKey::AccountKey(_) => "acct",
-        TendermintKey::ConsensusKey(_) => "cons",
+    let key_type = match cometbft_key {
+        CometbftKey::AccountKey(_) => "acct",
+        CometbftKey::ConsensusKey(_) => "cons",
     };
 
     let key_serialized = match key_formatters.get(&key.object_id) {
-        Some(key_formatter) => key_formatter.serialize(tendermint_key),
-        None => match tendermint_key {
-            TendermintKey::AccountKey(k) => k.to_hex(),
-            TendermintKey::ConsensusKey(k) => k.to_hex(),
+        Some(key_formatter) => key_formatter.serialize(cometbft_key),
+        None => match cometbft_key {
+            CometbftKey::AccountKey(k) => k.to_hex(),
+            CometbftKey::ConsensusKey(k) => k.to_hex(),
         },
     };
 

@@ -1,9 +1,8 @@
 //! Validator private key operations: signing consensus votes and proposals.
 
 use bytes::{Bytes, BytesMut};
-use prost::{EncodeError, Message as _};
-use tendermint::{block, chain, consensus, vote, Error, Proposal, Vote};
-use tendermint_proto as proto;
+use cometbft::{block, chain, consensus, vote, Error, Proposal, Vote};
+use cometbft_proto::{self as proto, Error as ProtobufError};
 
 /// Message codes.
 pub type SignedMsgCode = i32;
@@ -49,36 +48,15 @@ impl SignableMsg {
 
     /// Get the bytes representing a canonically encoded message over which a
     /// signature is computed over.
-    pub fn canonical_bytes(&self, chain_id: chain::Id) -> Result<Bytes, EncodeError> {
+    pub fn canonical_bytes(&self, chain_id: chain::Id) -> Result<Bytes, ProtobufError> {
         let mut bytes = BytesMut::new();
 
         match self {
             Self::Proposal(proposal) => {
-                let canonical = proto::types::CanonicalProposal {
-                    chain_id: chain_id.to_string(),
-                    r#type: SignedMsgType::Proposal.into(),
-                    height: proposal.height.into(),
-                    block_id: proposal.block_id.map(Into::into),
-                    pol_round: proposal
-                        .pol_round
-                        .map(|round| round.value().into())
-                        .unwrap_or(-1),
-                    round: proposal.round.value().into(),
-                    timestamp: proposal.timestamp.map(Into::into),
-                };
-
-                canonical.encode_length_delimited(&mut bytes)?;
+                proposal.to_signable_bytes(chain_id, &mut bytes)?;
             }
             Self::Vote(vote) => {
-                let canonical = proto::types::CanonicalVote {
-                    r#type: vote.vote_type.into(),
-                    height: vote.height.into(),
-                    round: vote.round.value().into(),
-                    block_id: vote.block_id.map(Into::into),
-                    timestamp: vote.timestamp.map(Into::into),
-                    chain_id: chain_id.to_string(),
-                };
-                canonical.encode_length_delimited(&mut bytes)?;
+                vote.to_signable_bytes(chain_id, &mut bytes)?;
             }
         }
 
@@ -86,7 +64,7 @@ impl SignableMsg {
     }
 
     /// Get the bytes representing a vote extension if applicable.
-    pub fn extension_bytes(&self, chain_id: chain::Id) -> Result<Option<Bytes>, EncodeError> {
+    pub fn extension_bytes(&self, chain_id: chain::Id) -> Result<Option<Bytes>, ProtobufError> {
         match self {
             Self::Proposal(_) => Ok(None),
             Self::Vote(v) => {
@@ -94,16 +72,16 @@ impl SignableMsg {
                     // Only sign extension if it's a precommit for a non-nil block.
                     // Note that extension can be empty.
                     (vote::Type::Precommit, Some(_)) => {
-                        let canonical = proto::types::CanonicalVoteExtension {
+                        use prost::Message;
+
+                        let canonical = proto::types::v1::CanonicalVoteExtension {
                             extension: v.extension.clone(),
                             height: v.height.into(),
                             round: v.round.value().into(),
                             chain_id: chain_id.to_string(),
                         };
 
-                        let mut bytes = BytesMut::new();
-                        canonical.encode_length_delimited(&mut bytes)?;
-                        Ok(Some(bytes.into()))
+                        Ok(Some(canonical.encode_length_delimited_to_vec().into()))
                     }
                     _ => Ok(None),
                 }
@@ -133,7 +111,7 @@ impl SignableMsg {
     }
 
     /// Add a consensus signature to this message.
-    pub fn add_consensus_signature(&mut self, signature: impl Into<tendermint::Signature>) {
+    pub fn add_consensus_signature(&mut self, signature: impl Into<cometbft::Signature>) {
         match self {
             SignableMsg::Proposal(proposal) => {
                 proposal.signature = Some(signature.into());
@@ -147,7 +125,7 @@ impl SignableMsg {
     /// Add an extension signature to this message.
     pub fn add_extension_signature(
         &mut self,
-        signature: impl Into<tendermint::Signature>,
+        signature: impl Into<cometbft::Signature>,
     ) -> Result<(), Error> {
         match self {
             SignableMsg::Vote(vote) => {
@@ -171,18 +149,18 @@ impl From<Vote> for SignableMsg {
     }
 }
 
-impl TryFrom<proto::types::Proposal> for SignableMsg {
+impl TryFrom<proto::types::v1::Proposal> for SignableMsg {
     type Error = Error;
 
-    fn try_from(proposal: proto::types::Proposal) -> Result<Self, Self::Error> {
+    fn try_from(proposal: proto::types::v1::Proposal) -> Result<Self, Self::Error> {
         Proposal::try_from(proposal).map(Self::Proposal)
     }
 }
 
-impl TryFrom<proto::types::Vote> for SignableMsg {
+impl TryFrom<proto::types::v1::Vote> for SignableMsg {
     type Error = Error;
 
-    fn try_from(vote: proto::types::Vote) -> Result<Self, Self::Error> {
+    fn try_from(vote: proto::types::v1::Vote) -> Result<Self, Self::Error> {
         Vote::try_from(vote).map(Self::Vote)
     }
 }
@@ -225,24 +203,24 @@ impl From<SignedMsgType> for SignedMsgCode {
     }
 }
 
-impl From<SignedMsgType> for proto::types::SignedMsgType {
-    fn from(msg_type: SignedMsgType) -> proto::types::SignedMsgType {
+impl From<SignedMsgType> for proto::types::v1::SignedMsgType {
+    fn from(msg_type: SignedMsgType) -> proto::types::v1::SignedMsgType {
         match msg_type {
-            SignedMsgType::Unknown => proto::types::SignedMsgType::Unknown,
-            SignedMsgType::Prevote => proto::types::SignedMsgType::Prevote,
-            SignedMsgType::Precommit => proto::types::SignedMsgType::Precommit,
-            SignedMsgType::Proposal => proto::types::SignedMsgType::Proposal,
+            SignedMsgType::Unknown => proto::types::v1::SignedMsgType::Unknown,
+            SignedMsgType::Prevote => proto::types::v1::SignedMsgType::Prevote,
+            SignedMsgType::Precommit => proto::types::v1::SignedMsgType::Precommit,
+            SignedMsgType::Proposal => proto::types::v1::SignedMsgType::Proposal,
         }
     }
 }
 
-impl From<proto::types::SignedMsgType> for SignedMsgType {
-    fn from(proto: proto::types::SignedMsgType) -> SignedMsgType {
+impl From<proto::types::v1::SignedMsgType> for SignedMsgType {
+    fn from(proto: proto::types::v1::SignedMsgType) -> SignedMsgType {
         match proto {
-            proto::types::SignedMsgType::Unknown => Self::Unknown,
-            proto::types::SignedMsgType::Prevote => Self::Prevote,
-            proto::types::SignedMsgType::Precommit => Self::Precommit,
-            proto::types::SignedMsgType::Proposal => Self::Proposal,
+            proto::types::v1::SignedMsgType::Unknown => Self::Unknown,
+            proto::types::v1::SignedMsgType::Prevote => Self::Prevote,
+            proto::types::v1::SignedMsgType::Precommit => Self::Precommit,
+            proto::types::v1::SignedMsgType::Proposal => Self::Proposal,
         }
     }
 }
@@ -260,7 +238,7 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
     type Error = Error;
 
     fn try_from(code: SignedMsgCode) -> Result<Self, Self::Error> {
-        proto::types::SignedMsgType::try_from(code)
+        proto::types::v1::SignedMsgType::try_from(code)
             .map(Into::into)
             .map_err(|e| Error::parse(e.to_string()))
     }
@@ -269,7 +247,7 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
 #[cfg(test)]
 mod tests {
     use super::{chain, proto, SignableMsg, SignedMsgType};
-    use tendermint::{Proposal, Time, Vote};
+    use cometbft::{Proposal, Time, Vote};
 
     fn example_chain_id() -> chain::Id {
         chain::Id::try_from("test_chain_id").unwrap()
@@ -285,7 +263,7 @@ mod tests {
     }
 
     fn example_proposal() -> Proposal {
-        proto::types::Proposal {
+        proto::types::v1::Proposal {
             r#type: SignedMsgType::Proposal.into(),
             height: 12345,
             round: 1,
@@ -299,14 +277,14 @@ mod tests {
     }
 
     fn example_vote() -> Vote {
-        proto::types::Vote {
+        proto::types::v1::Vote {
             r#type: 0x01,
             height: 500001,
             round: 2,
             timestamp: Some(example_timestamp()),
-            block_id: Some(proto::types::BlockId {
+            block_id: Some(proto::types::v1::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                part_set_header: Some(proto::types::PartSetHeader {
+                part_set_header: Some(proto::types::v1::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),

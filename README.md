@@ -1,21 +1,22 @@
-# Tendermint KMS 🔐
+ # CometBFT KMS 🔐
 
-[![Crate][crate-image]][crate-link]
-[![Build Status][build-image]][build-link]
-[![Apache 2.0 Licensed][license-image]][license-link]
+ THIS IS ALPHA SOFTWARE AND NOT TESTED FOR PRODUCTION USE
+
+![Crate][crate-image]
+![Build Status][build-image]
+![Apache 2.0 Licensed][license-image]
 ![MSRV][rustc-image]
 
-Key Management System for [Tendermint] applications such as
-[Cosmos Validators].
+Key Management System for [CometBFT] applications such as [Cosmos Validators].
 
-Provides isolated, optionally HSM-backed signing key management for Tendermint
+Provides isolated, optionally HSM-backed signing key management for CometBFT
 applications including validators, oracles, IBC relayers, and other transaction
 signing applications.
 
 ## About
 
 This repository contains `tmkms`, a key management service intended to be deployed
-in conjunction with [Tendermint] applications (ideally on separate physical hosts)
+in conjunction with [CometBFT] applications (ideally on separate physical hosts)
 which provides the following:
 
 - **High-availability** access to validator signing keys
@@ -24,12 +25,12 @@ which provides the following:
 
 ## Status
 
-Tendermint KMS is currently *beta quality*. It has undergone one security audit
+CometBFT KMS is currently *beta quality*. It has undergone one security audit
 with only one low-severity finding.
 
 ### Double Signing / High Availability
 
-Tendermint KMS implements *beta quality* double signing detection.
+CometBFT KMS implements *beta quality* double signing detection.
 It has undergone some testing, however we do not (yet) recommend using the KMS
 in conjunction with multiple simultaneously active validators on the same
 network for prolonged periods of time.
@@ -38,16 +39,17 @@ In particular, there is presently **no double signing defense** in the case
 that multiple KMS instances are running simultaneously and connecting to
 multiple validators on the same network.
 
-## Signing Providers
+### Signing Providers
 
 You **MUST** select one or more signing provider(s) when compiling the KMS,
 passed as the argument to the `--features` flag (see below for more
-instructions on how to build Tendermint KMS).
+instructions on how to build CometBFT KMS).
 
 The following signing backend providers are presently supported:
 
 #### Hardware Security Modules (recommended)
-- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature. See [README.fortanixdsm.md](./README.fortanixdsm.md) 
+
+- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature. See [README.fortanixdsm.md](./README.fortanixdsm.md)
 - [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2] for more info)
 - [Ledger] (gated under the `ledger` cargo feature)
 
@@ -151,7 +153,7 @@ Please look through `tmkms.toml` after it's generated, as various sections
 will require some customization.
 
 The `tmkms init` command also accepts a `-n` or `--networks` argument which can
-be used to specify certain well-known Tendermint chains to initialize:
+be used to specify certain well-known CometBFT chains to initialize:
 
 ```
 $ tmkms init -n cosmoshub,irishub,columbus /path/to/kms/home
@@ -238,11 +240,11 @@ limitations under the License.
 
 [//]: # (general links)
 
-[Tendermint]: https://tendermint.com/
+[CometBFT]: https://cometbft.com/
 [Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq
-[YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
+[YubiHSM2]: https://github.com/informalsystems/tmkms-cometbft/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
 [ed25519-dalek]: https://github.com/dalek-cryptography/ed25519-dalek
 [supported Rust platform]: https://forge.rust-lang.org/platform-support.html
 [libusb]: https://libusb.info/
-[Dockerfile]: https://github.com/iqlusioninc/tmkms/blob/main/Dockerfile
+[Dockerfile]: https://github.com/informalsystems/tmkms-cometbft/blob/main/Dockerfile

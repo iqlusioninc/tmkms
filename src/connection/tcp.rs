@@ -2,8 +2,8 @@
 
 use std::{net::TcpStream, path::PathBuf, time::Duration};
 
+use cometbft::node;
 use subtle::ConstantTimeEq;
-use tendermint::node;
 use tendermint_p2p::error::ErrorDetail as TmError;
 use tendermint_p2p::secret_connection::{self, PublicKey, SecretConnection};
 
@@ -55,7 +55,12 @@ pub fn open_secret_connection(
 
     // TODO(tarcieri): move this into `SecretConnection::new`
     if let Some(expected_peer_id) = peer_id {
-        if expected_peer_id.ct_eq(&actual_peer_id).unwrap_u8() == 0 {
+        if expected_peer_id
+            .as_bytes()
+            .ct_eq(actual_peer_id.as_bytes())
+            .unwrap_u8()
+            == 0
+        {
             fail!(
                 VerificationError,
                 "{}:{}: validator peer ID mismatch! (expected {}, got {})",

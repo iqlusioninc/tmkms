@@ -10,7 +10,7 @@ use crate::{
     keyring::{self, SigningProvider},
     prelude::*,
 };
-use tendermint::TendermintKey;
+use cometbft::CometbftKey;
 
 /// Create hardware-backed YubiHSM signer objects from the given configuration
 pub fn init(
@@ -55,12 +55,12 @@ fn add_account_key(
         })?;
 
     let public_key =
-        tendermint::PublicKey::from_raw_secp256k1(signer.public_key().compress().as_bytes())
+        cometbft::PublicKey::from_raw_secp256k1(signer.public_key().compress().as_bytes())
             .expect("invalid secp256k1 key");
 
     let signer = keyring::ecdsa::Signer::new(
         SigningProvider::Yubihsm,
-        TendermintKey::AccountKey(public_key),
+        CometbftKey::AccountKey(public_key),
         Box::new(signer),
     );
 
@@ -85,12 +85,12 @@ fn add_consensus_key(
             )
         })?;
 
-    let public_key = tendermint::PublicKey::from_raw_ed25519(signer.public_key().as_bytes())
+    let public_key = cometbft::PublicKey::from_raw_ed25519(signer.public_key().as_bytes())
         .expect("invalid Ed25519 key");
 
     let signer = keyring::ed25519::Signer::new(
         SigningProvider::Yubihsm,
-        TendermintKey::ConsensusKey(public_key),
+        CometbftKey::ConsensusKey(public_key),
         Box::new(signer),
     );
 
