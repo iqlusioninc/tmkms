@@ -1,11 +1,11 @@
-# YubiHSM 2 + CometBFT KMS
+# YubiHSM 2 + Tendermint KMS
 
 The [YubiHSM 2] from Yubico is a relatively low-cost solution for online
 key storage featuring support for random key generation, encrypted backup
 and export, and audit logging.
 
 This document describes how to configure a YubiHSM 2 for production use
-with CometBFT KMS.
+with Tendermint KMS.
 
 ## Compiling `tmkms` with YubiHSM support
 
@@ -65,7 +65,7 @@ that YubiHSM 2 support was compiled-in successfully:
 $ tmkms yubihsm help                                                                           127 ↵
 tmkms 0.4.0
 Tony Arcieri <tony@iqlusion.io>, Ismail Khoffi <Ismail.Khoffi@gmail.com>
-CometBFT Key Management System
+Tendermint Key Management System
 
 USAGE:
   tmkms <SUBCOMMAND>
@@ -122,7 +122,7 @@ server which is compatible with Yubico's `yubihsm-connector` service. This
 allows administration of YubiHSMs via `yubihsm-shell` or via `tmkms yubihsm`
 while the KMS is running (i.e. communicating with the YubiHSM2 via USB).
 
-To enable support for this feature, enable it when you compile CometBFT KMS,
+To enable support for this feature, enable it when you compile Tendermint KMS,
 either via:
 
 ```
@@ -194,7 +194,7 @@ to be provisioned with the same initial set of keys from the phrase alone,
 while also creating multiple "roles" within the HSM.
 
 Alternatively Yubico provides the [yubihsm-setup] tool, however the setup
-process internal to `tmkms` provides a "happy path" for CometBFT validator
+process internal to `tmkms` provides a "happy path" for Tendermint validator
 usage, and also operational processes which should be familiar to
 cryptocurrency users.
 
@@ -531,7 +531,7 @@ Generated Secret Connection key: /home/user/.tmkms/secrets/kms-identity.key
 - `chain.key_format.consensus_key_prefix` - set it as a bech32 prefix for validator consensus public key (for example, `cosmosvalconspub` for Cosmos network)
 - `providers.yubihsm.auth.key`, `providers.yubihsm.auth.password` - set it as YubiHSM credentials (if you haven't done it before, the default is 1/password)
 - `validator.addr` - remove the part before @ and the @ symbol itself to avoid mismatch
-- `validator.protocol_version` - set it to CometBFT version used (for example, `0.34` for Cosmos network), otherwise it won't be able to communicate with the node
+- `validator.protocol_version` - set it to Tendermint version used (for example, `0.34` for Cosmos network), otherwise it won't be able to communicate with the node
 
 3. Check that your device is recognized:
 

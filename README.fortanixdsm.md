@@ -1,8 +1,8 @@
-# Fortanix DSM + CometBFT KMS
+# Fortanix DSM + Tendermint KMS
 
-Fortanix Data Security Manager (DSM) provides integrated data security with encryption, multicloud key management, tokenization, and other capabilities from one platform. 
+Fortanix Data Security Manager (DSM) provides integrated data security with encryption, multicloud key management, tokenization, and other capabilities from one platform.
 
-This document describes how to configure Fortanix DSM for production use with CometBFT KMS.
+This document describes how to configure Fortanix DSM for production use with Tendermint KMS.
 
 ## Compiling `tmkms` with Fortanix DSM support
 
@@ -62,7 +62,7 @@ contains the authentication details needed to authenticate to the DSM with an AP
 This configuration should be placed in a file called: `tmkms.toml`.
 You can specifty the path to the config with either `-c /path/to/tmkms.toml` or else tmkms will look in the current working directory for the same file.
 
-example: 
+example:
 
 ```toml
 [[providers.fortanixdsm]]

@@ -1,20 +1,20 @@
- # CometBFT KMS (prev. Tendermint KMS) 🔐
+ # Tendermint KMS 🔐
 
 ![Crate][crate-image]
 ![Build Status][build-image]
 ![Apache 2.0 Licensed][license-image]
 ![MSRV][rustc-image]
 
-Key Management System for [CometBFT] applications such as [Cosmos Validators].
+Key Management System for [Tendermint] applications such as [Cosmos Validators].
 
-Provides isolated, optionally HSM-backed signing key management for CometBFT
+Provides isolated, optionally HSM-backed signing key management for Tendermint
 applications including validators, oracles, IBC relayers, and other transaction
 signing applications.
 
 ## About
 
 This repository contains `tmkms`, a key management service intended to be deployed
-in conjunction with [CometBFT] applications (ideally on separate physical hosts)
+in conjunction with [Tendermint] applications (ideally on separate physical hosts)
 which provides the following:
 
 - **High-availability** access to validator signing keys
@@ -23,12 +23,12 @@ which provides the following:
 
 ## Status
 
-CometBFT KMS is currently *beta quality*. It has undergone one security audit
+Tendermint KMS is currently *beta quality*. It has undergone one security audit
 with only one low-severity finding.
 
 ### Double Signing / High Availability
 
-CometBFT KMS implements *beta quality* double signing detection.
+Tendermint KMS implements *beta quality* double signing detection.
 It has undergone some testing, however we do not (yet) recommend using the KMS
 in conjunction with multiple simultaneously active validators on the same
 network for prolonged periods of time.
@@ -41,7 +41,7 @@ multiple validators on the same network.
 
 You **MUST** select one or more signing provider(s) when compiling the KMS,
 passed as the argument to the `--features` flag (see below for more
-instructions on how to build CometBFT KMS).
+instructions on how to build Tendermint KMS).
 
 The following signing backend providers are presently supported:
 
@@ -151,7 +151,7 @@ Please look through `tmkms.toml` after it's generated, as various sections
 will require some customization.
 
 The `tmkms init` command also accepts a `-n` or `--networks` argument which can
-be used to specify certain well-known CometBFT chains to initialize:
+be used to specify certain well-known Tendermint chains to initialize:
 
 ```
 $ tmkms init -n cosmoshub,irishub,columbus /path/to/kms/home
@@ -238,7 +238,7 @@ limitations under the License.
 
 [//]: # (general links)
 
-[CometBFT]: https://cometbft.com/
+[Tendermint]: https://cometbft.com/
 [Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq
 [YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
