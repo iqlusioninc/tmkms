@@ -17,7 +17,6 @@ pub struct ValidatorConfig {
     pub chain_id: chain::Id,
 
     /// Automatically reconnect on error? (default: true)
-    #[serde(default = "reconnect_default")]
     pub reconnect: bool,
 
     /// Optional timeout value in seconds
@@ -30,20 +29,66 @@ pub struct ValidatorConfig {
     pub max_height: Option<cometbft::block::Height>,
 
     /// Version of Secret Connection protocol to use when connecting
+    ///
+    /// Default is v0.34.
     pub protocol_version: ProtocolVersion,
+
+    /// Version of the validator software (e.g. CometBFT, Tendermint)
+    ///
+    /// Default is always the latest (v1).
+    pub version: Version,
 }
 
-/// Protocol version (based on the Tendermint version)
+/// Protocol version (based on the Tendermint/CometBFT version)
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum ProtocolVersion {
-    /// Tendermint v0.34 and newer.
+    /// CometBFT v0.34 and newer.
     #[serde(rename = "v0.34")]
     V0_34,
 
     /// Tendermint v0.33
     #[serde(rename = "v0.33")]
     V0_33,
+}
+
+/// Version of the validator software (e.g. CometBFT, Tendermint)
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[allow(non_camel_case_types)]
+pub enum Version {
+    /// CometBFT v0.34
+    #[serde(rename = "v0.34")]
+    V0_34,
+
+    /// CometBFT v0.37
+    #[serde(rename = "v0.37")]
+    V0_37,
+
+    /// CometBFT v0.38
+    #[serde(rename = "v0.38")]
+    V0_38,
+
+    /// CometBFT v1.0
+    #[serde(rename = "v1")]
+    V1,
+}
+
+impl Default for ValidatorConfig {
+    fn default() -> Self {
+        Self {
+            addr: net::Address::Unix {
+                path: "/tmp/tmkms.sock".to_string(),
+            },
+            chain_id: chain::Id::try_from("default".to_string())
+                .expect("default chain ID should be valid"),
+            reconnect: true,
+            timeout: None,
+            secret_key: None,
+            max_height: None,
+            protocol_version: ProtocolVersion::V0_34,
+            version: Version::V1,
+        }
+    }
 }
 
 impl From<ProtocolVersion> for secret_connection::Version {
@@ -53,9 +98,4 @@ impl From<ProtocolVersion> for secret_connection::Version {
             ProtocolVersion::V0_33 => secret_connection::Version::V0_33,
         }
     }
-}
-
-/// Default value for the `ValidatorConfig` reconnect field
-fn reconnect_default() -> bool {
-    true
 }

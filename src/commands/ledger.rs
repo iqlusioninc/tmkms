@@ -2,14 +2,53 @@
 
 use crate::{
     chain,
+    config::Version,
     prelude::*,
     privval::{SignableMsg, SignedMsgType},
 };
 use abscissa_core::{Command, Runnable};
 use clap::{Parser, Subcommand};
 use cometbft::Vote;
-use cometbft_proto as proto;
 use std::{path::PathBuf, process};
+
+macro_rules! vote_from_proto {
+    (v1, $height:expr, $round:expr) => {{
+        let vote = cometbft_proto::types::v1::Vote {
+            height: $height,
+            round: $round as i32,
+            r#type: SignedMsgType::Proposal.into(),
+            ..Default::default()
+        };
+        Vote::try_from(vote).unwrap()
+    }};
+    (v0_34, $height:expr, $round:expr) => {{
+        let vote = cometbft_proto::v0_34::types::Vote {
+            height: $height,
+            round: $round as i32,
+            r#type: SignedMsgType::Proposal.into(),
+            ..Default::default()
+        };
+        Vote::try_from(vote).unwrap()
+    }};
+    (v0_37, $height:expr, $round:expr) => {{
+        let vote = cometbft_proto::v0_37::types::Vote {
+            height: $height,
+            round: $round as i32,
+            r#type: SignedMsgType::Proposal.into(),
+            ..Default::default()
+        };
+        Vote::try_from(vote).unwrap()
+    }};
+    (v0_38, $height:expr, $round:expr) => {{
+        let vote = cometbft_proto::v0_38::types::Vote {
+            height: $height,
+            round: $round as i32,
+            r#type: SignedMsgType::Proposal.into(),
+            ..Default::default()
+        };
+        Vote::try_from(vote).unwrap()
+    }};
+}
 
 /// `ledger` subcommand
 #[derive(Command, Debug, Runnable, Subcommand)]
@@ -55,24 +94,26 @@ impl Runnable for InitCommand {
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&chain_id).unwrap();
 
-        let vote = proto::types::v1::Vote {
-            height: self.height.unwrap(),
-            round: self.round.unwrap() as i32,
-            r#type: SignedMsgType::Proposal.into(),
-            ..Default::default()
+        let height = self.height.unwrap();
+        let round = self.round.unwrap();
+        let version = config.validator[0].version;
+        let vote = match version {
+            Version::V0_34 => vote_from_proto!(v0_34, height, round),
+            Version::V0_37 => vote_from_proto!(v0_37, height, round),
+            Version::V0_38 => vote_from_proto!(v0_38, height, round),
+            Version::V1 => vote_from_proto!(v1, height, round),
         };
         println!("{vote:?}");
-        let sign_vote_req = SignableMsg::from(Vote::try_from(vote).unwrap());
+        let sign_vote_req = SignableMsg::from(vote);
         let to_sign = sign_vote_req
-            .canonical_bytes(config.validator[0].chain_id.clone())
+            .canonical_bytes(config.validator[0].chain_id.clone(), version)
             .unwrap();
 
         let _sig = chain.keyring.sign(None, &to_sign).unwrap();
 
         println!(
             "Successfully called the init command with height {}, and round {}",
-            self.height.unwrap(),
-            self.round.unwrap()
+            height, round
         );
     }
 }

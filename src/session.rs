@@ -3,6 +3,7 @@
 use crate::{
     chain::{self, state::StateErrorKind, Chain},
     config::ValidatorConfig,
+    config::Version,
     connection::{tcp, unix::UnixConnection, Connection},
     error::{Error, ErrorKind::*},
     prelude::*,
@@ -142,7 +143,8 @@ impl Session {
         // TODO(tarcieri): support for non-default public keys
         let public_key = None;
         let chain_id = self.config.chain_id.clone();
-        let canonical_msg = signable_msg.canonical_bytes(chain_id.clone())?;
+        let version = self.config.version;
+        let canonical_msg = signable_msg.canonical_bytes(chain_id.clone(), version)?;
 
         let started_at = Instant::now();
         let consensus_sig = chain.keyring.sign(public_key, &canonical_msg)?;
@@ -151,7 +153,7 @@ impl Session {
 
         // Add extension signature if the message is a precommit for a non-empty block ID.
         if chain.sign_extensions {
-            if let Some(extension_msg) = signable_msg.extension_bytes(chain_id)? {
+            if let Some(extension_msg) = signable_msg.extension_bytes(chain_id, version)? {
                 let started_at = Instant::now();
                 let extension_sig = chain.keyring.sign(public_key, &extension_msg)?;
                 signable_msg.add_extension_signature(extension_sig)?;
@@ -235,12 +237,40 @@ impl Session {
             CometbftKey::AccountKey(pk) => pk,
             CometbftKey::ConsensusKey(pk) => pk,
         };
+        use prost::Message;
+        let bytes = match &self.config.version {
+            Version::V0_34 => {
+                let resp = proto::v0_34::privval::PubKeyResponse {
+                    pub_key: Some(pub_key.into()),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
+            Version::V0_37 => {
+                let resp = proto::v0_37::privval::PubKeyResponse {
+                    pub_key: Some(pub_key.into()),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
+            Version::V0_38 => {
+                let resp = proto::v0_38::privval::PubKeyResponse {
+                    pub_key: Some(pub_key.into()),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
+            _ => {
+                let resp = proto::privval::v1::PubKeyResponse {
+                    pub_key_bytes: pub_key.to_bytes(),
+                    pub_key_type: pub_key.type_str().to_owned(),
+                    error: None,
+                };
+                resp.encode_length_delimited_to_vec()
+            }
+        };
 
-        Ok(Response::PublicKey(proto::privval::v1::PubKeyResponse {
-            pub_key_bytes: pub_key.to_bytes(),
-            pub_key_type: pub_key.type_str().to_owned(),
-            error: None,
-        }))
+        Ok(Response::PublicKey(bytes))
     }
 
     /// Write an INFO logline about a signing request

@@ -123,7 +123,7 @@ pub enum Response {
     SignedVote(proto::privval::v1::SignedVoteResponse),
     SignedProposal(proto::privval::v1::SignedProposalResponse),
     Ping(proto::privval::v1::PingResponse),
-    PublicKey(proto::privval::v1::PubKeyResponse),
+    PublicKey(Vec<u8>),
 }
 
 impl Response {
@@ -138,7 +138,7 @@ impl Response {
                 proto::privval::v1::message::Sum::SignedProposalResponse(resp)
             }
             Response::Ping(resp) => proto::privval::v1::message::Sum::PingResponse(resp),
-            Response::PublicKey(resp) => proto::privval::v1::message::Sum::PubKeyResponse(resp),
+            Response::PublicKey(resp) => resp,
         };
         proto::privval::v1::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
         Ok(buf)

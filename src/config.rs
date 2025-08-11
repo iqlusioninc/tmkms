@@ -27,6 +27,5 @@ pub struct KmsConfig {
     pub providers: ProviderConfig,
 
     /// Addresses of validator nodes
-    #[serde(default)]
     pub validator: Vec<ValidatorConfig>,
 }

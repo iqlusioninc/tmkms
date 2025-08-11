@@ -146,6 +146,7 @@ impl KmsProcess {
             reconnect = false
             secret_key = "tests/support/secret_connection.key"
             protocol_version = "v0.34"
+            version = "v0.34"
 
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]

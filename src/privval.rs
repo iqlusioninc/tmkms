@@ -1,8 +1,9 @@
 //! Validator private key operations: signing consensus votes and proposals.
 
+use crate::config::Version;
 use bytes::{Bytes, BytesMut};
 use cometbft::{block, chain, consensus, vote, Error, Proposal, Vote};
-use cometbft_proto::{self as proto, Error as ProtobufError};
+use cometbft_proto::{self as proto, Error as ProtobufError, Protobuf};
 
 /// Message codes.
 pub type SignedMsgCode = i32;
@@ -48,15 +49,58 @@ impl SignableMsg {
 
     /// Get the bytes representing a canonically encoded message over which a
     /// signature is computed over.
-    pub fn canonical_bytes(&self, chain_id: chain::Id) -> Result<Bytes, ProtobufError> {
+    pub fn canonical_bytes(
+        &self,
+        chain_id: chain::Id,
+        version: Version,
+    ) -> Result<Bytes, ProtobufError> {
         let mut bytes = BytesMut::new();
 
         match self {
             Self::Proposal(proposal) => {
-                proposal.to_signable_bytes(chain_id, &mut bytes)?;
+                let canonical =
+                    cometbft::proposal::CanonicalProposal::new(proposal.clone(), chain_id);
+                match version {
+                    Version::V0_34 => {
+                        Protobuf::<proto::v0_34::types::CanonicalProposal>::encode_length_delimited(canonical,&mut  bytes)?;
+                    }
+                    Version::V0_37 => {
+                        Protobuf::<proto::v0_37::types::CanonicalProposal>::encode_length_delimited(canonical,&mut  bytes)?;
+                    }
+                    Version::V0_38 => {
+                        Protobuf::<proto::v0_38::types::CanonicalProposal>::encode_length_delimited(canonical, &mut bytes)?;
+                    }
+                    _ => {
+                        Protobuf::<proto::types::v1::CanonicalProposal>::encode_length_delimited(
+                            canonical, &mut bytes,
+                        )?;
+                    }
+                }
             }
             Self::Vote(vote) => {
-                vote.to_signable_bytes(chain_id, &mut bytes)?;
+                let canonical = vote::CanonicalVote::new(vote.clone(), chain_id);
+                match version {
+                    Version::V0_34 => {
+                        Protobuf::<proto::v0_34::types::CanonicalVote>::encode_length_delimited(
+                            canonical, &mut bytes,
+                        )?;
+                    }
+                    Version::V0_37 => {
+                        Protobuf::<proto::v0_37::types::CanonicalVote>::encode_length_delimited(
+                            canonical, &mut bytes,
+                        )?;
+                    }
+                    Version::V0_38 => {
+                        Protobuf::<proto::v0_38::types::CanonicalVote>::encode_length_delimited(
+                            canonical, &mut bytes,
+                        )?;
+                    }
+                    _ => {
+                        Protobuf::<proto::types::v1::CanonicalVote>::encode_length_delimited(
+                            canonical, &mut bytes,
+                        )?;
+                    }
+                }
             }
         }
 
@@ -64,7 +108,11 @@ impl SignableMsg {
     }
 
     /// Get the bytes representing a vote extension if applicable.
-    pub fn extension_bytes(&self, chain_id: chain::Id) -> Result<Option<Bytes>, ProtobufError> {
+    pub fn extension_bytes(
+        &self,
+        chain_id: chain::Id,
+        version: Version,
+    ) -> Result<Option<Bytes>, ProtobufError> {
         match self {
             Self::Proposal(_) => Ok(None),
             Self::Vote(v) => {
@@ -74,14 +122,31 @@ impl SignableMsg {
                     (vote::Type::Precommit, Some(_)) => {
                         use prost::Message;
 
-                        let canonical = proto::types::v1::CanonicalVoteExtension {
-                            extension: v.extension.clone(),
-                            height: v.height.into(),
-                            round: v.round.value().into(),
-                            chain_id: chain_id.to_string(),
+                        let v = match version {
+                            Version::V0_34 | Version::V0_37 => {
+                                panic!("v0.34/v0.37 does not support vote extensions");
+                            }
+                            Version::V0_38 => {
+                                let canonical = proto::v0_38::types::CanonicalVoteExtension {
+                                    extension: v.extension.clone(),
+                                    height: v.height.into(),
+                                    round: v.round.value().into(),
+                                    chain_id: chain_id.to_string(),
+                                };
+                                canonical.encode_length_delimited_to_vec()
+                            }
+                            _ => {
+                                let canonical = proto::types::v1::CanonicalVoteExtension {
+                                    extension: v.extension.clone(),
+                                    height: v.height.into(),
+                                    round: v.round.value().into(),
+                                    chain_id: chain_id.to_string(),
+                                };
+                                canonical.encode_length_delimited_to_vec()
+                            }
                         };
 
-                        Ok(Some(canonical.encode_length_delimited_to_vec().into()))
+                        Ok(Some(v.into()))
                     }
                     _ => Ok(None),
                 }
