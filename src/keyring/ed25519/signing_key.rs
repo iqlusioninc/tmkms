@@ -115,7 +115,6 @@ impl TryFrom<&[u8]> for SigningKey {
 
     fn try_from(slice: &[u8]) -> Result<Self, Error> {
         if slice.len() == SigningKey::BYTE_SIZE {
-            // Assume seed key.
             slice
                 .try_into()
                 .map(SigningKey::Ed25519)
