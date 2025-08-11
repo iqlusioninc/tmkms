@@ -311,7 +311,7 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
 
 #[cfg(test)]
 mod tests {
-    use super::{chain, proto, SignableMsg, SignedMsgType};
+    use super::{chain, proto, SignableMsg, SignedMsgType, Version};
     use cometbft::{Proposal, Time, Vote};
 
     fn example_chain_id() -> chain::Id {
@@ -370,7 +370,9 @@ mod tests {
     #[test]
     fn serialize_canonical_proposal() {
         let signable_msg = SignableMsg::from(example_proposal());
-        let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
+        let signable_bytes = signable_msg
+            .canonical_bytes(example_chain_id(), Version::V1)
+            .unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
             &[
@@ -385,7 +387,9 @@ mod tests {
     #[test]
     fn serialize_canonical_vote() {
         let signable_msg = SignableMsg::from(example_vote());
-        let signable_bytes = signable_msg.canonical_bytes(example_chain_id()).unwrap();
+        let signable_bytes = signable_msg
+            .canonical_bytes(example_chain_id(), Version::V1)
+            .unwrap();
         assert_eq!(
             signable_bytes.as_ref(),
             &[
