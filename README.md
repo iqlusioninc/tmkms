@@ -1,6 +1,4 @@
- # CometBFT KMS 🔐
-
- THIS IS ALPHA SOFTWARE AND NOT TESTED FOR PRODUCTION USE
+ # CometBFT KMS (prev. Tendermint KMS) 🔐
 
 ![Crate][crate-image]
 ![Build Status][build-image]
@@ -242,9 +240,9 @@ limitations under the License.
 
 [CometBFT]: https://cometbft.com/
 [Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq
-[YubiHSM2]: https://github.com/informalsystems/tmkms-cometbft/blob/main/README.yubihsm.md
+[YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
 [ed25519-dalek]: https://github.com/dalek-cryptography/ed25519-dalek
 [supported Rust platform]: https://forge.rust-lang.org/platform-support.html
 [libusb]: https://libusb.info/
-[Dockerfile]: https://github.com/informalsystems/tmkms-cometbft/blob/main/Dockerfile
+[Dockerfile]: https://github.com/iqlusioninc/tmkms/blob/main/Dockerfile
