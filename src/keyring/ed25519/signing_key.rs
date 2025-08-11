@@ -30,7 +30,7 @@ impl SigningKey {
     pub fn as_bytes(&self) -> &SigningKeyBytes {
         match &self {
             SigningKey::Ed25519(signing_key) => signing_key.as_bytes(),
-            SigningKey::Ed25519Expanded(_) => panic!("unexpected expanded signing key"),
+            SigningKey::Ed25519Expanded(_) => panic!("not supported for expanded signing key"),
         }
     }
 
@@ -43,7 +43,7 @@ impl SigningKey {
                     .as_bytes()
                     .as_slice()
                     .try_into()
-                    .unwrap()
+                    .expect("ed25519_dalek to be convertible to ed25519_consensus")
             }
         }
     }
@@ -59,7 +59,7 @@ impl From<SigningKey> for ed25519_consensus::SigningKey {
     fn from(signing_key: SigningKey) -> ed25519_consensus::SigningKey {
         match signing_key {
             SigningKey::Ed25519(signing_key) => signing_key,
-            SigningKey::Ed25519Expanded(_) => panic!("unexpected expanded signing key"),
+            SigningKey::Ed25519Expanded(_) => panic!("unexpected signing key"),
         }
     }
 }
@@ -75,7 +75,7 @@ impl From<&SigningKey> for tendermint_p2p::secret_connection::PublicKey {
                         .as_bytes()
                         .as_slice()
                         .try_into()
-                        .unwrap();
+                        .expect("ed25519_dalek to be convertible to ed25519_consensus");
                 ed25519_consenus_verification_key.into()
             }
         }
