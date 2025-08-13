@@ -9,10 +9,10 @@ use crate::{
     privval::SignableMsg,
     rpc::{Request, Response},
 };
+use cometbft::{consensus, CometbftKey};
+use cometbft_config::net;
+use cometbft_proto as proto;
 use std::{os::unix::net::UnixStream, time::Instant};
-use tendermint::{consensus, TendermintKey};
-use tendermint_config::net;
-use tendermint_proto as proto;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -107,7 +107,7 @@ impl Session {
                 self.sign(request.into_signable_msg()?)?
             }
             // non-signable requests:
-            Request::PingRequest => Response::Ping(proto::privval::PingResponse {}),
+            Request::PingRequest => Response::Ping(proto::privval::v1::PingResponse {}),
             Request::ShowPublicKey => self.get_public_key()?,
         };
 
@@ -193,7 +193,7 @@ impl Session {
         &mut self,
         chain: &Chain,
         signable_msg: &SignableMsg,
-    ) -> Result<Option<proto::privval::RemoteSignerError>, Error> {
+    ) -> Result<Option<proto::privval::v1::RemoteSignerError>, Error> {
         let msg_type = signable_msg.msg_type();
         let request_state = signable_msg.consensus_state();
         let mut chain_state = chain.state.lock().unwrap();
@@ -232,12 +232,13 @@ impl Session {
             });
 
         let pub_key = match chain.keyring.default_pubkey()? {
-            TendermintKey::AccountKey(pk) => pk,
-            TendermintKey::ConsensusKey(pk) => pk,
+            CometbftKey::AccountKey(pk) => pk,
+            CometbftKey::ConsensusKey(pk) => pk,
         };
 
-        Ok(Response::PublicKey(proto::privval::PubKeyResponse {
-            pub_key: Some(pub_key.into()),
+        Ok(Response::PublicKey(proto::privval::v1::PubKeyResponse {
+            pub_key_bytes: pub_key.to_bytes(),
+            pub_key_type: pub_key.type_str().to_owned(),
             error: None,
         }))
     }
@@ -266,11 +267,11 @@ impl Session {
 }
 
 /// Double signing handler.
-fn double_sign(consensus_state: consensus::State) -> proto::privval::RemoteSignerError {
+fn double_sign(consensus_state: consensus::State) -> proto::privval::v1::RemoteSignerError {
     /// Double signing error code.
     const DOUBLE_SIGN_ERROR: i32 = 2;
 
-    proto::privval::RemoteSignerError {
+    proto::privval::v1::RemoteSignerError {
         code: DOUBLE_SIGN_ERROR,
         description: format!(
             "double signing requested at height: {}",

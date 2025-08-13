@@ -1,12 +1,11 @@
-# Tendermint KMS 🔐
+ # Tendermint KMS 🔐
 
-[![Crate][crate-image]][crate-link]
-[![Build Status][build-image]][build-link]
-[![Apache 2.0 Licensed][license-image]][license-link]
+![Crate][crate-image]
+![Build Status][build-image]
+![Apache 2.0 Licensed][license-image]
 ![MSRV][rustc-image]
 
-Key Management System for [Tendermint] applications such as
-[Cosmos Validators].
+Key Management System for [Tendermint] applications such as [Cosmos Validators].
 
 Provides isolated, optionally HSM-backed signing key management for Tendermint
 applications including validators, oracles, IBC relayers, and other transaction
@@ -47,7 +46,8 @@ instructions on how to build Tendermint KMS).
 The following signing backend providers are presently supported:
 
 #### Hardware Security Modules (recommended)
-- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature. See [README.fortanixdsm.md](./README.fortanixdsm.md) 
+
+- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature. See [README.fortanixdsm.md](./README.fortanixdsm.md)
 - [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2] for more info)
 - [Ledger] (gated under the `ledger` cargo feature)
 
@@ -238,7 +238,7 @@ limitations under the License.
 
 [//]: # (general links)
 
-[Tendermint]: https://tendermint.com/
+[Tendermint]: https://tendermint.com
 [Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq
 [YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/
