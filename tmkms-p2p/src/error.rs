@@ -4,7 +4,7 @@
 // TODO(soares): Update flex-error accordingly to address this.
 #![allow(clippy::use_self)]
 
-use flex_error::{define_error, DisplayOnly};
+use flex_error::{DisplayOnly, define_error};
 use prost::DecodeError;
 
 define_error! {

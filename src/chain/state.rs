@@ -103,14 +103,14 @@ impl State {
                     (new_state.step == self.consensus_state.step))
                 {
                     fail!(
-                            StateErrorKind::DoubleSign,
-                            "Attempting to sign a second proposal at height:{} round:{} step:{} old block id:{} new block {}",
-                            new_state.height,
-                            new_state.round,
-                            new_state.step,
-                            self.consensus_state.block_id_prefix(),
-                            new_state.block_id_prefix()
-                        );
+                        StateErrorKind::DoubleSign,
+                        "Attempting to sign a second proposal at height:{} round:{} step:{} old block id:{} new block {}",
+                        new_state.height,
+                        new_state.round,
+                        new_state.step,
+                        self.consensus_state.block_id_prefix(),
+                        new_state.block_id_prefix()
+                    );
                 }
             }
         }

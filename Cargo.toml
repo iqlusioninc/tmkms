@@ -12,8 +12,8 @@ repository = "https://github.com/iqlusioninc/tmkms/"
 readme = "README.md"
 categories = ["cryptography::cryptocurrencies"]
 keywords = ["cosmos", "ed25519", "kms", "key-management", "yubihsm"]
-edition = "2021"
-rust-version = "1.74"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
 abscissa_core = "0.8"

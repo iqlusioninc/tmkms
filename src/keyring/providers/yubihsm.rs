@@ -3,8 +3,8 @@
 use crate::{
     chain,
     config::provider::{
-        yubihsm::{SigningKeyConfig, YubihsmConfig},
         KeyType,
+        yubihsm::{SigningKeyConfig, YubihsmConfig},
     },
     error::{Error, ErrorKind::*},
     keyring::{self, SigningProvider},

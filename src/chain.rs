@@ -6,11 +6,11 @@ pub mod state;
 
 pub use self::{
     guard::Guard,
-    registry::{GlobalRegistry, Registry, REGISTRY},
+    registry::{GlobalRegistry, REGISTRY, Registry},
     state::State,
 };
 use crate::{
-    config::{chain::ChainConfig, KmsConfig},
+    config::{KmsConfig, chain::ChainConfig},
     error::Error,
     keyring::{self, KeyRing},
     prelude::*,

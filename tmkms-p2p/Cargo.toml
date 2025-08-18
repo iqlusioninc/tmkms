@@ -1,13 +1,14 @@
 [package]
 name = "tmkms-p2p"
 version = "0.1.0-pre"
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/informalsystems/tendermint-rs"
 homepage = "https://tendermint.com"
 readme = "README.md"
 keywords = ["p2p", "tendermint", "cosmos"]
 categories = ["cryptography::cryptocurrencies", "network-programming"]
+rust-version = "1.85"
 authors = [
     "Informal Systems <hello@informal.systems>",
     "Alexander Simmerl <a.simmerl@gmail.com>",

@@ -1,16 +1,16 @@
 //! A session with a validator node
 
 use crate::{
-    chain::{self, state::StateErrorKind, Chain},
+    chain::{self, Chain, state::StateErrorKind},
     config::ValidatorConfig,
-    connection::{tcp, unix::UnixConnection, Connection},
+    connection::{Connection, tcp, unix::UnixConnection},
     error::{Error, ErrorKind::*},
     prelude::*,
     privval::SignableMsg,
     rpc::{Request, Response},
 };
 use std::{os::unix::net::UnixStream, time::Instant};
-use tendermint::{consensus, TendermintKey};
+use tendermint::{TendermintKey, consensus};
 use tendermint_config::net;
 use tendermint_proto as proto;
 

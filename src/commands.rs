@@ -19,7 +19,7 @@ pub use self::yubihsm::YubihsmCommand;
 
 pub use self::{init::InitCommand, start::StartCommand, version::VersionCommand};
 
-use crate::config::{KmsConfig, CONFIG_ENV_VAR, CONFIG_FILE_NAME};
+use crate::config::{CONFIG_ENV_VAR, CONFIG_FILE_NAME, KmsConfig};
 use abscissa_core::{Command, Configurable, Runnable};
 use clap::Parser;
 use std::{env, path::PathBuf};

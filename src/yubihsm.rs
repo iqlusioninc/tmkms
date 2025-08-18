@@ -11,8 +11,8 @@ use std::thread;
 use std::{
     process,
     sync::{
-        atomic::{self, AtomicBool},
         Mutex, MutexGuard,
+        atomic::{self, AtomicBool},
     },
 };
 use yubihsm::{Client, Connector};
@@ -24,7 +24,7 @@ use zeroize::Zeroizing;
 use {
     crate::config::provider::yubihsm::AdapterConfig,
     tendermint_config::net,
-    yubihsm::{device::SerialNumber, HttpConfig, UsbConfig},
+    yubihsm::{HttpConfig, UsbConfig, device::SerialNumber},
 };
 
 /// Connection to the YubiHSM device
@@ -209,12 +209,14 @@ pub fn config() -> YubihsmConfig {
 /// Run a `yubihsm-connector` service in a background thread
 #[cfg(all(feature = "yubihsm-server", not(feature = "yubihsm-mock")))]
 fn run_connnector_server(config: HttpConfig, connector: Connector) {
-    thread::spawn(move || loop {
-        let server = yubihsm::connector::http::Server::new(&config, connector.clone())
-            .expect("couldn't start yubihsm connector HTTP server");
+    thread::spawn(move || {
+        loop {
+            let server = yubihsm::connector::http::Server::new(&config, connector.clone())
+                .expect("couldn't start yubihsm connector HTTP server");
 
-        if let Err(e) = server.run() {
-            error!("yubihsm HTTP service crashed! {}", e);
+            if let Err(e) = server.run() {
+                error!("yubihsm HTTP service crashed! {}", e);
+            }
         }
     });
 }

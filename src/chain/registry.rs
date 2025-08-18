@@ -2,10 +2,10 @@
 
 use super::{Chain, Guard, Id};
 use crate::{
+    Map,
     error::{Error, ErrorKind::*},
     keyring,
     prelude::*,
-    Map,
 };
 use once_cell::sync::Lazy;
 use std::sync::RwLock;
