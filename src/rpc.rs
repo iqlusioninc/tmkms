@@ -6,7 +6,7 @@
 use crate::privval::SignableMsg;
 use prost::Message as _;
 use std::io::Read;
-use tendermint::{chain, Proposal, Vote};
+use tendermint::{Proposal, Vote, chain};
 use tendermint_proto as proto;
 use tmkms_p2p::secret_connection::DATA_MAX_SIZE;
 

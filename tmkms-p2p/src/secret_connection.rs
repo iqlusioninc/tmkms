@@ -5,14 +5,14 @@ use std::{
     io::{self, Read, Write},
     slice,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
 use chacha20poly1305::{
-    aead::{generic_array::GenericArray, AeadInPlace, KeyInit},
     ChaCha20Poly1305,
+    aead::{AeadInPlace, KeyInit, generic_array::GenericArray},
 };
 use curve25519_dalek_ng::{
     constants::X25519_BASEPOINT, montgomery::MontgomeryPoint as EphemeralPublic,

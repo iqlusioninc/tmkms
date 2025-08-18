@@ -2,7 +2,7 @@
 
 use std::fmt::{self, Display};
 
-use sha2::{digest::Digest, Sha256};
+use sha2::{Sha256, digest::Digest};
 use tendermint::{error::Error, node};
 
 /// Secret Connection peer public keys (signing, presently Ed25519-only)

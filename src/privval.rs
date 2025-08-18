@@ -2,7 +2,7 @@
 
 use bytes::{Bytes, BytesMut};
 use prost::{EncodeError, Message as _};
-use tendermint::{block, chain, consensus, vote, Error, Proposal, Vote};
+use tendermint::{Error, Proposal, Vote, block, chain, consensus, vote};
 use tendermint_proto as proto;
 
 /// Message codes.
@@ -268,7 +268,7 @@ impl TryFrom<SignedMsgCode> for SignedMsgType {
 
 #[cfg(test)]
 mod tests {
-    use super::{chain, proto, SignableMsg, SignedMsgType};
+    use super::{SignableMsg, SignedMsgType, chain, proto};
     use tendermint::{Proposal, Time, Vote};
 
     fn example_chain_id() -> chain::Id {

@@ -4,7 +4,7 @@
 // TODO(soares): Update flex-error accordingly to address this.
 #![allow(clippy::use_self)]
 
-use flex_error::{define_error, DisplayOnly};
+use flex_error::{DisplayOnly, define_error};
 use prost::DecodeError;
 
 define_error! {
@@ -50,14 +50,14 @@ define_error! {
 
         ShortCiphertext
             { tag_size: usize }
-            | e | { format_args!("ciphertext must be at least as long as a MAC tag {}", e.tag_size) },
+            | _ | { "ciphertext must be at least as long as a MAC tag" },
 
         SmallOutputBuffer
             | _ | { "output buffer is too small" },
 
         TransportClone
             { detail: String }
-            | e | { format_args!("failed to clone underlying transport: {}", e.detail) }
+            | _ | { "failed to clone underlying transport" }
 
     }
 }

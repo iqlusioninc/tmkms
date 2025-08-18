@@ -1,6 +1,6 @@
 //! List keys inside the YubiHSM2
 
-use crate::{chain, keyring, prelude::*, Map};
+use crate::{Map, chain, keyring, prelude::*};
 use abscissa_core::Command;
 use clap::Parser;
 use k256::elliptic_curve::generic_array::GenericArray;

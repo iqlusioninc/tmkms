@@ -5,12 +5,12 @@
 use crate::{
     chain,
     config::provider::{
-        softsign::{KeyFormat, SoftsignConfig},
         KeyType,
+        softsign::{KeyFormat, SoftsignConfig},
     },
     error::{Error, ErrorKind::*},
     key_utils,
-    keyring::{self, ed25519, SigningProvider},
+    keyring::{self, SigningProvider, ed25519},
     prelude::*,
 };
 use k256::ecdsa;

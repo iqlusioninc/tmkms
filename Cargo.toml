@@ -5,15 +5,15 @@ Tendermint Key Management System: provides isolated, optionally HSM-backed
 signing key management for Tendermint applications including validators,
 oracles, IBC relayers, and other transaction signing applications
 """
-version = "0.14.0"
+version = "0.15.0-pre"
 authors = ["Tony Arcieri <tony@iqlusion.io>", "Ismail Khoffi <Ismail.Khoffi@gmail.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/iqlusioninc/tmkms/"
 readme = "README.md"
 categories = ["cryptography::cryptocurrencies"]
 keywords = ["cosmos", "ed25519", "kms", "key-management", "yubihsm"]
-edition = "2021"
-rust-version = "1.74"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
 abscissa_core = "0.8"
