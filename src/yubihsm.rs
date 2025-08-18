@@ -118,7 +118,7 @@ fn http_config_for_address(addr: &net::Address) -> HttpConfig {
     match addr {
         net::Address::Tcp {
             peer_id: _,
-            ref host,
+            host,
             port,
         } => {
             let mut config = HttpConfig::default();
