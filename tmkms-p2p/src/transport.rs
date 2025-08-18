@@ -1,9 +1,8 @@
 //! Abstractions that describe types which support the physical transport - i.e. connection
 //! management - used in the p2p stack.
 
+use crate::Result;
 use std::net::{SocketAddr, ToSocketAddrs};
-
-use eyre::Result;
 use tendermint::{node, public_key::PublicKey};
 
 /// Information which resources to bind to and how to identify on the network.
@@ -95,7 +94,7 @@ pub trait Connection: Send {
     fn open_bidirectional(
         &self,
         stream_id: StreamId,
-    ) -> Result<(Self::StreamRead, Self::StreamSend), Self::Error>;
+    ) -> core::result::Result<(Self::StreamRead, Self::StreamSend), Self::Error>;
     /// Public key of the remote peer.
     fn public_key(&self) -> PublicKey;
     /// Local address(es) to the endpoint listens on.

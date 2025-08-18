@@ -29,7 +29,7 @@ pub fn decode_initial_handshake(bytes: &[u8]) -> Result<EphemeralPublic, Error> 
     // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L315-L323
     // TODO(tarcieri): proper protobuf framing
     if bytes.len() != 34 || bytes[..2] != [0x0a, 0x20] {
-        return Err(Error::malformed_handshake());
+        return Err(Error::MalformedHandshake);
     }
 
     let eph_pubkey_bytes: [u8; 32] = bytes[2..].try_into().expect("framing failed");
@@ -37,7 +37,7 @@ pub fn decode_initial_handshake(bytes: &[u8]) -> Result<EphemeralPublic, Error> 
 
     // Reject the key if it is of low order
     if is_low_order_point(&eph_pubkey) {
-        return Err(Error::low_order_key());
+        return Err(Error::LowOrderKey);
     }
 
     Ok(eph_pubkey)
@@ -81,7 +81,7 @@ pub const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;
 /// * if the decoding of the bytes fails
 pub fn decode_auth_signature(bytes: &[u8]) -> Result<proto::p2p::AuthSigMessage, Error> {
     // Parse Protobuf-encoded `AuthSigMessage`
-    proto::p2p::AuthSigMessage::decode_length_delimited(bytes).map_err(Error::decode)
+    Ok(proto::p2p::AuthSigMessage::decode_length_delimited(bytes)?)
 }
 
 /// Reject low order points listed on <https://cr.yp.to/ecdh.html>
