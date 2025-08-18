@@ -11,7 +11,6 @@
 )]
 #![warn(
     clippy::all,
-    clippy::cargo,
     clippy::nursery,
     clippy::pedantic,
     clippy::unwrap_used,

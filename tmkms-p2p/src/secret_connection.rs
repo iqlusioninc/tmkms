@@ -57,7 +57,9 @@ pub struct Handshake<S> {
     state: S,
 }
 
-/// Handshake states
+//
+// Handshake states
+//
 
 /// `AwaitingEphKey` means we're waiting for the remote ephemeral pubkey.
 pub struct AwaitingEphKey {
@@ -271,7 +273,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     ///
     /// # Panics
     /// Panics if the remote pubkey is not initialized.
-    pub fn remote_pubkey(&self) -> PublicKey {
+    pub const fn remote_pubkey(&self) -> PublicKey {
         self.remote_pubkey.expect("remote_pubkey uninitialized")
     }
 
@@ -546,7 +548,7 @@ fn encrypt_and_write<IoHandler: Write>(
     for chunk in data.chunks(DATA_MAX_SIZE) {
         let sealed_frame = &mut [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
         encrypt(chunk, &send_state.cipher, &send_state.nonce, sealed_frame)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .map_err(io::Error::other)?;
         send_state.nonce.increment();
         // end encryption
 
@@ -627,7 +629,7 @@ fn read_and_decrypt<IoHandler: Read>(
     );
 
     if let Err(err) = res {
-        return Err(io::Error::new(io::ErrorKind::Other, err.to_string()));
+        return Err(io::Error::other(err));
     }
 
     recv_state.nonce.increment();
@@ -636,10 +638,9 @@ fn read_and_decrypt<IoHandler: Read>(
     let chunk_length = u32::from_le_bytes(frame[..4].try_into().expect("chunk framing failed"));
 
     if chunk_length as usize > DATA_MAX_SIZE {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("chunk is too big: {chunk_length}! max: {DATA_MAX_SIZE}"),
-        ));
+        return Err(io::Error::other(format!(
+            "chunk is too big: {chunk_length}! max: {DATA_MAX_SIZE}"
+        )));
     }
 
     let mut chunk = vec![0; chunk_length as usize];
