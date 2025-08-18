@@ -27,13 +27,9 @@ use tendermint_std_ext::TryClone;
 pub use self::{
     kdf::Kdf,
     nonce::{Nonce, SIZE as NONCE_SIZE},
-    protocol::Version,
     public_key::PublicKey,
 };
 use crate::error::Error;
-
-#[cfg(feature = "amino")]
-mod amino_types;
 
 mod kdf;
 mod nonce;
@@ -53,7 +49,6 @@ const TOTAL_FRAME_SIZE: usize = DATA_MAX_SIZE + DATA_LEN_SIZE;
 /// Handshake is a process of establishing the `SecretConnection` between two peers.
 /// [Specification](https://github.com/tendermint/spec/blob/master/spec/p2p/peer.md#authenticated-encryption-handshake)
 pub struct Handshake<S> {
-    protocol_version: Version,
     state: S,
 }
 
@@ -70,7 +65,6 @@ pub struct AwaitingEphKey {
 /// `AwaitingAuthSig` means we're waiting for the remote authenticated signature.
 pub struct AwaitingAuthSig {
     sc_mac: [u8; 32],
-    kdf: Kdf,
     recv_cipher: ChaCha20Poly1305,
     send_cipher: ChaCha20Poly1305,
     local_signature: ed25519_consensus::Signature,
@@ -80,17 +74,13 @@ pub struct AwaitingAuthSig {
 impl Handshake<AwaitingEphKey> {
     /// Initiate a handshake.
     #[must_use]
-    pub fn new(
-        local_privkey: ed25519_consensus::SigningKey,
-        protocol_version: Version,
-    ) -> (Self, EphemeralPublic) {
+    pub fn new(local_privkey: ed25519_consensus::SigningKey) -> (Self, EphemeralPublic) {
         // Generate an ephemeral key for perfect forward secrecy.
         let local_eph_privkey = EphemeralSecret::random(&mut OsRng);
         let local_eph_pubkey = X25519_BASEPOINT * local_eph_privkey;
 
         (
             Self {
-                protocol_version,
                 state: AwaitingEphKey {
                     local_privkey,
                     local_eph_privkey: Some(local_eph_privkey),
@@ -153,19 +143,13 @@ impl Handshake<AwaitingEphKey> {
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
 
         // Sign the challenge bytes for authentication.
-        let local_signature = if self.protocol_version.has_transcript() {
-            self.state.local_privkey.sign(&sc_mac)
-        } else {
-            self.state.local_privkey.sign(&kdf.challenge)
-        };
+        let local_signature = self.state.local_privkey.sign(&sc_mac);
 
         Ok(Handshake {
-            protocol_version: self.protocol_version,
             state: AwaitingAuthSig {
                 sc_mac,
                 recv_cipher: ChaCha20Poly1305::new(&kdf.recv_secret.into()),
                 send_cipher: ChaCha20Poly1305::new(&kdf.send_secret.into()),
-                kdf,
                 local_signature,
             },
         })
@@ -198,15 +182,9 @@ impl Handshake<AwaitingAuthSig> {
         let remote_sig = ed25519_consensus::Signature::try_from(auth_sig_msg.sig.as_slice())
             .map_err(|_| Error::signature())?;
 
-        if self.protocol_version.has_transcript() {
-            remote_pubkey
-                .verify(&remote_sig, &self.state.sc_mac)
-                .map_err(|_| Error::signature())?;
-        } else {
-            remote_pubkey
-                .verify(&remote_sig, &self.state.kdf.challenge)
-                .map_err(|_| Error::signature())?;
-        }
+        remote_pubkey
+            .verify(&remote_sig, &self.state.sc_mac)
+            .map_err(|_| Error::signature())?;
 
         // We've authorized.
         Ok(remote_pubkey.into())
@@ -261,7 +239,6 @@ macro_rules! checked_io {
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
 pub struct SecretConnection<IoHandler> {
     io_handler: IoHandler,
-    protocol_version: Version,
     remote_pubkey: Option<PublicKey>,
     send_state: SendState,
     recv_state: ReceiveState,
@@ -287,22 +264,19 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     pub fn new(
         mut io_handler: IoHandler,
         local_privkey: ed25519_consensus::SigningKey,
-        protocol_version: Version,
     ) -> Result<Self, Error> {
         // Start a handshake process.
         let local_pubkey = PublicKey::from(&local_privkey);
-        let (mut h, local_eph_pubkey) = Handshake::new(local_privkey, protocol_version);
+        let (mut h, local_eph_pubkey) = Handshake::new(local_privkey);
 
         // Write local ephemeral pubkey and receive one too.
-        let remote_eph_pubkey =
-            share_eph_pubkey(&mut io_handler, &local_eph_pubkey, protocol_version)?;
+        let remote_eph_pubkey = share_eph_pubkey(&mut io_handler, &local_eph_pubkey)?;
 
         // Compute a local signature (also recv_cipher & send_cipher)
         let h = h.got_key(remote_eph_pubkey)?;
 
         let mut sc = Self {
             io_handler,
-            protocol_version,
             remote_pubkey: None,
             send_state: SendState {
                 cipher: h.state.send_cipher.clone(),
@@ -463,20 +437,19 @@ impl<IoHandler: Read> Read for Receiver<IoHandler> {
 fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
     handler: &mut IoHandler,
     local_eph_pubkey: &EphemeralPublic,
-    protocol_version: Version,
 ) -> Result<EphemeralPublic, Error> {
     // Send our pubkey and receive theirs in tandem.
     // TODO(ismail): on the go side this is done in parallel, here we do send and receive after
     // each other. thread::spawn would require a static lifetime.
     // Should still work though.
-    handler.write_all(&protocol_version.encode_initial_handshake(local_eph_pubkey))?;
+    handler.write_all(&protocol::encode_initial_handshake(local_eph_pubkey))?;
 
     let mut response_len = 0_u8;
     handler.read_exact(slice::from_mut(&mut response_len))?;
 
     let mut buf = vec![0; response_len as usize];
     handler.read_exact(&mut buf)?;
-    protocol_version.decode_initial_handshake(&buf)
+    protocol::decode_initial_handshake(&buf)
 }
 
 // TODO(ismail): change from DecodeError to something more generic
@@ -486,15 +459,12 @@ fn share_auth_signature<IoHandler: Read + Write + Send + Sync>(
     pubkey: &ed25519_consensus::VerificationKey,
     local_signature: &ed25519_consensus::Signature,
 ) -> Result<proto::p2p::AuthSigMessage, Error> {
-    let buf = sc
-        .protocol_version
-        .encode_auth_signature(pubkey, local_signature);
-
+    let buf = protocol::encode_auth_signature(pubkey, local_signature);
     sc.write_all(&buf)?;
 
-    let mut buf = vec![0; sc.protocol_version.auth_sig_msg_response_len()];
+    let mut buf = [0u8; protocol::AUTH_SIG_MSG_RESPONSE_LEN];
     sc.read_exact(&mut buf)?;
-    sc.protocol_version.decode_auth_signature(&buf)
+    protocol::decode_auth_signature(&buf)
 }
 
 /// Return is of the form lo, hi

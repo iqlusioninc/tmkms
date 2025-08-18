@@ -5,7 +5,7 @@ use std::{net::TcpStream, path::PathBuf, time::Duration};
 use subtle::ConstantTimeEq;
 use tendermint::node;
 use tmkms_p2p::error::ErrorDetail as TmError;
-use tmkms_p2p::secret_connection::{self, PublicKey, SecretConnection};
+use tmkms_p2p::secret_connection::{PublicKey, SecretConnection};
 
 use crate::{
     error::{Error, ErrorKind::*},
@@ -23,7 +23,6 @@ pub fn open_secret_connection(
     identity_key_path: &Option<PathBuf>,
     peer_id: &Option<node::Id>,
     timeout: Option<u16>,
-    protocol_version: secret_connection::Version,
 ) -> Result<SecretConnection<TcpStream>, Error> {
     let identity_key_path = identity_key_path.as_ref().ok_or_else(|| {
         format_err!(
@@ -42,7 +41,7 @@ pub fn open_secret_connection(
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = match SecretConnection::new(socket, identity_key.into(), protocol_version) {
+    let connection = match SecretConnection::new(socket, identity_key.into()) {
         Ok(conn) => conn,
         Err(error) => match error.detail() {
             TmError::Crypto(_) => fail!(CryptoError, format!("{error}")),

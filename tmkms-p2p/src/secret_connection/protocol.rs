@@ -1,215 +1,87 @@
 //! Secret Connection Protocol: message framing and versioning
 
+use crate::error::Error;
 use curve25519_dalek_ng::montgomery::MontgomeryPoint as EphemeralPublic;
 use prost::Message as _;
 use tendermint_proto::v0_38 as proto;
 
-#[cfg(feature = "amino")]
-use super::amino_types;
-use crate::error::Error;
-
-/// Size of an X25519 or Ed25519 public key
-const PUBLIC_KEY_SIZE: usize = 32;
-
-/// Protocol version (based on the Tendermint version)
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-#[allow(non_camel_case_types)]
-pub enum Version {
-    /// Tendermint v0.34
-    V0_34,
-
-    /// Tendermint v0.33
-    V0_33,
-
-    /// Pre-Tendermint v0.33
-    Legacy,
+/// Encode the initial handshake message (i.e. first one sent by both peers)
+#[must_use]
+pub fn encode_initial_handshake(eph_pubkey: &EphemeralPublic) -> Vec<u8> {
+    // Equivalent Go implementation:
+    // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L307-L312
+    // TODO(tarcieri): proper protobuf framing
+    let mut buf = Vec::new();
+    buf.extend_from_slice(&[0x22, 0x0a, 0x20]);
+    buf.extend_from_slice(eph_pubkey.as_bytes());
+    buf
 }
 
-impl Version {
-    /// Does this version of Secret Connection use a transcript hash
-    #[must_use]
-    pub fn has_transcript(self) -> bool {
-        self != Self::Legacy
+/// Decode the initial handshake message
+///
+/// # Errors
+/// * if the message is malformed
+///
+/// # Panics
+/// This method does not panic
+pub fn decode_initial_handshake(bytes: &[u8]) -> Result<EphemeralPublic, Error> {
+    // Equivalent Go implementation:
+    // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L315-L323
+    // TODO(tarcieri): proper protobuf framing
+    if bytes.len() != 34 || bytes[..2] != [0x0a, 0x20] {
+        return Err(Error::malformed_handshake());
     }
 
-    /// Are messages encoded using Protocol Buffers?
-    #[must_use]
-    pub const fn is_protobuf(self) -> bool {
-        match self {
-            Self::V0_34 => true,
-            Self::V0_33 | Self::Legacy => false,
-        }
+    let eph_pubkey_bytes: [u8; 32] = bytes[2..].try_into().expect("framing failed");
+    let eph_pubkey = EphemeralPublic(eph_pubkey_bytes);
+
+    // Reject the key if it is of low order
+    if is_low_order_point(&eph_pubkey) {
+        return Err(Error::low_order_key());
     }
 
-    /// Encode the initial handshake message (i.e. first one sent by both peers)
-    #[allow(clippy::cast_possible_truncation)]
-    #[must_use]
-    pub fn encode_initial_handshake(self, eph_pubkey: &EphemeralPublic) -> Vec<u8> {
-        if self.is_protobuf() {
-            // Equivalent Go implementation:
-            // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L307-L312
-            // TODO(tarcieri): proper protobuf framing
-            let mut buf = Vec::new();
-            buf.extend_from_slice(&[0x22, 0x0a, 0x20]);
-            buf.extend_from_slice(eph_pubkey.as_bytes());
-            buf
-        } else {
-            // Legacy Amino encoded handshake message
-            // Equivalent Go implementation:
-            // https://github.com/tendermint/tendermint/blob/013b9ce/p2p/conn/secret_connection.go#L213-L217
-            //
-            // Note: this is not regular protobuf encoding but raw length prefixed amino encoding;
-            // amino prefixes with the total length, and the raw bytes array's length, too:
-            let mut buf = vec![PUBLIC_KEY_SIZE as u8 + 1, PUBLIC_KEY_SIZE as u8];
-            buf.extend_from_slice(eph_pubkey.as_bytes());
-            buf
-        }
-    }
+    Ok(eph_pubkey)
+}
 
-    /// Decode the initial handshake message
-    ///
-    /// # Errors
-    /// * if the message is malformed
-    ///
-    /// # Panics
-    /// This method does not panic
-    pub fn decode_initial_handshake(self, bytes: &[u8]) -> Result<EphemeralPublic, Error> {
-        let eph_pubkey = if self.is_protobuf() {
-            // Equivalent Go implementation:
-            // https://github.com/tendermint/tendermint/blob/9e98c74/p2p/conn/secret_connection.go#L315-L323
-            // TODO(tarcieri): proper protobuf framing
-            if bytes.len() != 34 || bytes[..2] != [0x0a, 0x20] {
-                return Err(Error::malformed_handshake());
-            }
+/// Encode signature which authenticates the handshake
+///
+/// # Panics
+/// Panics if the Protobuf encoding of `AuthSigMessage` fails
+#[must_use]
+pub fn encode_auth_signature(
+    pub_key: &ed25519_consensus::VerificationKey,
+    signature: &ed25519_consensus::Signature,
+) -> Vec<u8> {
+    // Protobuf `AuthSigMessage`
+    let pub_key = proto::crypto::PublicKey {
+        sum: Some(proto::crypto::public_key::Sum::Ed25519(
+            pub_key.as_ref().to_vec(),
+        )),
+    };
 
-            let eph_pubkey_bytes: [u8; 32] = bytes[2..].try_into().expect("framing failed");
-            EphemeralPublic(eph_pubkey_bytes)
-        } else {
-            // Equivalent Go implementation:
-            // https://github.com/tendermint/tendermint/blob/013b9ce/p2p/conn/secret_connection.go#L220-L225
-            //
-            // Check that the length matches what we expect and the length prefix is correct
-            if bytes.len() != 33 || bytes[0] != 32 {
-                return Err(Error::malformed_handshake());
-            }
+    let msg = proto::p2p::AuthSigMessage {
+        pub_key: Some(pub_key),
+        sig: signature.to_bytes().to_vec(),
+    };
 
-            let eph_pubkey_bytes: [u8; 32] = bytes[1..].try_into().expect("framing failed");
-            EphemeralPublic(eph_pubkey_bytes)
-        };
+    let mut buf = Vec::new();
+    msg.encode_length_delimited(&mut buf)
+        .expect("couldn't encode AuthSigMessage proto");
+    buf
+}
 
-        // Reject the key if it is of low order
-        if is_low_order_point(&eph_pubkey) {
-            return Err(Error::low_order_key());
-        }
+/// Length of the auth message response
+// 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
+pub const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;
 
-        Ok(eph_pubkey)
-    }
-
-    /// Encode signature which authenticates the handshake
-    ///
-    /// # Panics
-    /// Panics if the Protobuf encoding of `AuthSigMessage` fails
-    #[must_use]
-    pub fn encode_auth_signature(
-        self,
-        pub_key: &ed25519_consensus::VerificationKey,
-        signature: &ed25519_consensus::Signature,
-    ) -> Vec<u8> {
-        if self.is_protobuf() {
-            // Protobuf `AuthSigMessage`
-            let pub_key = proto::crypto::PublicKey {
-                sum: Some(proto::crypto::public_key::Sum::Ed25519(
-                    pub_key.as_ref().to_vec(),
-                )),
-            };
-
-            let msg = proto::p2p::AuthSigMessage {
-                pub_key: Some(pub_key),
-                sig: signature.to_bytes().to_vec(),
-            };
-
-            let mut buf = Vec::new();
-            msg.encode_length_delimited(&mut buf)
-                .expect("couldn't encode AuthSigMessage proto");
-            buf
-        } else {
-            self.encode_auth_signature_amino(pub_key, signature)
-        }
-    }
-
-    /// Get the length of the auth message response for this protocol version
-    #[must_use]
-    pub const fn auth_sig_msg_response_len(self) -> usize {
-        if self.is_protobuf() {
-            // 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
-            103
-        } else {
-            // 32 + 64 + (amino overhead = 2 fields + 2 lengths + 4 prefix bytes + total length)
-            106
-        }
-    }
-
-    /// Decode signature message which authenticates the handshake
-    ///
-    /// # Errors
-    ///
-    /// * if the decoding of the bytes fails
-    pub fn decode_auth_signature(self, bytes: &[u8]) -> Result<proto::p2p::AuthSigMessage, Error> {
-        if self.is_protobuf() {
-            // Parse Protobuf-encoded `AuthSigMessage`
-            proto::p2p::AuthSigMessage::decode_length_delimited(bytes).map_err(Error::decode)
-        } else {
-            self.decode_auth_signature_amino(bytes)
-        }
-    }
-
-    #[allow(clippy::unused_self)]
-    #[cfg(feature = "amino")]
-    fn encode_auth_signature_amino(
-        self,
-        pub_key: &ed25519_consensus::VerificationKey,
-        signature: &ed25519_consensus::Signature,
-    ) -> Vec<u8> {
-        // Legacy Amino encoded `AuthSigMessage`
-        let msg = amino_types::AuthSigMessage::new(pub_key, signature);
-
-        let mut buf = Vec::new();
-        msg.encode_length_delimited(&mut buf)
-            .expect("encode_auth_signature failed");
-        buf
-    }
-
-    #[allow(clippy::unused_self)]
-    #[cfg(not(feature = "amino"))]
-    const fn encode_auth_signature_amino(
-        self,
-        _: &ed25519_consensus::VerificationKey,
-        _: &ed25519_consensus::Signature,
-    ) -> Vec<u8> {
-        panic!("attempted to encode auth signature using amino, but 'amino' feature is not present")
-    }
-
-    #[allow(clippy::unused_self)]
-    #[cfg(feature = "amino")]
-    fn decode_auth_signature_amino(
-        self,
-        bytes: &[u8],
-    ) -> Result<proto::p2p::AuthSigMessage, Error> {
-        // Legacy Amino encoded `AuthSigMessage`
-        let amino_msg =
-            amino_types::AuthSigMessage::decode_length_delimited(bytes).map_err(Error::decode)?;
-
-        amino_msg.try_into()
-    }
-
-    #[allow(clippy::unused_self)]
-    #[cfg(not(feature = "amino"))]
-    const fn decode_auth_signature_amino(
-        self,
-        _: &[u8],
-    ) -> Result<proto::p2p::AuthSigMessage, Error> {
-        panic!("attempted to decode auth signature using amino, but 'amino' feature is not present")
-    }
+/// Decode signature message which authenticates the handshake
+///
+/// # Errors
+///
+/// * if the decoding of the bytes fails
+pub fn decode_auth_signature(bytes: &[u8]) -> Result<proto::p2p::AuthSigMessage, Error> {
+    // Parse Protobuf-encoded `AuthSigMessage`
+    proto::p2p::AuthSigMessage::decode_length_delimited(bytes).map_err(Error::decode)
 }
 
 /// Reject low order points listed on <https://cr.yp.to/ecdh.html>

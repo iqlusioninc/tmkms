@@ -43,7 +43,6 @@ impl Session {
                     &config.secret_key,
                     peer_id,
                     config.timeout,
-                    config.protocol_version.into(),
                 )?;
 
                 info!(
