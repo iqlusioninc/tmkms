@@ -5,11 +5,11 @@ use crate::{config::provider::KeyType, key_utils, prelude::*};
 use abscissa_core::Command;
 use chrono::{SecondsFormat, Utc};
 use clap::Parser;
+use cometbft::PublicKey;
 use std::{
     path::{Path, PathBuf},
     process,
 };
-use tendermint::PublicKey;
 
 /// The `yubihsm keys generate` subcommand
 #[derive(Command, Debug, Default, Parser)]
