@@ -36,8 +36,8 @@ impl From<SigningKey> for ed25519_consensus::SigningKey {
     }
 }
 
-impl From<&SigningKey> for tendermint_p2p::secret_connection::PublicKey {
-    fn from(signing_key: &SigningKey) -> tendermint_p2p::secret_connection::PublicKey {
+impl From<&SigningKey> for tmkms_p2p::secret_connection::PublicKey {
+    fn from(signing_key: &SigningKey) -> tmkms_p2p::secret_connection::PublicKey {
         Self::from(&signing_key.0)
     }
 }

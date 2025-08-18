@@ -2,7 +2,7 @@
 
 use std::io;
 
-use tendermint_p2p::secret_connection::SecretConnection;
+use tmkms_p2p::secret_connection::SecretConnection;
 
 use self::unix::UnixConnection;
 

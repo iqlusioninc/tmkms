@@ -2444,32 +2444,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tendermint-p2p"
-version = "0.40.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "047c1002b9af811bfc62afef70be329e779a3e7f4a2fd23eebce102d1b63e5f4"
-dependencies = [
- "aead",
- "chacha20poly1305",
- "curve25519-dalek-ng",
- "ed25519-consensus",
- "eyre",
- "flex-error",
- "flume",
- "hkdf",
- "merlin",
- "prost",
- "rand_core",
- "sha2 0.10.9",
- "signature",
- "subtle",
- "tendermint",
- "tendermint-proto",
- "tendermint-std-ext",
- "zeroize",
-]
-
-[[package]]
 name = "tendermint-proto"
 version = "0.40.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2631,13 +2605,38 @@ dependencies = [
  "tempfile",
  "tendermint",
  "tendermint-config",
- "tendermint-p2p",
  "tendermint-proto",
  "thiserror",
+ "tmkms-p2p",
  "url 2.5.4",
  "uuid",
  "wait-timeout",
  "yubihsm",
+ "zeroize",
+]
+
+[[package]]
+name = "tmkms-p2p"
+version = "0.1.0-pre"
+dependencies = [
+ "aead",
+ "chacha20poly1305",
+ "curve25519-dalek-ng",
+ "ed25519-consensus",
+ "eyre",
+ "flex-error",
+ "flume",
+ "hkdf",
+ "merlin",
+ "prost",
+ "prost-derive",
+ "rand_core",
+ "sha2 0.10.9",
+ "signature",
+ "subtle",
+ "tendermint",
+ "tendermint-proto",
+ "tendermint-std-ext",
  "zeroize",
 ]
 

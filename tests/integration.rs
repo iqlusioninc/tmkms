@@ -14,7 +14,6 @@ use std::{
     process::{Child, Command},
 };
 use tempfile::NamedTempFile;
-use tendermint_p2p::secret_connection::{self, SecretConnection};
 use tendermint_proto as proto;
 use tmkms::{
     config::provider::KeyType,
@@ -22,6 +21,7 @@ use tmkms::{
     keyring::ed25519,
     privval::{SignableMsg, SignedMsgType},
 };
+use tmkms_p2p::secret_connection::{self, SecretConnection};
 
 /// Integration tests for the KMS command-line interface
 mod cli;
