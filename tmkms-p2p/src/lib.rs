@@ -21,6 +21,9 @@
     html_logo_url = "https://raw.githubusercontent.com/informalsystems/tendermint-rs/master/img/logo-tendermint-rs_3961x4001.png"
 )]
 
-pub mod error;
 pub mod secret_connection;
 pub mod transport;
+
+mod error;
+
+pub use error::{Error, Result};

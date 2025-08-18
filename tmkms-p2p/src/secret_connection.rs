@@ -104,7 +104,7 @@ impl Handshake<AwaitingEphKey> {
         remote_eph_pubkey: EphemeralPublic,
     ) -> Result<Handshake<AwaitingAuthSig>, Error> {
         let Some(local_eph_privkey) = self.state.local_eph_privkey.take() else {
-            return Err(Error::missing_secret());
+            return Err(Error::MissingSecret);
         };
         let local_eph_pubkey = X25519_BASEPOINT * local_eph_privkey;
 
@@ -121,7 +121,7 @@ impl Handshake<AwaitingEphKey> {
         // - https://github.com/tendermint/kms/issues/142
         // - https://eprint.iacr.org/2019/526.pdf
         if shared_secret.as_bytes().ct_eq(&[0x00; 32]).unwrap_u8() == 1 {
-            return Err(Error::low_order_key());
+            return Err(Error::LowOrderKey);
         }
 
         // Sort by lexical order.
@@ -169,22 +169,22 @@ impl Handshake<AwaitingAuthSig> {
         let pk_sum = auth_sig_msg
             .pub_key
             .and_then(|key| key.sum)
-            .ok_or_else(Error::missing_key)?;
+            .ok_or(Error::MissingKey)?;
 
         let remote_pubkey = match pk_sum {
             proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
                 ed25519_consensus::VerificationKey::try_from(&bytes[..])
-                    .map_err(|_| Error::signature())
+                    .map_err(|_| Error::Signature)
             }
-            proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::unsupported_key()),
+            proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::UnsupportedKey),
         }?;
 
         let remote_sig = ed25519_consensus::Signature::try_from(auth_sig_msg.sig.as_slice())
-            .map_err(|_| Error::signature())?;
+            .map_err(|_| Error::Signature)?;
 
         remote_pubkey
             .verify(&remote_sig, &self.state.sc_mac)
-            .map_err(|_| Error::signature())?;
+            .map_err(|_| Error::Signature)?;
 
         // We've authorized.
         Ok(remote_pubkey.into())
@@ -331,7 +331,7 @@ where
                 io_handler: self
                     .io_handler
                     .try_clone()
-                    .map_err(|e| Error::transport_clone(e.to_string()))?,
+                    .map_err(|_| Error::TransportClone)?,
                 remote_pubkey,
                 state: self.send_state,
                 terminate: self.terminate.clone(),
@@ -501,7 +501,7 @@ fn encrypt(
             b"",
             &mut sealed_frame[..TOTAL_FRAME_SIZE],
         )
-        .map_err(Error::aead)?;
+        .map_err(|_| Error::Aead)?;
 
     sealed_frame[TOTAL_FRAME_SIZE..].copy_from_slice(tag.as_slice());
 
@@ -539,14 +539,14 @@ fn decrypt(
     out: &mut [u8],
 ) -> Result<usize, Error> {
     if ciphertext.len() < TAG_SIZE {
-        return Err(Error::short_ciphertext(TAG_SIZE));
+        return Err(Error::ShortCiphertext { tag_size: TAG_SIZE });
     }
 
     // Split ChaCha20 ciphertext from the Poly1305 tag
     let (ct, tag) = ciphertext.split_at(ciphertext.len() - TAG_SIZE);
 
     if out.len() < ct.len() {
-        return Err(Error::small_output_buffer());
+        return Err(Error::SmallOutputBuffer);
     }
 
     let in_out = &mut out[..ct.len()];
@@ -559,7 +559,7 @@ fn decrypt(
             in_out,
             tag.into(),
         )
-        .map_err(Error::aead)?;
+        .map_err(|_| Error::Aead)?;
 
     Ok(in_out.len())
 }
