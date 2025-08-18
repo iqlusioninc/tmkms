@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tendermint::chain;
 use tendermint_config::net;
-use tmkms_p2p::secret_connection;
 
 /// Validator configuration
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -29,8 +28,9 @@ pub struct ValidatorConfig {
     /// Height at which to stop signing
     pub max_height: Option<tendermint::block::Height>,
 
-    /// Version of Secret Connection protocol to use when connecting
-    pub protocol_version: ProtocolVersion,
+    /// Deprecated: legacy protocol version number. Must be v0.34 if present.
+    // TODO(tarcieri): remove this completely? Here for backwards compatibility.
+    pub protocol_version: Option<ProtocolVersion>,
 }
 
 /// Protocol version (based on the Tendermint version)
@@ -40,19 +40,6 @@ pub enum ProtocolVersion {
     /// Tendermint v0.34 and newer.
     #[serde(rename = "v0.34")]
     V0_34,
-
-    /// Tendermint v0.33
-    #[serde(rename = "v0.33")]
-    V0_33,
-}
-
-impl From<ProtocolVersion> for secret_connection::Version {
-    fn from(version: ProtocolVersion) -> secret_connection::Version {
-        match version {
-            ProtocolVersion::V0_34 => secret_connection::Version::V0_34,
-            ProtocolVersion::V0_33 => secret_connection::Version::V0_33,
-        }
-    }
 }
 
 /// Default value for the `ValidatorConfig` reconnect field

@@ -145,7 +145,6 @@ impl KmsProcess {
             max_height = "500000"
             reconnect = false
             secret_key = "tests/support/secret_connection.key"
-            protocol_version = "v0.34"
 
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
@@ -155,7 +154,7 @@ impl KmsProcess {
         "#,
             &peer_id.to_string(), port, signing_key_path(key_type), key_type
         )
-        .unwrap();
+            .unwrap();
 
         config_file
     }
@@ -175,7 +174,6 @@ impl KmsProcess {
             addr = "unix://{socket_path}"
             chain_id = "test_chain_id"
             max_height = "500000"
-            protocol_version = "v0.34"
 
             [[providers.softsign]]
             chain_ids = ["test_chain_id"]
@@ -184,7 +182,7 @@ impl KmsProcess {
             key_type = "{key_type}"
         "#
         )
-        .unwrap();
+            .unwrap();
 
         config_file
     }
@@ -196,17 +194,10 @@ impl KmsProcess {
                 // we use the same key for both sides:
                 let identity_key = test_ed25519_keypair();
 
-                // Here we reply to the kms with a "remote" ephermal key, auth signature etc:
+                // Here we reply to the kms with a "remote" ephemeral key, auth signature etc:
                 let socket_cp = sock.try_clone().unwrap();
 
-                KmsConnection::Tcp(
-                    SecretConnection::new(
-                        socket_cp,
-                        identity_key.into(),
-                        secret_connection::Version::V0_34,
-                    )
-                    .unwrap(),
-                )
+                KmsConnection::Tcp(SecretConnection::new(socket_cp, identity_key.into()).unwrap())
             }
 
             KmsSocket::UNIX(ref sock) => {
