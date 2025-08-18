@@ -42,7 +42,7 @@ impl PublicKey {
                 let mut bytes = [0_u8; 20];
                 bytes.copy_from_slice(&digest[..20]);
                 node::Id::new(bytes)
-            },
+            }
         }
     }
 }

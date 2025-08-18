@@ -189,7 +189,7 @@ impl Handshake<AwaitingAuthSig> {
             proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
                 ed25519_consensus::VerificationKey::try_from(&bytes[..])
                     .map_err(|_| Error::signature())
-            },
+            }
             proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::unsupported_key()),
         }?;
 
@@ -319,7 +319,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         let auth_sig_msg = match local_pubkey {
             PublicKey::Ed25519(ref pk) => {
                 share_auth_signature(&mut sc, pk, &h.state.local_signature)?
-            },
+            }
         };
 
         // Authenticate remote pubkey.
