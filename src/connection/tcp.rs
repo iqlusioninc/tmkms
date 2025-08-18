@@ -4,10 +4,7 @@ use std::{net::TcpStream, path::PathBuf, time::Duration};
 
 use subtle::ConstantTimeEq;
 use tendermint::node;
-use tmkms_p2p::{
-    self as p2p,
-    secret_connection::{PublicKey, SecretConnection},
-};
+use tmkms_p2p::secret_connection::{PublicKey, SecretConnection};
 
 use crate::{
     error::{Error, ErrorKind::*},
@@ -45,12 +42,7 @@ pub fn open_secret_connection(
 
     let connection = match SecretConnection::new(socket, identity_key.into()) {
         Ok(conn) => conn,
-        Err(error) => match error {
-            p2p::Error::Crypto => fail!(CryptoError, format!("{error}")),
-            p2p::Error::Protocol => fail!(ProtocolError, format!("{error}")),
-            p2p::Error::InvalidKey => fail!(InvalidKey, format!("{error}")),
-            _ => fail!(ProtocolError, format!("{error}")),
-        },
+        Err(error) => fail!(ProtocolError, format!("{error}")),
     };
     let actual_peer_id = connection.remote_pubkey().peer_id();
 

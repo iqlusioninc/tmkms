@@ -121,7 +121,7 @@ impl Handshake<AwaitingEphKey> {
         // - https://github.com/tendermint/kms/issues/142
         // - https://eprint.iacr.org/2019/526.pdf
         if shared_secret.as_bytes().ct_eq(&[0x00; 32]).unwrap_u8() == 1 {
-            return Err(Error::LowOrderKey);
+            return Err(Error::InsecureKey);
         }
 
         // Sort by lexical order.
@@ -174,17 +174,17 @@ impl Handshake<AwaitingAuthSig> {
         let remote_pubkey = match pk_sum {
             proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
                 ed25519_consensus::VerificationKey::try_from(&bytes[..])
-                    .map_err(|_| Error::Signature)
+                    .map_err(|_| Error::SignatureInvalid)
             }
             proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::UnsupportedKey),
         }?;
 
         let remote_sig = ed25519_consensus::Signature::try_from(auth_sig_msg.sig.as_slice())
-            .map_err(|_| Error::Signature)?;
+            .map_err(|_| Error::SignatureInvalid)?;
 
         remote_pubkey
             .verify(&remote_sig, &self.state.sc_mac)
-            .map_err(|_| Error::Signature)?;
+            .map_err(|_| Error::SignatureInvalid)?;
 
         // We've authorized.
         Ok(remote_pubkey.into())
@@ -501,7 +501,7 @@ fn encrypt(
             b"",
             &mut sealed_frame[..TOTAL_FRAME_SIZE],
         )
-        .map_err(|_| Error::Aead)?;
+        .map_err(|_| Error::PacketEncryption)?;
 
     sealed_frame[TOTAL_FRAME_SIZE..].copy_from_slice(tag.as_slice());
 
@@ -539,14 +539,14 @@ fn decrypt(
     out: &mut [u8],
 ) -> Result<usize, Error> {
     if ciphertext.len() < TAG_SIZE {
-        return Err(Error::ShortCiphertext { tag_size: TAG_SIZE });
+        return Err(Error::PacketEncryption);
     }
 
     // Split ChaCha20 ciphertext from the Poly1305 tag
     let (ct, tag) = ciphertext.split_at(ciphertext.len() - TAG_SIZE);
 
     if out.len() < ct.len() {
-        return Err(Error::SmallOutputBuffer);
+        return Err(Error::BufferOverflow);
     }
 
     let in_out = &mut out[..ct.len()];
@@ -559,7 +559,7 @@ fn decrypt(
             in_out,
             tag.into(),
         )
-        .map_err(|_| Error::Aead)?;
+        .map_err(|_| Error::PacketEncryption)?;
 
     Ok(in_out.len())
 }
