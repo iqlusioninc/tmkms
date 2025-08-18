@@ -14,7 +14,7 @@ use std::{
     process::{Child, Command},
 };
 use tempfile::NamedTempFile;
-use tendermint_p2p::secret_connection::{self, SecretConnection};
+use tmkms_p2p::secret_connection::{self, SecretConnection};
 use tendermint_proto as proto;
 use tmkms::{
     config::provider::KeyType,

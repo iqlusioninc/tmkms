@@ -1,0 +1,52 @@
+[package]
+name = "tmkms-p2p"
+version = "0.1.0-pre"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/informalsystems/tendermint-rs"
+homepage = "https://tendermint.com"
+readme = "README.md"
+keywords = ["p2p", "tendermint", "cosmos"]
+categories = ["cryptography::cryptocurrencies", "network-programming"]
+authors = [
+    "Informal Systems <hello@informal.systems>",
+    "Alexander Simmerl <a.simmerl@gmail.com>",
+    "Tony Arcieri <tony@iqlusion.io>",
+    "Ismail Khoffi <Ismail.Khoffi@gmail.com>",
+]
+
+description = """
+    The Tendermint P2P stack in Rust.
+    """
+
+[lib]
+test = false
+
+[features]
+default = ["flex-error/std", "flex-error/eyre_tracer"]
+amino = ["prost-derive"]
+
+[dependencies]
+chacha20poly1305 = { version = "0.10", default-features = false, features = ["reduced-round"] }
+curve25519-dalek-ng = { version = "4", default-features = false }
+ed25519-consensus = { version = "2", default-features = false }
+eyre = { version = "0.6", default-features = false }
+flume = { version = "0.11.0", default-features = false }
+hkdf = { version = "0.12.3", default-features = false }
+merlin = { version = "3", default-features = false }
+prost = { version = "0.13", default-features = false }
+rand_core = { version = "0.6", default-features = false, features = ["std"] }
+sha2 = { version = "0.10", default-features = false }
+subtle = { version = "2", default-features = false }
+zeroize = { version = "1", default-features = false }
+signature = { version = "2", default-features = false }
+aead = { version = "0.5", default-features = false }
+flex-error = { version = "0.4.4", default-features = false }
+
+# path dependencies
+tendermint = { version = "0.40.4", default-features = false }
+tendermint-proto = { version = "0.40.4", default-features = false }
+tendermint-std-ext = { version = "0.40.4", default-features = false }
+
+# optional dependencies
+prost-derive = { version = "0.13", optional = true }

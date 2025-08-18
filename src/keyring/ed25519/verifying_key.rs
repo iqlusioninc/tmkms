@@ -30,15 +30,15 @@ impl From<VerifyingKey> for tendermint::PublicKey {
     }
 }
 
-impl From<VerifyingKey> for tendermint_p2p::secret_connection::PublicKey {
+impl From<VerifyingKey> for tmkms_p2p::secret_connection::PublicKey {
     #[inline]
-    fn from(verifying_key: VerifyingKey) -> tendermint_p2p::secret_connection::PublicKey {
+    fn from(verifying_key: VerifyingKey) -> tmkms_p2p::secret_connection::PublicKey {
         Self::from(&verifying_key)
     }
 }
 
-impl From<&VerifyingKey> for tendermint_p2p::secret_connection::PublicKey {
-    fn from(verifying_key: &VerifyingKey) -> tendermint_p2p::secret_connection::PublicKey {
+impl From<&VerifyingKey> for tmkms_p2p::secret_connection::PublicKey {
+    fn from(verifying_key: &VerifyingKey) -> tmkms_p2p::secret_connection::PublicKey {
         verifying_key.0.into()
     }
 }

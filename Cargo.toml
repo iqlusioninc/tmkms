@@ -45,9 +45,9 @@ subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
 tendermint = { version = "0.40", features = ["secp256k1"] }
 tendermint-config = "0.40"
-tendermint-p2p = "0.40"
 tendermint-proto = "0.40"
 thiserror = "1"
+tmkms-p2p = "=0.1.0-pre"
 url = { version = "2.2.2", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["serde"], optional = true }
 wait-timeout = "0.2"
@@ -65,9 +65,15 @@ yubihsm-mock = ["yubihsm/mockhsm"]
 yubihsm-server = ["yubihsm/http-server", "rpassword"]
 fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 
+[workspace]
+members = [".", "tmkms-p2p"]
+
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]
 overflow-checks = true
 
 [package.metadata.docs.rs]
 all-features = true
+
+[patch.crates-io.tmkms-p2p]
+path = "tmkms-p2p"
