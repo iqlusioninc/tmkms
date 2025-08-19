@@ -4,7 +4,7 @@ use std::{net::TcpStream, path::PathBuf, time::Duration};
 
 use subtle::ConstantTimeEq;
 use tendermint::node;
-use tmkms_p2p::secret_connection::{PublicKey, SecretConnection};
+use tmkms_p2p::{PublicKey, SecretConnection};
 
 use crate::{
     error::{Error, ErrorKind::*},

@@ -6,7 +6,7 @@ use zeroize::Zeroize;
 const HKDF_INFO: &[u8] = b"TENDERMINT_SECRET_CONNECTION_KEY_AND_CHALLENGE_GEN";
 
 /// Key Derivation Function for `SecretConnection` (HKDF)
-pub struct Kdf {
+pub(crate) struct Kdf {
     /// Receiver's secret
     pub recv_secret: [u8; 32],
 

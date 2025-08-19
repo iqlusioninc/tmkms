@@ -21,7 +21,7 @@ use tmkms::{
     keyring::ed25519,
     privval::{SignableMsg, SignedMsgType},
 };
-use tmkms_p2p::secret_connection::{self, SecretConnection};
+use tmkms_p2p::{self, PublicKey, SecretConnection};
 
 /// Integration tests for the KMS command-line interface
 mod cli;
@@ -130,7 +130,7 @@ impl KmsProcess {
     fn create_tcp_config(port: u16, key_type: &KeyType) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
         let pub_key = test_ed25519_keypair().verifying_key();
-        let peer_id = secret_connection::PublicKey::from(pub_key).peer_id();
+        let peer_id = PublicKey::from(pub_key).peer_id();
 
         writeln!(
             config_file,
