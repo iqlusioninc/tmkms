@@ -2,15 +2,15 @@
 
 use crate::{
     Error, PublicKey, Result,
+    ed25519::{self, Signer, Verifier},
     kdf::Kdf,
-    proto,
+    protobuf,
     state::{ReceiveState, SendState},
 };
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use curve25519_dalek::{
     montgomery::MontgomeryPoint as EphemeralPublic, scalar::Scalar as EphemeralSecret,
 };
-use ed25519_dalek::{Signer, Verifier};
 use merlin::Transcript;
 use rand_core::OsRng;
 use subtle::ConstantTimeEq;
@@ -27,7 +27,7 @@ pub(crate) struct Handshake<S> {
 
 /// `AwaitingEphKey` means we're waiting for the remote ephemeral pubkey.
 pub(crate) struct AwaitingEphKey {
-    local_privkey: ed25519_dalek::SigningKey,
+    local_privkey: ed25519::SigningKey,
     local_eph_privkey: Option<EphemeralSecret>,
 }
 
@@ -35,7 +35,7 @@ pub(crate) struct AwaitingEphKey {
 impl Handshake<AwaitingEphKey> {
     /// Initiate a handshake.
     #[must_use]
-    pub fn new(local_privkey: ed25519_dalek::SigningKey) -> (Self, EphemeralPublic) {
+    pub fn new(local_privkey: ed25519::SigningKey) -> (Self, EphemeralPublic) {
         // Generate an ephemeral key for perfect forward secrecy.
         let local_eph_privkey = EphemeralSecret::random(&mut OsRng);
         let local_eph_pubkey = EphemeralPublic::mul_base(&local_eph_privkey);
@@ -122,7 +122,7 @@ pub(crate) struct AwaitingAuthSig {
     sc_mac: [u8; 32],
     recv_cipher: ChaCha20Poly1305,
     send_cipher: ChaCha20Poly1305,
-    local_signature: ed25519_dalek::Signature,
+    local_signature: ed25519::Signature,
 }
 
 impl Handshake<AwaitingAuthSig> {
@@ -131,21 +131,20 @@ impl Handshake<AwaitingAuthSig> {
     /// # Errors
     ///
     /// * if signature scheme isn't supported
-    pub fn got_signature(&self, auth_sig_msg: proto::p2p::AuthSigMessage) -> Result<PublicKey> {
+    pub fn got_signature(&self, auth_sig_msg: protobuf::p2p::AuthSigMessage) -> Result<PublicKey> {
         let pk_sum = auth_sig_msg
             .pub_key
             .and_then(|key| key.sum)
             .ok_or(Error::MissingKey)?;
 
         let remote_pubkey = match pk_sum {
-            proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
-                ed25519_dalek::VerifyingKey::try_from(&bytes[..])
-                    .map_err(|_| Error::SignatureInvalid)
+            protobuf::crypto::public_key::Sum::Ed25519(ref bytes) => {
+                ed25519::VerifyingKey::try_from(&bytes[..]).map_err(|_| Error::SignatureInvalid)
             }
-            proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::UnsupportedKey),
+            protobuf::crypto::public_key::Sum::Secp256k1(_) => Err(Error::UnsupportedKey),
         }?;
 
-        let remote_sig = ed25519_dalek::Signature::try_from(auth_sig_msg.sig.as_slice())
+        let remote_sig = ed25519::Signature::try_from(auth_sig_msg.sig.as_slice())
             .map_err(|_| Error::SignatureInvalid)?;
 
         remote_pubkey
@@ -169,7 +168,7 @@ impl Handshake<AwaitingAuthSig> {
     }
 
     /// Borrow the local signature.
-    pub fn local_signature(&self) -> &ed25519_dalek::Signature {
+    pub fn local_signature(&self) -> &ed25519::Signature {
         &self.state.local_signature
     }
 }
