@@ -1,19 +1,24 @@
 //! Encrypted connection between peers in a Tendermint network.
 
 use crate::{
-    Error, PublicKey,
+    Error, PublicKey, Result,
     handshake::Handshake,
-    protocol,
+    proto, protocol,
     state::{ReceiveState, SendState},
 };
+use curve25519_dalek_ng::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
     io::{self, Read, Write},
+    slice,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
     },
 };
 use tendermint_std_ext::TryClone;
+
+#[cfg(doc)]
+use crate::DATA_MAX_SIZE;
 
 /// Macro usage allows us to avoid unnecessarily cloning the `Arc<AtomicBool>`
 /// that indicates whether we need to terminate the connection.
@@ -88,13 +93,13 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     pub fn new(
         mut io_handler: IoHandler,
         local_privkey: ed25519_consensus::SigningKey,
-    ) -> crate::Result<Self> {
+    ) -> Result<Self> {
         // Start a handshake process.
         let local_pubkey = PublicKey::from(&local_privkey);
         let (mut h, local_eph_pubkey) = Handshake::new(local_privkey);
 
         // Write local ephemeral pubkey and receive one too.
-        let remote_eph_pubkey = protocol::share_eph_pubkey(&mut io_handler, &local_eph_pubkey)?;
+        let remote_eph_pubkey = share_eph_pubkey(&mut io_handler, &local_eph_pubkey)?;
 
         // Compute a local signature (also recv_cipher & send_cipher)
         let h = h.got_key(remote_eph_pubkey)?;
@@ -110,9 +115,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // Share each other's pubkey & challenge signature.
         // NOTE: the data must be encrypted/decrypted using ciphers.
         let auth_sig_msg = match local_pubkey {
-            PublicKey::Ed25519(ref pk) => {
-                protocol::share_auth_signature(&mut sc, pk, h.local_signature())?
-            }
+            PublicKey::Ed25519(ref pk) => sc.share_auth_signature(pk, h.local_signature())?,
         };
 
         // Authenticate remote pubkey.
@@ -121,6 +124,24 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // All good!
         sc.remote_pubkey = Some(remote_pubkey);
         Ok(sc)
+    }
+
+    /// Encode our auth signature and decode theirs.
+    fn share_auth_signature(
+        &mut self,
+        pubkey: &ed25519_consensus::VerificationKey,
+        local_signature: &ed25519_consensus::Signature,
+    ) -> Result<proto::p2p::AuthSigMessage> {
+        /// Length of the auth message response
+        // 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
+        const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;
+
+        let buf = protocol::encode_auth_signature(pubkey, local_signature);
+        self.write_all(&buf)?;
+
+        let mut buf = [0u8; AUTH_SIG_MSG_RESPONSE_LEN];
+        self.read_exact(&mut buf)?;
+        protocol::decode_auth_signature(&buf)
     }
 }
 
@@ -141,7 +162,7 @@ where
     ///
     /// # Panics
     /// Panics if the remote pubkey is not initialized.
-    pub fn split(self) -> crate::Result<(Sender<IoHandler>, Receiver<IoHandler>)> {
+    pub fn split(self) -> Result<(Sender<IoHandler>, Receiver<IoHandler>)> {
         let remote_pubkey = self.remote_pubkey.expect("remote_pubkey to be initialized");
         Ok((
             Sender {
@@ -236,4 +257,22 @@ impl<IoHandler: Read> Read for Receiver<IoHandler> {
             self.state.read_and_decrypt(&mut self.io_handler, buf)
         )
     }
+}
+
+/// Returns `remote_eph_pubkey`
+fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
+    handler: &mut IoHandler,
+    local_eph_pubkey: &EphemeralPublic,
+) -> Result<EphemeralPublic> {
+    // Send our pubkey and receive theirs in tandem.
+    // TODO(ismail): Go does send and receive in parallel, here we do send and receive after
+    // each other.
+    handler.write_all(&protocol::encode_initial_handshake(local_eph_pubkey))?;
+
+    let mut response_len = 0_u8;
+    handler.read_exact(slice::from_mut(&mut response_len))?;
+
+    let mut buf = vec![0; response_len as usize];
+    handler.read_exact(&mut buf)?;
+    protocol::decode_initial_handshake(&buf)
 }
