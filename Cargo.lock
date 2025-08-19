@@ -2581,7 +2581,7 @@ dependencies = [
 
 [[package]]
 name = "tmkms-p2p"
-version = "0.1.0-pre"
+version = "0.1.0"
 dependencies = [
  "aead",
  "chacha20poly1305",
