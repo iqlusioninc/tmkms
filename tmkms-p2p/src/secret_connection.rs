@@ -3,7 +3,7 @@
 use crate::{
     Error, PublicKey, Result,
     handshake::Handshake,
-    proto, protocol,
+    protobuf, protocol,
     state::{ReceiveState, SendState},
 };
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
@@ -130,7 +130,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         &mut self,
         pubkey: &ed25519_dalek::VerifyingKey,
         local_signature: &ed25519_dalek::Signature,
-    ) -> Result<proto::p2p::AuthSigMessage> {
+    ) -> Result<protobuf::p2p::AuthSigMessage> {
         /// Length of the auth message response
         // 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
         const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;
