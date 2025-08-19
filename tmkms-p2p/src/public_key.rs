@@ -38,7 +38,6 @@ impl PublicKey {
     pub fn peer_id(self) -> node::Id {
         match self {
             Self::Ed25519(pk) => {
-                // TODO(tarcieri): use `tendermint::node::Id::from`
                 let digest = Sha256::digest(pk.as_bytes());
                 let mut bytes = [0_u8; 20];
                 bytes.copy_from_slice(&digest[..20]);

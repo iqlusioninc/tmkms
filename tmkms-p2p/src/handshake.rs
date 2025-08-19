@@ -80,7 +80,6 @@ impl Handshake<AwaitingEphKey> {
         // See the following for information on potential attacks this check
         // aids in mitigating:
         //
-        // - https://github.com/tendermint/kms/issues/142
         // - https://eprint.iacr.org/2019/526.pdf
         if shared_secret.as_bytes().ct_eq(&[0x00; 32]).unwrap_u8() == 1 {
             return Err(Error::InsecureKey);
