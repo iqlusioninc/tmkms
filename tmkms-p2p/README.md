@@ -1,4 +1,4 @@
-# tmkms-p2p: CometBFT's encrypted P2P protocol
+# tmkms-p2p: CometBFT P2P protocol
 
 [![Crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
