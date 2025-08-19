@@ -27,7 +27,7 @@ impl PublicKey {
 
     /// Get Ed25519 public key
     #[must_use]
-    pub const fn ed25519(self) -> Option<ed25519_dalek::VerifyingKey> {
+    pub fn ed25519(self) -> Option<ed25519_dalek::VerifyingKey> {
         match self {
             Self::Ed25519(pk) => Some(pk),
         }
