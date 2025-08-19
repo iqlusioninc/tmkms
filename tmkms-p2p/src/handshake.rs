@@ -8,12 +8,14 @@ use crate::{
     state::{ReceiveState, SendState},
 };
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
-use curve25519_dalek::{
-    montgomery::MontgomeryPoint as EphemeralPublic, scalar::Scalar as EphemeralSecret,
-};
+use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use merlin::Transcript;
-use rand_core::OsRng;
+use rand_core::{OsRng, RngCore};
 use subtle::ConstantTimeEq;
+use zeroize::Zeroize;
+
+/// Random scalar (before clamping).
+type EphemeralSecret = [u8; 32];
 
 /// Handshake is a process of establishing the `SecretConnection` between two peers.
 /// [Specification](https://github.com/tendermint/spec/blob/master/spec/p2p/peer.md#authenticated-encryption-handshake)
@@ -31,14 +33,22 @@ pub(crate) struct AwaitingEphKey {
     local_eph_privkey: Option<EphemeralSecret>,
 }
 
+impl Drop for AwaitingEphKey {
+    fn drop(&mut self) {
+        self.local_eph_privkey.zeroize();
+    }
+}
+
 #[allow(clippy::use_self)]
 impl Handshake<AwaitingEphKey> {
     /// Initiate a handshake.
     #[must_use]
     pub fn new(local_privkey: ed25519::SigningKey) -> (Self, EphemeralPublic) {
-        // Generate an ephemeral key for perfect forward secrecy.
-        let local_eph_privkey = EphemeralSecret::random(&mut OsRng);
-        let local_eph_pubkey = EphemeralPublic::mul_base(&local_eph_privkey);
+        // Generate an ephemeral key for forward secrecy.
+        let mut local_eph_privkey = EphemeralSecret::default();
+        OsRng.fill_bytes(&mut local_eph_privkey);
+
+        let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
 
         (
             Self {
@@ -67,11 +77,10 @@ impl Handshake<AwaitingEphKey> {
         let Some(local_eph_privkey) = self.state.local_eph_privkey.take() else {
             return Err(Error::MissingSecret);
         };
-        let local_eph_pubkey = EphemeralPublic::mul_base(&local_eph_privkey);
+        let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
 
         // Compute common shared secret.
-        // TODO(tarcieri): use `mul_clamped` instead?
-        let shared_secret = local_eph_privkey * remote_eph_pubkey;
+        let shared_secret = remote_eph_pubkey.mul_clamped(local_eph_privkey);
 
         let mut transcript = Transcript::new(b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH");
 
