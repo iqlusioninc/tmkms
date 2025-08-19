@@ -1,4 +1,4 @@
-//! Encrypted connection between peers in a Tendermint network.
+//! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
     Error, PublicKey, Result,
@@ -42,7 +42,7 @@ macro_rules! checked_io {
     }};
 }
 
-/// Encrypted connection between peers in a Tendermint network.
+/// Encrypted connection between peers in a CometBFT network.
 ///
 /// ## Connection integrity and failures
 ///

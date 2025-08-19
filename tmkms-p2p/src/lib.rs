@@ -1,19 +1,13 @@
-//! The Tendermint P2P stack.
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 #![warn(
     clippy::all,
-    clippy::pedantic,
     clippy::unwrap_used,
     nonstandard_style,
-    rust_2018_idioms,
     trivial_casts,
     trivial_numeric_casts,
     unused_import_braces,
     unused_qualifications
-)]
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/informalsystems/tendermint-rs/master/img/logo-tendermint-rs_3961x4001.png"
 )]
 
 pub mod transport;
