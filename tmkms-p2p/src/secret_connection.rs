@@ -5,6 +5,7 @@ use crate::{
     handshake::Handshake,
     proto, protocol,
     state::{ReceiveState, SendState},
+    transport::TryClone,
 };
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
@@ -15,7 +16,6 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-use tendermint_std_ext::TryClone;
 
 #[cfg(doc)]
 use crate::DATA_MAX_SIZE;
@@ -50,16 +50,15 @@ macro_rules! checked_io {
 /// read or write failure occurs, it is necessary to disconnect from the remote
 /// peer and attempt to reconnect.
 ///
-/// ## Half- and full-duplex connections
+/// ## Half and full-duplex connections
 /// By default, a `SecretConnection` facilitates half-duplex operations (i.e.
 /// one can either read from the connection or write to it at a given time, but
 /// not both simultaneously).
 ///
-/// If, however, the underlying I/O handler class implements
-/// [`tendermint_std_ext::TryClone`], then you can use
-/// [`SecretConnection::split`] to split the `SecretConnection` into its
-/// sending and receiving halves. Each of these halves can then be used in a
-/// separate thread to facilitate full-duplex communication.
+/// If, however, the underlying I/O handler class implements [`TryClone`], then you can use
+/// [`SecretConnection::split`] to split the `SecretConnection` into sending and receiving halves.
+///
+/// Each of these halves can then be used in a separate thread to facilitate full-duplex communication.
 ///
 /// ## Contracts
 ///
