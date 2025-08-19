@@ -5,6 +5,10 @@ use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use prost::Message as _;
 use tendermint_proto::v0_38 as proto;
 
+/// Length of the auth message response
+// 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
+pub(crate) const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;
+
 /// Encode the initial handshake message (i.e. first one sent by both peers)
 #[must_use]
 pub(crate) fn encode_initial_handshake(eph_pubkey: &EphemeralPublic) -> Vec<u8> {

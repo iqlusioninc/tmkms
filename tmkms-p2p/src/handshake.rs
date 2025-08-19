@@ -41,13 +41,19 @@ impl Drop for AwaitingEphKey {
 
 #[allow(clippy::use_self)]
 impl Handshake<AwaitingEphKey> {
-    /// Initiate a handshake.
-    #[must_use]
-    pub fn new(local_privkey: ed25519::SigningKey) -> (Self, EphemeralPublic) {
-        // Generate an ephemeral key for forward secrecy.
+    /// Initiate a handshake with a randomly generated ephemeral secret.
+    pub(crate) fn new(local_privkey: ed25519::SigningKey) -> (Self, EphemeralPublic) {
         let mut local_eph_privkey = EphemeralSecret::default();
         OsRng.fill_bytes(&mut local_eph_privkey);
+        Self::new_with_ephemeral(local_privkey, local_eph_privkey)
+    }
 
+    /// Initiate a handshake with an explicit ephemeral secret.
+    #[must_use]
+    fn new_with_ephemeral(
+        local_privkey: ed25519::SigningKey,
+        local_eph_privkey: EphemeralSecret,
+    ) -> (Self, EphemeralPublic) {
         let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
 
         (
@@ -193,14 +199,26 @@ impl Handshake<AwaitingAuthSig> {
 
 #[cfg(test)]
 mod tests {
-    use super::Handshake;
+    use super::{EphemeralSecret, Handshake};
     use crate::{ed25519, protocol};
     use hex_literal::hex;
 
-    const ALICE_ED25519_SK: [u8; 32] =
-        hex!("a7d068d7c44e951610d54a7eb90279e8a31b61128d44d2dd92311763c468185c");
-    const BOB_ED25519_SK: [u8; 32] =
-        hex!("b67e65300419ce0b5d7274bcbc67fcfd3fb68272de9aa52a452a6889c7d33fd5");
+    const ALICE_ED25519_SK: ed25519::SecretKey =
+        hex!("a0d068d7c44e951610d54a7eb90279e8a31b61128d44d2dd92311763c468185c");
+    const BOB_ED25519_SK: ed25519::SecretKey =
+        hex!("b07e65300419ce0b5d7274bcbc67fcfd3fb68272de9aa52a452a6889c7d33fd5");
+
+    const ALICE_X25519_SK: EphemeralSecret =
+        hex!("a14d1fe92419d4e23b4007079439b497ae77494ccda0195ac1c70680bb460908");
+    const BOB_X25519_SK: EphemeralSecret =
+        hex!("b19aff79f5b8cd2f37d46b19e294364d843b1d820b0ac55ec72e9d4e7e04f041");
+
+    const ALICE_SIG: [u8; protocol::AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
+        "660a220a208f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c7668012402735eb20c3f2b8d6643d761be7d873427ccbb83fd6f64d04e5cbf8a1fa523422dcbc17fe2fb831fcb378cf17136f19e67defaebbcbc06135df8a7471734e9406"
+    );
+    const BOB_SIG: [u8; protocol::AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
+        "660a220a201ac739117419d70a79bc031b74a7dbcf3e1d6f82342693078d526ddbd41984c21240fc9ecf23994aef6a1eae80ebb2fe10ac8784b9ec08cf1d17a19a5d87c1217e11430f955c7f6c213a7f00a9cecd181214c3ffc62b352417c775dec6c93b3d7f0a"
+    );
 
     #[test]
     fn happy_path() {
@@ -210,14 +228,17 @@ mod tests {
         let alice_pk = alice_sk.verifying_key();
         let bob_pk = bob_sk.verifying_key();
 
-        let (mut alice_hs, alice_eph_pk) = Handshake::new(alice_sk);
-        let (mut bob_hs, bob_eph_pk) = Handshake::new(bob_sk);
+        let (mut alice_hs, alice_eph_pk) = Handshake::new_with_ephemeral(alice_sk, ALICE_X25519_SK);
+        let (mut bob_hs, bob_eph_pk) = Handshake::new_with_ephemeral(bob_sk, BOB_X25519_SK);
 
         let alice_hs = alice_hs.got_key(bob_eph_pk).unwrap();
         let bob_hs = bob_hs.got_key(alice_eph_pk).unwrap();
 
         let alice_sig = protocol::encode_auth_signature(&alice_pk, alice_hs.local_signature());
         let bob_sig = protocol::encode_auth_signature(&bob_pk, bob_hs.local_signature());
+
+        assert_eq!(&alice_sig, &ALICE_SIG);
+        assert_eq!(&bob_sig, &BOB_SIG);
 
         let alice_authenticated_pk = bob_hs
             .got_signature(protocol::decode_auth_signature(&alice_sig).unwrap())
