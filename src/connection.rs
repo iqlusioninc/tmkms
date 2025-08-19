@@ -1,10 +1,8 @@
 //! Connections to a validator (TCP or Unix socket)
 
-use std::io;
-
-use tmkms_p2p::SecretConnection;
-
 use self::unix::UnixConnection;
+use std::io;
+use tmkms_p2p::SecretConnection;
 
 pub mod tcp;
 pub mod unix;
