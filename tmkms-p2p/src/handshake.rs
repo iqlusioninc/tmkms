@@ -191,3 +191,43 @@ pub fn sort32(first: [u8; 32], second: [u8; 32]) -> ([u8; 32], [u8; 32]) {
         (second, first)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Handshake;
+    use crate::{ed25519, protocol};
+    use hex_literal::hex;
+
+    const ALICE_ED25519_SK: [u8; 32] =
+        hex!("a7d068d7c44e951610d54a7eb90279e8a31b61128d44d2dd92311763c468185c");
+    const BOB_ED25519_SK: [u8; 32] =
+        hex!("b67e65300419ce0b5d7274bcbc67fcfd3fb68272de9aa52a452a6889c7d33fd5");
+
+    #[test]
+    fn happy_path() {
+        let alice_sk = ed25519::SigningKey::from_bytes(&ALICE_ED25519_SK);
+        let bob_sk = ed25519::SigningKey::from_bytes(&BOB_ED25519_SK);
+
+        let alice_pk = alice_sk.verifying_key();
+        let bob_pk = bob_sk.verifying_key();
+
+        let (mut alice_hs, alice_eph_pk) = Handshake::new(alice_sk);
+        let (mut bob_hs, bob_eph_pk) = Handshake::new(bob_sk);
+
+        let alice_hs = alice_hs.got_key(bob_eph_pk).unwrap();
+        let bob_hs = bob_hs.got_key(alice_eph_pk).unwrap();
+
+        let alice_sig = protocol::encode_auth_signature(&alice_pk, alice_hs.local_signature());
+        let bob_sig = protocol::encode_auth_signature(&bob_pk, bob_hs.local_signature());
+
+        let alice_authenticated_pk = bob_hs
+            .got_signature(protocol::decode_auth_signature(&alice_sig).unwrap())
+            .unwrap();
+        let bob_authenticated_pk = alice_hs
+            .got_signature(protocol::decode_auth_signature(&bob_sig).unwrap())
+            .unwrap();
+
+        assert_eq!(alice_pk, alice_authenticated_pk.ed25519().unwrap());
+        assert_eq!(bob_pk, bob_authenticated_pk.ed25519().unwrap());
+    }
+}

@@ -31,3 +31,6 @@ subtle = { version = "2", default-features = false }
 tendermint = { version = "0.40.4", default-features = false }
 tendermint-proto = { version = "0.40.4", default-features = false }
 zeroize = { version = "1", default-features = false }
+
+[dev-dependencies]
+hex-literal = "1"
