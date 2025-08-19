@@ -10,7 +10,7 @@ use tendermint::node;
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PublicKey {
     /// Ed25519 Secret Connection Keys
-    Ed25519(ed25519_consensus::VerificationKey),
+    Ed25519(ed25519_dalek::VerifyingKey),
 }
 
 impl PublicKey {
@@ -20,14 +20,14 @@ impl PublicKey {
     ///
     /// * if the bytes given are invalid
     pub fn from_raw_ed25519(bytes: &[u8]) -> Result<Self> {
-        ed25519_consensus::VerificationKey::try_from(bytes)
+        ed25519_dalek::VerifyingKey::try_from(bytes)
             .map(Self::Ed25519)
             .map_err(|_| Error::SignatureInvalid)
     }
 
     /// Get Ed25519 public key
     #[must_use]
-    pub const fn ed25519(self) -> Option<ed25519_consensus::VerificationKey> {
+    pub const fn ed25519(self) -> Option<ed25519_dalek::VerifyingKey> {
         match self {
             Self::Ed25519(pk) => Some(pk),
         }
@@ -54,14 +54,14 @@ impl Display for PublicKey {
     }
 }
 
-impl From<&ed25519_consensus::SigningKey> for PublicKey {
-    fn from(sk: &ed25519_consensus::SigningKey) -> Self {
-        Self::Ed25519(sk.verification_key())
+impl From<&ed25519_dalek::SigningKey> for PublicKey {
+    fn from(sk: &ed25519_dalek::SigningKey) -> Self {
+        Self::Ed25519(sk.verifying_key())
     }
 }
 
-impl From<ed25519_consensus::VerificationKey> for PublicKey {
-    fn from(pk: ed25519_consensus::VerificationKey) -> Self {
+impl From<ed25519_dalek::VerifyingKey> for PublicKey {
+    fn from(pk: ed25519_dalek::VerifyingKey) -> Self {
         Self::Ed25519(pk)
     }
 }

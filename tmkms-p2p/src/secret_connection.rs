@@ -6,7 +6,7 @@ use crate::{
     proto, protocol,
     state::{ReceiveState, SendState},
 };
-use curve25519_dalek_ng::montgomery::MontgomeryPoint as EphemeralPublic;
+use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
     io::{self, Read, Write},
     slice,
@@ -92,7 +92,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     /// * if receiving the signature fails
     pub fn new(
         mut io_handler: IoHandler,
-        local_privkey: ed25519_consensus::SigningKey,
+        local_privkey: ed25519_dalek::SigningKey,
     ) -> Result<Self> {
         // Start a handshake process.
         let local_pubkey = PublicKey::from(&local_privkey);
@@ -129,8 +129,8 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     /// Encode our auth signature and decode theirs.
     fn share_auth_signature(
         &mut self,
-        pubkey: &ed25519_consensus::VerificationKey,
-        local_signature: &ed25519_consensus::Signature,
+        pubkey: &ed25519_dalek::VerifyingKey,
+        local_signature: &ed25519_dalek::Signature,
     ) -> Result<proto::p2p::AuthSigMessage> {
         /// Length of the auth message response
         // 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)

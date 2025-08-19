@@ -7,10 +7,10 @@ use crate::{
     state::{ReceiveState, SendState},
 };
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
-use curve25519_dalek_ng::{
-    constants::X25519_BASEPOINT, montgomery::MontgomeryPoint as EphemeralPublic,
-    scalar::Scalar as EphemeralSecret,
+use curve25519_dalek::{
+    montgomery::MontgomeryPoint as EphemeralPublic, scalar::Scalar as EphemeralSecret,
 };
+use ed25519_dalek::{Signer, Verifier};
 use merlin::Transcript;
 use rand_core::OsRng;
 use subtle::ConstantTimeEq;
@@ -27,7 +27,7 @@ pub(crate) struct Handshake<S> {
 
 /// `AwaitingEphKey` means we're waiting for the remote ephemeral pubkey.
 pub(crate) struct AwaitingEphKey {
-    local_privkey: ed25519_consensus::SigningKey,
+    local_privkey: ed25519_dalek::SigningKey,
     local_eph_privkey: Option<EphemeralSecret>,
 }
 
@@ -35,10 +35,10 @@ pub(crate) struct AwaitingEphKey {
 impl Handshake<AwaitingEphKey> {
     /// Initiate a handshake.
     #[must_use]
-    pub fn new(local_privkey: ed25519_consensus::SigningKey) -> (Self, EphemeralPublic) {
+    pub fn new(local_privkey: ed25519_dalek::SigningKey) -> (Self, EphemeralPublic) {
         // Generate an ephemeral key for perfect forward secrecy.
         let local_eph_privkey = EphemeralSecret::random(&mut OsRng);
-        let local_eph_pubkey = X25519_BASEPOINT * local_eph_privkey;
+        let local_eph_pubkey = EphemeralPublic::mul_base(&local_eph_privkey);
 
         (
             Self {
@@ -67,9 +67,10 @@ impl Handshake<AwaitingEphKey> {
         let Some(local_eph_privkey) = self.state.local_eph_privkey.take() else {
             return Err(Error::MissingSecret);
         };
-        let local_eph_pubkey = X25519_BASEPOINT * local_eph_privkey;
+        let local_eph_pubkey = EphemeralPublic::mul_base(&local_eph_privkey);
 
         // Compute common shared secret.
+        // TODO(tarcieri): use `mul_clamped` instead?
         let shared_secret = local_eph_privkey * remote_eph_pubkey;
 
         let mut transcript = Transcript::new(b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH");
@@ -122,7 +123,7 @@ pub(crate) struct AwaitingAuthSig {
     sc_mac: [u8; 32],
     recv_cipher: ChaCha20Poly1305,
     send_cipher: ChaCha20Poly1305,
-    local_signature: ed25519_consensus::Signature,
+    local_signature: ed25519_dalek::Signature,
 }
 
 impl Handshake<AwaitingAuthSig> {
@@ -139,17 +140,17 @@ impl Handshake<AwaitingAuthSig> {
 
         let remote_pubkey = match pk_sum {
             proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
-                ed25519_consensus::VerificationKey::try_from(&bytes[..])
+                ed25519_dalek::VerifyingKey::try_from(&bytes[..])
                     .map_err(|_| Error::SignatureInvalid)
             }
             proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::UnsupportedKey),
         }?;
 
-        let remote_sig = ed25519_consensus::Signature::try_from(auth_sig_msg.sig.as_slice())
+        let remote_sig = ed25519_dalek::Signature::try_from(auth_sig_msg.sig.as_slice())
             .map_err(|_| Error::SignatureInvalid)?;
 
         remote_pubkey
-            .verify(&remote_sig, &self.state.sc_mac)
+            .verify(&self.state.sc_mac, &remote_sig)
             .map_err(|_| Error::SignatureInvalid)?;
 
         // We've authorized.
@@ -169,7 +170,7 @@ impl Handshake<AwaitingAuthSig> {
     }
 
     /// Borrow the local signature.
-    pub fn local_signature(&self) -> &ed25519_consensus::Signature {
+    pub fn local_signature(&self) -> &ed25519_dalek::Signature {
         &self.state.local_signature
     }
 }
