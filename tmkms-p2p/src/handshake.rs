@@ -95,6 +95,15 @@ impl Handshake<AwaitingEphKey> {
         }
 
         // Sort by lexical order.
+        #[must_use]
+        fn sort32(first: [u8; 32], second: [u8; 32]) -> ([u8; 32], [u8; 32]) {
+            if second > first {
+                (first, second)
+            } else {
+                (second, first)
+            }
+        }
+
         let local_eph_pubkey_bytes = *local_eph_pubkey.as_bytes();
         let (low_eph_pubkey_bytes, high_eph_pubkey_bytes) =
             sort32(local_eph_pubkey_bytes, *remote_eph_pubkey.as_bytes());
@@ -179,16 +188,6 @@ impl Handshake<AwaitingAuthSig> {
     /// Borrow the local signature.
     pub fn local_signature(&self) -> &ed25519::Signature {
         &self.state.local_signature
-    }
-}
-
-/// Return is of the form lo, hi
-#[must_use]
-pub fn sort32(first: [u8; 32], second: [u8; 32]) -> ([u8; 32], [u8; 32]) {
-    if second > first {
-        (first, second)
-    } else {
-        (second, first)
     }
 }
 
