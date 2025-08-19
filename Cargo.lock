@@ -2423,12 +2423,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tendermint-std-ext"
-version = "0.40.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "298e90b07eab583fdf4829f4b1b85f0405ea3bfdd3154287064ac8507d3969f1"
-
-[[package]]
 name = "termcolor"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2596,7 +2590,6 @@ dependencies = [
  "subtle",
  "tendermint",
  "tendermint-proto",
- "tendermint-std-ext",
  "zeroize",
 ]
 
