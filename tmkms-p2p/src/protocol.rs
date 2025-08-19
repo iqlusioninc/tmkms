@@ -1,9 +1,8 @@
 //! Secret Connection Protocol: message framing and versioning
 
-use crate::{Error, Result, public_key};
+use crate::{Error, Result, protobuf, public_key};
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use prost::Message as _;
-use tendermint_proto::v0_38 as proto;
 
 /// Encode the initial handshake message (i.e. first one sent by both peers)
 #[must_use]
@@ -51,13 +50,13 @@ pub(crate) fn encode_auth_signature(
     signature: &ed25519_dalek::Signature,
 ) -> Vec<u8> {
     // Protobuf `AuthSigMessage`
-    let pub_key = proto::crypto::PublicKey {
-        sum: Some(proto::crypto::public_key::Sum::Ed25519(
+    let pub_key = protobuf::crypto::PublicKey {
+        sum: Some(protobuf::crypto::public_key::Sum::Ed25519(
             pub_key.as_ref().to_vec(),
         )),
     };
 
-    let msg = proto::p2p::AuthSigMessage {
+    let msg = protobuf::p2p::AuthSigMessage {
         pub_key: Some(pub_key),
         sig: signature.to_bytes().to_vec(),
     };
@@ -73,7 +72,9 @@ pub(crate) fn encode_auth_signature(
 /// # Errors
 ///
 /// * if the decoding of the bytes fails
-pub(crate) fn decode_auth_signature(bytes: &[u8]) -> Result<proto::p2p::AuthSigMessage> {
+pub(crate) fn decode_auth_signature(bytes: &[u8]) -> Result<protobuf::p2p::AuthSigMessage> {
     // Parse Protobuf-encoded `AuthSigMessage`
-    Ok(proto::p2p::AuthSigMessage::decode_length_delimited(bytes)?)
+    Ok(protobuf::p2p::AuthSigMessage::decode_length_delimited(
+        bytes,
+    )?)
 }
