@@ -37,7 +37,7 @@ pub fn decode_initial_handshake(bytes: &[u8]) -> Result<EphemeralPublic, Error> 
 
     // Reject the key if it is of low order
     if is_low_order_point(&eph_pubkey) {
-        return Err(Error::LowOrderKey);
+        return Err(Error::InsecureKey);
     }
 
     Ok(eph_pubkey)
