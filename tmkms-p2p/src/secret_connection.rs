@@ -5,11 +5,11 @@ use crate::{
     handshake::Handshake,
     proto, protocol,
     state::{ReceiveState, SendState},
-    transport::TryClone,
 };
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
     io::{self, Read, Write},
+    net::TcpStream,
     slice,
     sync::{
         Arc,
@@ -144,13 +144,8 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     }
 }
 
-impl<IoHandler> SecretConnection<IoHandler>
-where
-    IoHandler: TryClone,
-    <IoHandler as TryClone>::Error: std::error::Error + Send + Sync + 'static,
-{
-    /// For secret connections whose underlying I/O layer implements
-    /// [`tendermint_std_ext::TryClone`], this attempts to split such a
+impl SecretConnection<TcpStream> {
+    /// For secret connections whose underlying I/O layer is a [`TcpStream`], this splits a
     /// connection into its sending and receiving halves.
     ///
     /// This facilitates full-duplex communications when each half is used in
@@ -161,7 +156,7 @@ where
     ///
     /// # Panics
     /// Panics if the remote pubkey is not initialized.
-    pub fn split(self) -> Result<(Sender<IoHandler>, Receiver<IoHandler>)> {
+    pub fn split(self) -> Result<(Sender<TcpStream>, Receiver<TcpStream>)> {
         let remote_pubkey = self.remote_pubkey.expect("remote_pubkey to be initialized");
         Ok((
             Sender {
