@@ -1,0 +1,112 @@
+//! Secret Connection peer public keys
+
+use std::fmt::{self, Display};
+
+use crate::{Error, Result};
+use sha2::{Sha256, digest::Digest};
+use tendermint::node;
+
+/// Secret Connection peer public keys (signing, presently Ed25519-only)
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum PublicKey {
+    /// Ed25519 Secret Connection Keys
+    Ed25519(ed25519_consensus::VerificationKey),
+}
+
+impl PublicKey {
+    /// From raw Ed25519 public key bytes
+    ///
+    /// # Errors
+    ///
+    /// * if the bytes given are invalid
+    pub fn from_raw_ed25519(bytes: &[u8]) -> Result<Self> {
+        ed25519_consensus::VerificationKey::try_from(bytes)
+            .map(Self::Ed25519)
+            .map_err(|_| Error::SignatureInvalid)
+    }
+
+    /// Get Ed25519 public key
+    #[must_use]
+    pub const fn ed25519(self) -> Option<ed25519_consensus::VerificationKey> {
+        match self {
+            Self::Ed25519(pk) => Some(pk),
+        }
+    }
+
+    /// Get the remote Peer ID
+    #[must_use]
+    pub fn peer_id(self) -> node::Id {
+        match self {
+            Self::Ed25519(pk) => {
+                // TODO(tarcieri): use `tendermint::node::Id::from`
+                let digest = Sha256::digest(pk.as_bytes());
+                let mut bytes = [0_u8; 20];
+                bytes.copy_from_slice(&digest[..20]);
+                node::Id::new(bytes)
+            }
+        }
+    }
+}
+
+impl Display for PublicKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.peer_id())
+    }
+}
+
+impl From<&ed25519_consensus::SigningKey> for PublicKey {
+    fn from(sk: &ed25519_consensus::SigningKey) -> Self {
+        Self::Ed25519(sk.verification_key())
+    }
+}
+
+impl From<ed25519_consensus::VerificationKey> for PublicKey {
+    fn from(pk: ed25519_consensus::VerificationKey) -> Self {
+        Self::Ed25519(pk)
+    }
+}
+
+/// Reject low order points listed on <https://cr.yp.to/ecdh.html>
+///
+/// These points contain low-order X25519 field elements. Rejecting them is
+/// suggested in the "May the Fourth" paper under Section 5:
+/// Software Countermeasures (see "Rejecting Known Bad Points" subsection):
+///
+/// <https://eprint.iacr.org/2017/806.pdf>
+pub(crate) fn reject_low_order_point(point: impl AsRef<[u8]>) -> Result<()> {
+    #[rustfmt::skip]
+    const LOW_ORDER_POINTS: &[[u8; 32]] = &[
+        // 0 (order 4)
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+
+        // 1 (order 1)
+        [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+
+        // 325606250916557431795983626356110631294008115727848805560023387167927233504 (order 8)
+        [0xe0, 0xeb, 0x7a, 0x7c, 0x3b, 0x41, 0xb8, 0xae, 0x16, 0x56, 0xe3, 0xfa, 0xf1, 0x9f, 0xc4, 0x6a, 0xda, 0x09, 0x8d, 0xeb, 0x9c, 0x32, 0xb1, 0xfd, 0x86, 0x62, 0x05, 0x16, 0x5f, 0x49, 0xb8, 0x00],
+
+        // 39382357235489614581723060781553021112529911719440698176882885853963445705823 (order 8)
+        [0x5f, 0x9c, 0x95, 0xbc, 0xa3, 0x50, 0x8c, 0x24, 0xb1, 0xd0, 0xb1, 0x55, 0x9c, 0x83, 0xef, 0x5b, 0x04, 0x44, 0x5c, 0xc4, 0x58, 0x1c, 0x8e, 0x86, 0xd8, 0x22, 0x4e, 0xdd, 0xd0, 0x9f, 0x11, 0x57],
+
+        // p - 1 (order 2)
+        [0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f],
+
+        // p (order 4) */
+        [0xed, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f],
+
+        // p + 1 (order 1)
+        [0xee, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f]
+    ];
+
+    // Note: as these are public points and do not interact with secret-key
+    // material in any way, this check does not need to be performed in
+    // constant-time.
+    if LOW_ORDER_POINTS
+        .iter()
+        .any(|low_order| low_order == point.as_ref())
+    {
+        return Err(Error::InsecureKey);
+    }
+
+    Ok(())
+}

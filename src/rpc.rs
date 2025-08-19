@@ -8,7 +8,7 @@ use prost::Message as _;
 use std::io::Read;
 use tendermint::{Proposal, Vote, chain};
 use tendermint_proto as proto;
-use tmkms_p2p::secret_connection::DATA_MAX_SIZE;
+use tmkms_p2p::DATA_MAX_SIZE;
 
 use crate::{
     error::{Error, ErrorKind},
