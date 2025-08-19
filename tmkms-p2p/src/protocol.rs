@@ -1,7 +1,7 @@
 //! Secret Connection Protocol: message framing and versioning
 
 use crate::{Error, Result, public_key};
-use curve25519_dalek_ng::montgomery::MontgomeryPoint as EphemeralPublic;
+use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use prost::Message as _;
 use tendermint_proto::v0_38 as proto;
 
@@ -47,8 +47,8 @@ pub(crate) fn decode_initial_handshake(bytes: &[u8]) -> Result<EphemeralPublic> 
 /// Panics if the Protobuf encoding of `AuthSigMessage` fails
 #[must_use]
 pub(crate) fn encode_auth_signature(
-    pub_key: &ed25519_consensus::VerificationKey,
-    signature: &ed25519_consensus::Signature,
+    pub_key: &ed25519_dalek::VerifyingKey,
+    signature: &ed25519_dalek::Signature,
 ) -> Vec<u8> {
     // Protobuf `AuthSigMessage`
     let pub_key = proto::crypto::PublicKey {

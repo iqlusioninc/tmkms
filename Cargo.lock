@@ -577,6 +577,7 @@ dependencies = [
  "curve25519-dalek-derive",
  "digest 0.10.7",
  "fiat-crypto",
+ "rand_core",
  "rustc_version",
  "subtle",
  "zeroize",
@@ -700,9 +701,7 @@ dependencies = [
  "curve25519-dalek-ng",
  "hex 0.4.3",
  "rand_core",
- "serde",
  "sha2 0.9.9",
- "thiserror",
  "zeroize",
 ]
 
@@ -2546,7 +2545,7 @@ dependencies = [
  "clap",
  "cosmrs",
  "ed25519",
- "ed25519-consensus",
+ "ed25519-dalek",
  "elliptic-curve",
  "eyre",
  "getrandom 0.2.16",
@@ -2586,8 +2585,8 @@ version = "0.1.0-pre"
 dependencies = [
  "aead",
  "chacha20poly1305",
- "curve25519-dalek-ng",
- "ed25519-consensus",
+ "curve25519-dalek",
+ "ed25519-dalek",
  "hkdf",
  "merlin",
  "prost",

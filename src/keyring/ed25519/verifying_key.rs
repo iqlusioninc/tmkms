@@ -5,7 +5,7 @@ use signature::Verifier;
 
 /// Ed25519 verification key.
 #[derive(Clone, Debug)]
-pub struct VerifyingKey(pub(super) ed25519_consensus::VerificationKey);
+pub struct VerifyingKey(pub(super) ed25519_dalek::VerifyingKey);
 
 impl VerifyingKey {
     /// Size of an encoded Ed25519 verifying key in bytes.
@@ -45,10 +45,7 @@ impl From<&VerifyingKey> for tmkms_p2p::PublicKey {
 
 impl Verifier<Signature> for VerifyingKey {
     fn verify(&self, msg: &[u8], sig: &Signature) -> signature::Result<()> {
-        let sig = ed25519_consensus::Signature::from(sig.to_bytes());
-        self.0
-            .verify(&sig, msg)
-            .map_err(|_| signature::Error::new())
+        self.0.verify(msg, sig)
     }
 }
 
