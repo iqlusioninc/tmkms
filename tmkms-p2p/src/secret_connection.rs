@@ -129,14 +129,10 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         pubkey: &ed25519_dalek::VerifyingKey,
         local_signature: &ed25519_dalek::Signature,
     ) -> Result<protobuf::p2p::AuthSigMessage> {
-        /// Length of the auth message response
-        // 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
-        const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;
-
         let buf = protocol::encode_auth_signature(pubkey, local_signature);
         self.write_all(&buf)?;
 
-        let mut buf = [0u8; AUTH_SIG_MSG_RESPONSE_LEN];
+        let mut buf = [0u8; protocol::AUTH_SIG_MSG_RESPONSE_LEN];
         self.read_exact(&mut buf)?;
         protocol::decode_auth_signature(&buf)
     }
