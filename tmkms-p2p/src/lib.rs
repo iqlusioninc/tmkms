@@ -12,9 +12,9 @@
 
 mod encryption;
 mod error;
+mod framing;
 mod handshake;
 mod kdf;
-mod protocol;
 mod public_key;
 mod secret_connection;
 
@@ -24,8 +24,9 @@ pub use crate::{
     secret_connection::SecretConnection,
 };
 
+pub(crate) use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 pub(crate) use ed25519_dalek as ed25519;
-pub(crate) use tendermint_proto::v0_38 as protobuf;
+pub(crate) use tendermint_proto::v0_38 as proto;
 
 /// Maximum size of a message
 pub const DATA_MAX_SIZE: usize = 1024;
