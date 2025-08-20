@@ -20,7 +20,7 @@ mod public_key;
 mod secret_connection;
 
 pub use crate::{
-    error::{Error, CryptoError, Result},
+    error::{CryptoError, Error, Result},
     msg_traits::{ReadMsg, WriteMsg},
     public_key::{PeerId, PublicKey},
     secret_connection::SecretConnection,
@@ -31,7 +31,7 @@ pub(crate) use ed25519_dalek as ed25519;
 pub(crate) use tendermint_proto::v0_38 as proto;
 
 /// Maximum size of a message
-pub const DATA_MAX_SIZE: usize = 1024;
+pub(crate) const DATA_MAX_SIZE: usize = 1024;
 
 /// 4 + 1024 == 1028 total frame size
 pub(crate) const DATA_LEN_SIZE: usize = 4;

@@ -1,8 +1,8 @@
 //! Symmetric encryption.
 
 use crate::{
-    DATA_LEN_SIZE, DATA_MAX_SIZE, Error, Result, TAG_SIZE, TAGGED_FRAME_SIZE, TOTAL_FRAME_SIZE,
-    kdf::Kdf, CryptoError
+    CryptoError, DATA_LEN_SIZE, DATA_MAX_SIZE, Error, Result, TAG_SIZE, TAGGED_FRAME_SIZE,
+    TOTAL_FRAME_SIZE, kdf::Kdf,
 };
 use aead::AeadInPlace;
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
