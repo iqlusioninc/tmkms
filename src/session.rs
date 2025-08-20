@@ -10,7 +10,7 @@ use crate::{
     rpc::{Request, Response},
 };
 use std::{os::unix::net::UnixStream, time::Instant};
-use tendermint::{TendermintKey, consensus};
+use tendermint::{TendermintKey, consensus, node};
 use tendermint_config::net;
 use tendermint_proto as proto;
 
@@ -63,7 +63,7 @@ impl Session {
                         "[{}@{}]: unverified validator peer ID! ({})",
                         &config.chain_id,
                         &config.addr,
-                        conn.remote_pubkey().peer_id()
+                        node::Id::new(conn.remote_pubkey().peer_id())
                     );
                 }
 

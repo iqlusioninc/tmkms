@@ -53,10 +53,11 @@ macro_rules! checked_io {
 /// one can either read from the connection or write to it at a given time, but
 /// not both simultaneously).
 ///
-/// If, however, the underlying I/O handler class implements [`TryClone`], then you can use
+/// If, however, the underlying I/O handler is a [`TcpStream`], then you can use
 /// [`SecretConnection::split`] to split the `SecretConnection` into sending and receiving halves.
 ///
-/// Each of these halves can then be used in a separate thread to facilitate full-duplex communication.
+/// Each of these halves can then be used in a separate thread to facilitate full-duplex
+/// communication.
 ///
 /// ## Contracts
 ///
