@@ -2584,6 +2584,7 @@ name = "tmkms-p2p"
 version = "0.2.0-pre"
 dependencies = [
  "aead",
+ "bytes",
  "chacha20poly1305",
  "curve25519-dalek",
  "ed25519-dalek",

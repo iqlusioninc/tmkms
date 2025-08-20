@@ -6,6 +6,7 @@ use crate::{
     handshake::Handshake,
     protobuf, protocol,
 };
+use bytes::Bytes;
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
     cmp,
@@ -170,6 +171,27 @@ impl SecretConnection<TcpStream> {
                 terminate: self.terminate,
             },
         ))
+    }
+}
+
+/// Helper trait for reading frames from a `SecretConnection` without having to allocate a buffer
+/// in advance.
+// TODO(tarcieri): find a way to factor this directly onto `SecretConnection` in a way that's
+// compatible with its Unix socket support (or drop Unix socket support in tmkms)
+pub trait ReadFrame {
+    /// Read a single message frame from the connection, returning it in a pre-allocated buffer.
+    fn read_frame(&mut self) -> Result<Bytes>;
+}
+
+impl<IoHandler> ReadFrame for IoHandler
+where
+    IoHandler: Read,
+{
+    fn read_frame(&mut self) -> Result<Bytes> {
+        let mut buf = vec![0; DATA_MAX_SIZE];
+        let buf_read = self.read(&mut buf)?;
+        buf.truncate(buf_read);
+        Ok(buf.into())
     }
 }
 

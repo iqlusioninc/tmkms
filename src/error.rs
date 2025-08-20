@@ -25,6 +25,10 @@ pub enum ErrorKind {
     #[error("config error")]
     ConfigError,
 
+    /// Connection errors (i.e. SecretConnection "P2P") errors.
+    #[error("connection error")]
+    ConnectionError,
+
     /// Cryptographic operation failed
     #[error("cryptographic error")]
     CryptoError,
@@ -193,6 +197,12 @@ impl From<signature::Error> for Error {
 impl From<tendermint::Error> for Error {
     fn from(other: tendermint::error::Error) -> Self {
         ErrorKind::TendermintError.context(other).into()
+    }
+}
+
+impl From<tmkms_p2p::Error> for Error {
+    fn from(other: tmkms_p2p::Error) -> Self {
+        ErrorKind::ConnectionError.context(other).into()
     }
 }
 

@@ -8,7 +8,7 @@ use prost::Message as _;
 use std::io::Read;
 use tendermint::{Proposal, Vote, chain};
 use tendermint_proto as proto;
-use tmkms_p2p::DATA_MAX_SIZE;
+use tmkms_p2p::{DATA_MAX_SIZE, ReadFrame};
 
 use crate::{
     error::{Error, ErrorKind},
@@ -31,11 +31,11 @@ impl Request {
         let mut msg_bytes: Vec<u8> = vec![];
         let msg;
 
-        // fix for Sei: collect incoming bytes of Protobuf from incoming msg
+        // reassemble multiple message frames if needed in order to decode the proto
         loop {
-            let mut msg_chunk = read_msg(conn)?;
+            let mut msg_chunk = conn.read_frame()?;
             let chunk_len = msg_chunk.len();
-            msg_bytes.append(&mut msg_chunk);
+            msg_bytes.extend_from_slice(&mut msg_chunk);
 
             // if we can decode it, great, break the loop
             match proto::privval::Message::decode_length_delimited(msg_bytes.as_ref()) {
@@ -166,13 +166,4 @@ impl From<SignableMsg> for Response {
             }),
         }
     }
-}
-
-/// Read a message from a Secret Connection
-// TODO(tarcieri): extract this into Secret Connection
-fn read_msg(conn: &mut impl Read) -> Result<Vec<u8>, Error> {
-    let mut buf = vec![0; DATA_MAX_SIZE];
-    let buf_read = conn.read(&mut buf)?;
-    buf.truncate(buf_read);
-    Ok(buf)
 }
