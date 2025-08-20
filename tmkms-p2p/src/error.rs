@@ -94,8 +94,12 @@ impl CryptoError {
 impl Display for CryptoError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
-            InternalCryptoError::InsecureKey => f.write_str("insecure public key (potential MitM attack!)"),
-            InternalCryptoError::PacketEncryption => f.write_str("packet encryption error (forget packet?)"),
+            InternalCryptoError::InsecureKey => {
+                f.write_str("insecure public key (potential MitM attack!)")
+            }
+            InternalCryptoError::PacketEncryption => {
+                f.write_str("packet encryption error (forget packet?)")
+            }
             InternalCryptoError::SignatureInvalid => f.write_str("signature error"),
         }
     }
