@@ -2,7 +2,7 @@
 
 use crate::{
     DATA_LEN_SIZE, DATA_MAX_SIZE, Error, Result, TAG_SIZE, TAGGED_FRAME_SIZE, TOTAL_FRAME_SIZE,
-    kdf::Kdf,
+    kdf::Kdf, CryptoError
 };
 use aead::AeadInPlace;
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
@@ -48,7 +48,7 @@ impl SendState {
         sealed_frame: &mut [u8; TAGGED_FRAME_SIZE],
     ) -> Result<()> {
         if self.failed {
-            return Err(Error::PacketEncryption);
+            return Err(CryptoError::ENCRYPTION.into());
         }
 
         assert!(!chunk.is_empty(), "chunk is empty");
@@ -70,7 +70,7 @@ impl SendState {
             )
             .map_err(|_| {
                 self.failed = true;
-                Error::PacketEncryption
+                CryptoError::ENCRYPTION
             })?;
 
         self.nonce.increment();
@@ -100,7 +100,7 @@ impl RecvState {
     /// Decrypt AEAD authenticated data
     pub(crate) fn decrypt(&mut self, ciphertext: &[u8], out: &mut [u8]) -> Result<usize> {
         if self.failed || ciphertext.len() < TAG_SIZE {
-            return Err(Error::PacketEncryption);
+            return Err(CryptoError::ENCRYPTION.into());
         }
 
         // Split ChaCha20 ciphertext from the Poly1305 tag
@@ -119,7 +119,7 @@ impl RecvState {
             .is_err()
         {
             self.failed = true;
-            return Err(Error::PacketEncryption);
+            return Err(CryptoError::ENCRYPTION.into());
         }
 
         self.nonce.increment();

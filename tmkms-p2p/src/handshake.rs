@@ -5,7 +5,7 @@ use crate::{
     ed25519::{self, Signer, Verifier},
     encryption::CipherState,
     kdf::Kdf,
-    proto,
+    proto, CryptoError
 };
 use merlin::Transcript;
 use rand_core::{OsRng, RngCore};
@@ -90,7 +90,7 @@ impl Handshake<AwaitingEphKey> {
             .iter()
             .any(|low_order| remote_eph_pubkey.as_bytes() == low_order)
         {
-            return Err(Error::InsecureKey);
+            return Err(CryptoError::INSECURE_KEY.into());
         }
 
         let Some(local_eph_privkey) = self.state.local_eph_privkey.take() else {
@@ -105,7 +105,7 @@ impl Handshake<AwaitingEphKey> {
         // This should be rejected via the Merlin transcript hash but here for belt-and-suspenders
         // defense purposes.
         if shared_secret.as_bytes().ct_eq(&[0u8; 32]).into() {
-            return Err(Error::InsecureKey);
+            return Err(CryptoError::INSECURE_KEY.into());
         }
 
         let mut transcript = Transcript::new(b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH");
@@ -169,17 +169,17 @@ impl Handshake<AwaitingAuthSig> {
 
         let remote_pubkey = match pk_sum {
             proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
-                ed25519::VerifyingKey::try_from(&bytes[..]).map_err(|_| Error::SignatureInvalid)
+                ed25519::VerifyingKey::try_from(&bytes[..]).map_err(|_| CryptoError::SIGNATURE.into())
             }
             proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::UnsupportedKey),
         }?;
 
         let remote_sig = ed25519::Signature::try_from(auth_sig_msg.sig.as_slice())
-            .map_err(|_| Error::SignatureInvalid)?;
+            .map_err(|_| CryptoError::SIGNATURE)?;
 
         remote_pubkey
             .verify(&self.state.sc_mac, &remote_sig)
-            .map_err(|_| Error::SignatureInvalid)?;
+            .map_err(|_| CryptoError::SIGNATURE)?;
 
         // We've authorized.
         Ok(remote_pubkey.into())
@@ -224,7 +224,7 @@ const LOW_ORDER_POINTS: &[[u8; 32]] = &[
 #[cfg(test)]
 mod tests {
     use super::{EphemeralPublic, EphemeralSecret, Handshake, LOW_ORDER_POINTS};
-    use crate::{Error, ed25519, framing};
+    use crate::{CryptoError, Error, ed25519, framing, error::InternalCryptoError};
     use curve25519_dalek::MontgomeryPoint;
     use hex_literal::hex;
 
@@ -302,7 +302,7 @@ mod tests {
             let (mut handshake, _) =
                 Handshake::new_with_ephemeral(alice_sk.clone(), ALICE_X25519_SK);
             let err = handshake.got_key(MontgomeryPoint(*point)).err().unwrap();
-            assert!(matches!(err, Error::InsecureKey));
+            assert!(matches!(err, Error::Crypto(CryptoError(InternalCryptoError::InsecureKey))));
         }
     }
 }

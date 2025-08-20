@@ -20,7 +20,7 @@ mod public_key;
 mod secret_connection;
 
 pub use crate::{
-    error::{Error, Result},
+    error::{Error, CryptoError, Result},
     msg_traits::{ReadMsg, WriteMsg},
     public_key::{PeerId, PublicKey},
     secret_connection::SecretConnection,
