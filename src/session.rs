@@ -13,6 +13,7 @@ use std::{os::unix::net::UnixStream, time::Instant};
 use tendermint::{TendermintKey, consensus, node};
 use tendermint_config::net;
 use tendermint_proto as proto;
+use tmkms_p2p::WriteMsg;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -122,9 +123,7 @@ impl Session {
             &self.config.chain_id, &self.config.addr, &response
         );
 
-        let response_bytes = response.encode()?;
-        self.connection.write_all(&response_bytes)?;
-
+        self.connection.write_msg(&response.to_proto())?;
         Ok(true)
     }
 

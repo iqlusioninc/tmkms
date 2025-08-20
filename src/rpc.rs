@@ -4,11 +4,9 @@
 #![allow(missing_docs)]
 
 use crate::privval::SignableMsg;
-use prost::Message as _;
-use std::io::Read;
 use tendermint::{Proposal, Vote, chain};
 use tendermint_proto as proto;
-use tmkms_p2p::DATA_MAX_SIZE;
+use tmkms_p2p::ReadMsg;
 
 use crate::{
     error::{Error, ErrorKind},
@@ -27,39 +25,10 @@ pub enum Request {
 
 impl Request {
     /// Read a request from the given readable.
-    pub fn read(conn: &mut impl Read, expected_chain_id: &chain::Id) -> Result<Self, Error> {
-        let mut msg_bytes: Vec<u8> = vec![];
-        let msg;
+    pub fn read(conn: &mut impl ReadMsg, expected_chain_id: &chain::Id) -> Result<Self, Error> {
+        let msg: proto::privval::Message = conn.read_msg()?;
 
-        // fix for Sei: collect incoming bytes of Protobuf from incoming msg
-        loop {
-            let mut msg_chunk = read_msg(conn)?;
-            let chunk_len = msg_chunk.len();
-            msg_bytes.append(&mut msg_chunk);
-
-            // if we can decode it, great, break the loop
-            match proto::privval::Message::decode_length_delimited(msg_bytes.as_ref()) {
-                Ok(m) => {
-                    msg = m.sum;
-                    break;
-                }
-                Err(e) => {
-                    // if chunk_len < DATA_MAX_SIZE (1024) we assume it was the end of the message and it is malformed
-                    if chunk_len < DATA_MAX_SIZE {
-                        return Err(format_err!(
-                            ErrorKind::ProtocolError,
-                            "malformed message packet: {}",
-                            e
-                        )
-                        .into());
-                    }
-                    // otherwise, we go to start of the loop assuming next chunk(s)
-                    // will fill the message
-                }
-            }
-        }
-
-        let (req, chain_id) = match msg {
+        let (req, chain_id) = match msg.sum {
             Some(proto::privval::message::Sum::SignVoteRequest(
                 proto::privval::SignVoteRequest {
                     vote: Some(vote),
@@ -119,10 +88,9 @@ pub enum Response {
 }
 
 impl Response {
-    /// Encode response to bytes.
-    pub fn encode(self) -> Result<Vec<u8>, Error> {
-        let mut buf = Vec::new();
-        let msg = match self {
+    /// Convert into a `privval::Message` proto.
+    pub fn to_proto(self) -> proto::privval::Message {
+        let sum = match self {
             Response::SignedVote(resp) => proto::privval::message::Sum::SignedVoteResponse(resp),
             Response::SignedProposal(resp) => {
                 proto::privval::message::Sum::SignedProposalResponse(resp)
@@ -130,8 +98,7 @@ impl Response {
             Response::Ping(resp) => proto::privval::message::Sum::PingResponse(resp),
             Response::PublicKey(resp) => proto::privval::message::Sum::PubKeyResponse(resp),
         };
-        proto::privval::Message { sum: Some(msg) }.encode_length_delimited(&mut buf)?;
-        Ok(buf)
+        proto::privval::Message { sum: Some(sum) }
     }
 
     /// Construct an error response for a given [`SignableMsg`].
@@ -166,13 +133,4 @@ impl From<SignableMsg> for Response {
             }),
         }
     }
-}
-
-/// Read a message from a Secret Connection
-// TODO(tarcieri): extract this into Secret Connection
-fn read_msg(conn: &mut impl Read) -> Result<Vec<u8>, Error> {
-    let mut buf = vec![0; DATA_MAX_SIZE];
-    let buf_read = conn.read(&mut buf)?;
-    buf.truncate(buf_read);
-    Ok(buf)
 }
