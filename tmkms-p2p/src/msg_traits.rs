@@ -23,15 +23,15 @@ impl<IoHandler: Read> ReadMsg for IoHandler {
         let mut msg_bytes = Vec::with_capacity(DATA_MAX_SIZE);
 
         // Read the input incrementally, speculatively decoding it as the given Protobuf message
-        // TODO(tarcieri): consume the length prefix and use it to inform message buffering
+        // TODO(tarcieri): consume first frame and use length prefix to inform message buffering
         loop {
             // Read a chunk and add it to the
             let mut chunk = [0; DATA_MAX_SIZE];
             let nbytes = self.read(&mut chunk)?;
             msg_bytes.extend_from_slice(&chunk[..nbytes]);
 
-            // if we can decode it, great, break the loop
             match M::decode_length_delimited(msg_bytes.as_ref()) {
+                // if we can decode it, great, break the loop
                 Ok(m) => return Ok(m),
                 Err(e) => {
                     // if chunk_len < DATA_MAX_SIZE (1024) we assume it was the end of the message
@@ -41,6 +41,7 @@ impl<IoHandler: Read> ReadMsg for IoHandler {
                     }
                     // otherwise, we go to start of the loop assuming next chunk(s)
                     // will fill the message
+                    // TODO(tarcieri): sanity limit after which we give up decoding?
                 }
             }
         }
