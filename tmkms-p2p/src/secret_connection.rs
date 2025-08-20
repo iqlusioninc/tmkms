@@ -1,13 +1,14 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    Error, PublicKey, Result,
+    DATA_LEN_SIZE, DATA_MAX_SIZE, Error, PublicKey, Result, TAG_SIZE, TOTAL_FRAME_SIZE,
+    encryption::{CipherState, RecvState, SendState},
     handshake::Handshake,
     protobuf, protocol,
-    state::{CipherState, RecvState, SendState},
 };
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
+    cmp,
     io::{self, Read, Write},
     net::TcpStream,
     slice,
@@ -16,9 +17,6 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-
-#[cfg(doc)]
-use crate::DATA_MAX_SIZE;
 
 /// Macro usage allows us to avoid unnecessarily cloning the `Arc<AtomicBool>`
 /// that indicates whether we need to terminate the connection.
@@ -69,25 +67,18 @@ pub struct SecretConnection<IoHandler> {
     io_handler: IoHandler,
     remote_pubkey: Option<PublicKey>,
     cipher_state: CipherState,
+    recv_buffer: Vec<u8>,
     terminate: Arc<AtomicBool>,
 }
 
 impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
-    /// Returns the remote pubkey. Panics if there's no key.
-    ///
-    /// # Panics
-    /// Panics if the remote pubkey is not initialized.
-    pub fn remote_pubkey(&self) -> PublicKey {
-        self.remote_pubkey.expect("remote_pubkey uninitialized")
-    }
-
     /// Performs a handshake and returns a new `SecretConnection`.
     ///
     /// # Errors
     ///
-    /// * if sharing of the pubkey fails
-    /// * if sharing of the signature fails
-    /// * if receiving the signature fails
+    /// - if sharing of the pubkey fails
+    /// - if sharing of the signature fails
+    /// - if receiving the signature fails
     pub fn new(
         mut io_handler: IoHandler,
         local_privkey: ed25519_dalek::SigningKey,
@@ -106,6 +97,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
             io_handler,
             remote_pubkey: None,
             cipher_state,
+            recv_buffer: Vec::new(),
             terminate: Arc::new(AtomicBool::new(false)),
         };
 
@@ -121,6 +113,14 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         // All good!
         sc.remote_pubkey = Some(remote_pubkey);
         Ok(sc)
+    }
+
+    /// Returns the remote pubkey. Panics if there's no key.
+    ///
+    /// # Panics
+    /// - if the remote pubkey is not initialized.
+    pub fn remote_pubkey(&self) -> PublicKey {
+        self.remote_pubkey.expect("remote_pubkey uninitialized")
     }
 
     /// Encode our auth signature and decode theirs.
@@ -149,7 +149,7 @@ impl SecretConnection<TcpStream> {
     /// Fails when the `try_clone` operation for the underlying I/O handler fails.
     ///
     /// # Panics
-    /// Panics if the remote pubkey is not initialized.
+    /// - if the remote pubkey is not initialized.
     pub fn split(self) -> Result<(Sender<TcpStream>, Receiver<TcpStream>)> {
         let remote_pubkey = self.remote_pubkey.expect("remote_pubkey to be initialized");
         Ok((
@@ -166,6 +166,7 @@ impl SecretConnection<TcpStream> {
                 io_handler: self.io_handler,
                 remote_pubkey,
                 state: self.cipher_state.recv_state,
+                buffer: self.recv_buffer,
                 terminate: self.terminate,
             },
         ))
@@ -176,8 +177,12 @@ impl<IoHandler: Read> Read for SecretConnection<IoHandler> {
     fn read(&mut self, data: &mut [u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
-            self.cipher_state
-                .read_and_decrypt(&mut self.io_handler, data)
+            read_and_decrypt(
+                &mut self.cipher_state.recv_state,
+                &mut self.recv_buffer,
+                &mut self.io_handler,
+                data
+            )
         )
     }
 }
@@ -186,8 +191,11 @@ impl<IoHandler: Write> Write for SecretConnection<IoHandler> {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
-            self.cipher_state
-                .encrypt_and_write(&mut self.io_handler, data)
+            encrypt_and_write(
+                &mut self.cipher_state.send_state,
+                &mut self.io_handler,
+                data
+            )
         )
     }
 
@@ -215,7 +223,7 @@ impl<IoHandler: Write> Write for Sender<IoHandler> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
-            self.state.encrypt_and_write(&mut self.io_handler, buf)
+            encrypt_and_write(&mut self.state, &mut self.io_handler, buf)
         )
     }
 
@@ -229,6 +237,7 @@ pub struct Receiver<IoHandler> {
     io_handler: IoHandler,
     remote_pubkey: PublicKey,
     state: RecvState,
+    buffer: Vec<u8>,
     terminate: Arc<AtomicBool>,
 }
 
@@ -243,7 +252,7 @@ impl<IoHandler: Read> Read for Receiver<IoHandler> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
-            self.state.read_and_decrypt(&mut self.io_handler, buf)
+            read_and_decrypt(&mut self.state, &mut self.buffer, &mut self.io_handler, buf)
         )
     }
 }
@@ -264,4 +273,81 @@ fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
     let mut buf = vec![0; response_len as usize];
     handler.read_exact(&mut buf)?;
     protocol::decode_initial_handshake(&buf)
+}
+
+/// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.
+pub(crate) fn encrypt_and_write<IoHandler: Write>(
+    state: &mut SendState,
+    io_handler: &mut IoHandler,
+    data: &[u8],
+) -> io::Result<usize> {
+    let mut n = 0_usize;
+    for chunk in data.chunks(DATA_MAX_SIZE) {
+        let sealed_frame = &mut [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
+        state
+            .encrypt(chunk, sealed_frame)
+            .map_err(io::Error::other)?;
+
+        io_handler.write_all(&sealed_frame[..])?;
+        n = n
+            .checked_add(chunk.len())
+            .expect("overflow when adding chunk lengths");
+    }
+
+    Ok(n)
+}
+
+/// Read data from the provided I/O object and attempt to decrypt it.
+pub(crate) fn read_and_decrypt<IoHandler: Read>(
+    state: &mut RecvState,
+    buffer: &mut Vec<u8>,
+    io_handler: &mut IoHandler,
+    data: &mut [u8],
+) -> io::Result<usize> {
+    if !buffer.is_empty() {
+        let n = cmp::min(data.len(), buffer.len());
+        data.copy_from_slice(&buffer[..n]);
+        let mut leftover_portion = vec![
+            0;
+            buffer
+                .len()
+                .checked_sub(n)
+                .expect("leftover calculation failed")
+        ];
+        leftover_portion.clone_from_slice(&buffer[n..]);
+        *buffer = leftover_portion;
+
+        return Ok(n);
+    }
+
+    let mut sealed_frame = [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
+    io_handler.read_exact(&mut sealed_frame)?;
+
+    // decrypt the frame
+    let mut frame = [0_u8; TOTAL_FRAME_SIZE];
+    state
+        .decrypt(&sealed_frame, &mut frame)
+        .map_err(io::Error::other)?;
+
+    let chunk_length = u32::from_le_bytes(frame[..4].try_into().expect("chunk framing failed"));
+
+    if chunk_length as usize > DATA_MAX_SIZE {
+        return Err(io::Error::other(format!(
+            "chunk is too big: {chunk_length}! max: {DATA_MAX_SIZE}"
+        )));
+    }
+
+    let mut chunk = vec![0; chunk_length as usize];
+    chunk.clone_from_slice(
+        &frame[DATA_LEN_SIZE
+            ..(DATA_LEN_SIZE
+                .checked_add(chunk_length as usize)
+                .expect("chunk size addition overflow"))],
+    );
+
+    let n = cmp::min(data.len(), chunk.len());
+    data[..n].copy_from_slice(&chunk[..n]);
+    buffer.copy_from_slice(&chunk[n..]);
+
+    Ok(n)
 }

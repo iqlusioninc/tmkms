@@ -3,9 +3,9 @@
 use crate::{
     Error, PublicKey, Result,
     ed25519::{self, Signer, Verifier},
+    encryption::CipherState,
     kdf::Kdf,
     protobuf, protocol,
-    state::CipherState,
 };
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use merlin::Transcript;

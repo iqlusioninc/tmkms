@@ -10,14 +10,13 @@
     unused_qualifications
 )]
 
+mod encryption;
 mod error;
 mod handshake;
 mod kdf;
-mod nonce;
 mod protocol;
 mod public_key;
 mod secret_connection;
-mod state;
 
 pub use crate::{
     error::{Error, Result},
@@ -30,3 +29,10 @@ pub(crate) use tendermint_proto::v0_38 as protobuf;
 
 /// Maximum size of a message
 pub const DATA_MAX_SIZE: usize = 1024;
+
+/// 4 + 1024 == 1028 total frame size
+pub(crate) const DATA_LEN_SIZE: usize = 4;
+pub(crate) const TOTAL_FRAME_SIZE: usize = DATA_MAX_SIZE + DATA_LEN_SIZE;
+
+/// Size of the `ChaCha20Poly1305` MAC tag
+pub(crate) const TAG_SIZE: usize = 16;
