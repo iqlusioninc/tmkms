@@ -10,8 +10,6 @@
     unused_qualifications
 )]
 
-pub mod transport;
-
 mod error;
 mod handshake;
 mod kdf;
