@@ -16,7 +16,7 @@ use zeroize::Zeroize;
 type EphemeralSecret = [u8; 32];
 
 /// Handshake is a process of establishing the `SecretConnection` between two peers.
-/// [Specification](https://github.com/tendermint/spec/blob/master/spec/p2p/peer.md#authenticated-encryption-handshake)
+/// [Specification](https://github.com/cometbft/cometbft/blob/015f455/spec/p2p/legacy-docs/peer.md#authenticated-encryption-handshake)
 pub(crate) struct Handshake<S> {
     state: S,
 }
@@ -230,7 +230,7 @@ pub(crate) fn reject_low_order_point(point: &[u8]) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{EphemeralSecret, Handshake};
+    use super::{EphemeralPublic, EphemeralSecret, Handshake};
     use crate::{Error, ed25519, framing};
     use hex_literal::hex;
 
@@ -239,10 +239,22 @@ mod tests {
     const BOB_ED25519_SK: ed25519::SecretKey =
         hex!("b07e65300419ce0b5d7274bcbc67fcfd3fb68272de9aa52a452a6889c7d33fd5");
 
+    const ALICE_ED25519_PK: [u8; 32] =
+        hex!("8f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c76680");
+    const BOB_ED25519_PK: [u8; 32] =
+        hex!("1ac739117419d70a79bc031b74a7dbcf3e1d6f82342693078d526ddbd41984c2");
+
     const ALICE_X25519_SK: EphemeralSecret =
         hex!("a14d1fe92419d4e23b4007079439b497ae77494ccda0195ac1c70680bb460908");
     const BOB_X25519_SK: EphemeralSecret =
         hex!("b19aff79f5b8cd2f37d46b19e294364d843b1d820b0ac55ec72e9d4e7e04f041");
+
+    const ALICE_X25519_PK: EphemeralPublic = EphemeralPublic(hex!(
+        "2faa1fdf0320284c3f8aae4f30c89f02bffac563155ddd572e887214464f5463"
+    ));
+    const BOB_X25519_PK: EphemeralPublic = EphemeralPublic(hex!(
+        "b129035e9bfe7416c0288b0f0914faee07392ed5ce9073ee0d13ae6f7654f07a"
+    ));
 
     const ALICE_SIG: [u8; framing::AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
         "660a220a208f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c7668012402735eb20c3f2b8d6643d761be7d873427ccbb83fd6f64d04e5cbf8a1fa523422dcbc17fe2fb831fcb378cf17136f19e67defaebbcbc06135df8a7471734e9406"
@@ -259,11 +271,17 @@ mod tests {
         let alice_pk = alice_sk.verifying_key();
         let bob_pk = bob_sk.verifying_key();
 
+        assert_eq!(&alice_pk.to_bytes(), &ALICE_ED25519_PK);
+        assert_eq!(&bob_pk.to_bytes(), &BOB_ED25519_PK);
+
         let (mut alice_hs, alice_eph_pk) = Handshake::new_with_ephemeral(alice_sk, ALICE_X25519_SK);
         let (mut bob_hs, bob_eph_pk) = Handshake::new_with_ephemeral(bob_sk, BOB_X25519_SK);
 
         let (alice_hs, _alice_cs) = alice_hs.got_key(bob_eph_pk).unwrap();
         let (bob_hs, _bob_cs) = bob_hs.got_key(alice_eph_pk).unwrap();
+
+        assert_eq!(&alice_eph_pk, &ALICE_X25519_PK);
+        assert_eq!(&bob_eph_pk, &BOB_X25519_PK);
 
         let alice_sig = framing::encode_auth_signature(&alice_pk, alice_hs.local_signature());
         let bob_sig = framing::encode_auth_signature(&bob_pk, bob_hs.local_signature());
