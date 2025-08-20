@@ -112,7 +112,7 @@ impl Handshake<AwaitingEphKey> {
         let loc_is_least = local_eph_pubkey_bytes == low_eph_pubkey_bytes;
 
         let kdf = Kdf::derive_secrets_and_challenge(shared_secret.as_bytes(), loc_is_least);
-        let cipher_state = CipherState::from(&kdf);
+        let cipher_state = CipherState::new(&kdf);
 
         let mut sc_mac: [u8; 32] = [0; 32];
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);

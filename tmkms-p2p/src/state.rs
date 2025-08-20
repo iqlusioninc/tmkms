@@ -22,12 +22,31 @@ pub(crate) struct CipherState {
     pub(crate) recv_state: RecvState,
 }
 
-impl From<&Kdf> for CipherState {
-    fn from(kdf: &Kdf) -> Self {
-        CipherState {
+impl CipherState {
+    /// Initialize [`CipherState`] from the given KDF.
+    pub(crate) fn new(kdf: &Kdf) -> Self {
+        Self {
             recv_state: RecvState::new(ChaCha20Poly1305::new(&kdf.recv_secret.into())),
             send_state: SendState::new(ChaCha20Poly1305::new(&kdf.send_secret.into())),
         }
+    }
+
+    /// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.
+    pub(crate) fn encrypt_and_write<IoHandler: Write>(
+        &mut self,
+        io_handler: &mut IoHandler,
+        data: &[u8],
+    ) -> io::Result<usize> {
+        self.send_state.encrypt_and_write(io_handler, data)
+    }
+
+    /// Read data from the provided I/O object and attempt to decrypt it.
+    pub(crate) fn read_and_decrypt<IoHandler: Read>(
+        &mut self,
+        io_handler: &mut IoHandler,
+        data: &mut [u8],
+    ) -> io::Result<usize> {
+        self.recv_state.read_and_decrypt(io_handler, data)
     }
 }
 

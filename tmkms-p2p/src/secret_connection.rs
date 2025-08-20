@@ -181,7 +181,6 @@ impl<IoHandler: Read> Read for SecretConnection<IoHandler> {
         checked_io!(
             self.terminate,
             self.cipher_state
-                .recv_state
                 .read_and_decrypt(&mut self.io_handler, data)
         )
     }
@@ -192,7 +191,6 @@ impl<IoHandler: Write> Write for SecretConnection<IoHandler> {
         checked_io!(
             self.terminate,
             self.cipher_state
-                .send_state
                 .encrypt_and_write(&mut self.io_handler, data)
         )
     }
