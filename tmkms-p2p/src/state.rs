@@ -1,8 +1,9 @@
 //! Protocol states.
 
+use crate::kdf::Kdf;
 use crate::{DATA_MAX_SIZE, Error, Result, nonce::Nonce};
 use aead::{AeadInPlace, generic_array::GenericArray};
-use chacha20poly1305::ChaCha20Poly1305;
+use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use std::{
     cmp,
     io::{self, Read, Write},
@@ -14,6 +15,21 @@ const TOTAL_FRAME_SIZE: usize = DATA_MAX_SIZE + DATA_LEN_SIZE;
 
 /// Size of the `ChaCha20Poly1305` MAC tag
 const TAG_SIZE: usize = 16;
+
+/// Symmetric encryption state.
+pub(crate) struct CipherState {
+    pub(crate) send_state: SendState,
+    pub(crate) recv_state: RecvState,
+}
+
+impl From<&Kdf> for CipherState {
+    fn from(kdf: &Kdf) -> Self {
+        CipherState {
+            recv_state: RecvState::new(ChaCha20Poly1305::new(&kdf.recv_secret.into())),
+            send_state: SendState::new(ChaCha20Poly1305::new(&kdf.send_secret.into())),
+        }
+    }
+}
 
 /// Sending state for a `SecretConnection`.
 pub(crate) struct SendState {
@@ -94,14 +110,14 @@ impl SendState {
 }
 
 /// Receiving state for a `SecretConnection`.
-pub(crate) struct ReceiveState {
+pub(crate) struct RecvState {
     cipher: ChaCha20Poly1305,
     nonce: Nonce,
     buffer: Vec<u8>,
     failed: bool,
 }
 
-impl ReceiveState {
+impl RecvState {
     /// Initialize a new `ReceiveState` with the given cipher instance.
     pub(crate) fn new(cipher: ChaCha20Poly1305) -> Self {
         Self {

@@ -1,3 +1,5 @@
+//! Key Derivation Function
+
 use hkdf::Hkdf;
 use sha2::Sha256;
 use zeroize::Zeroize;

@@ -4,7 +4,7 @@ use crate::{
     Error, PublicKey, Result,
     handshake::Handshake,
     protobuf, protocol,
-    state::{ReceiveState, SendState},
+    state::{CipherState, RecvState, SendState},
 };
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
@@ -68,8 +68,7 @@ macro_rules! checked_io {
 pub struct SecretConnection<IoHandler> {
     io_handler: IoHandler,
     remote_pubkey: Option<PublicKey>,
-    send_state: SendState,
-    recv_state: ReceiveState,
+    cipher_state: CipherState,
     terminate: Arc<AtomicBool>,
 }
 
@@ -101,13 +100,12 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
         let remote_eph_pubkey = share_eph_pubkey(&mut io_handler, &local_eph_pubkey)?;
 
         // Compute a local signature (also recv_cipher & send_cipher)
-        let h = h.got_key(remote_eph_pubkey)?;
+        let (h, cipher_state) = h.got_key(remote_eph_pubkey)?;
 
         let mut sc = Self {
             io_handler,
             remote_pubkey: None,
-            send_state: h.send_state(),
-            recv_state: h.recv_state(),
+            cipher_state,
             terminate: Arc::new(AtomicBool::new(false)),
         };
 
@@ -165,13 +163,13 @@ impl SecretConnection<TcpStream> {
                     .try_clone()
                     .map_err(|_| Error::TransportClone)?,
                 remote_pubkey,
-                state: self.send_state,
+                state: self.cipher_state.send_state,
                 terminate: self.terminate.clone(),
             },
             Receiver {
                 io_handler: self.io_handler,
                 remote_pubkey,
-                state: self.recv_state,
+                state: self.cipher_state.recv_state,
                 terminate: self.terminate,
             },
         ))
@@ -182,7 +180,9 @@ impl<IoHandler: Read> Read for SecretConnection<IoHandler> {
     fn read(&mut self, data: &mut [u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
-            self.recv_state.read_and_decrypt(&mut self.io_handler, data)
+            self.cipher_state
+                .recv_state
+                .read_and_decrypt(&mut self.io_handler, data)
         )
     }
 }
@@ -191,7 +191,8 @@ impl<IoHandler: Write> Write for SecretConnection<IoHandler> {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
-            self.send_state
+            self.cipher_state
+                .send_state
                 .encrypt_and_write(&mut self.io_handler, data)
         )
     }
@@ -233,7 +234,7 @@ impl<IoHandler: Write> Write for Sender<IoHandler> {
 pub struct Receiver<IoHandler> {
     io_handler: IoHandler,
     remote_pubkey: PublicKey,
-    state: ReceiveState,
+    state: RecvState,
     terminate: Arc<AtomicBool>,
 }
 

@@ -5,9 +5,8 @@ use crate::{
     ed25519::{self, Signer, Verifier},
     kdf::Kdf,
     protobuf, protocol,
-    state::{ReceiveState, SendState},
+    state::CipherState,
 };
-use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use merlin::Transcript;
 use rand_core::{OsRng, RngCore};
@@ -72,7 +71,7 @@ impl Handshake<AwaitingEphKey> {
     pub fn got_key(
         &mut self,
         remote_eph_pubkey: EphemeralPublic,
-    ) -> Result<Handshake<AwaitingAuthSig>> {
+    ) -> Result<(Handshake<AwaitingAuthSig>, CipherState)> {
         let Some(local_eph_privkey) = self.state.local_eph_privkey.take() else {
             return Err(Error::MissingSecret);
         };
@@ -113,30 +112,26 @@ impl Handshake<AwaitingEphKey> {
         let loc_is_least = local_eph_pubkey_bytes == low_eph_pubkey_bytes;
 
         let kdf = Kdf::derive_secrets_and_challenge(shared_secret.as_bytes(), loc_is_least);
+        let cipher_state = CipherState::from(&kdf);
 
         let mut sc_mac: [u8; 32] = [0; 32];
-
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
 
         // Sign the challenge bytes for authentication.
         let local_signature = self.state.local_privkey.sign(&sc_mac);
 
-        Ok(Handshake {
-            state: AwaitingAuthSig {
-                sc_mac,
-                recv_cipher: ChaCha20Poly1305::new(&kdf.recv_secret.into()),
-                send_cipher: ChaCha20Poly1305::new(&kdf.send_secret.into()),
-                local_signature,
-            },
-        })
+        let state = AwaitingAuthSig {
+            sc_mac,
+            local_signature,
+        };
+
+        Ok((Handshake { state }, cipher_state))
     }
 }
 
 /// `AwaitingAuthSig` means we're waiting for the remote authenticated signature.
 pub(crate) struct AwaitingAuthSig {
     sc_mac: [u8; 32],
-    recv_cipher: ChaCha20Poly1305,
-    send_cipher: ChaCha20Poly1305,
     local_signature: ed25519::Signature,
 }
 
@@ -170,18 +165,6 @@ impl Handshake<AwaitingAuthSig> {
         Ok(remote_pubkey.into())
     }
 
-    /// Initialize the `ReceiveState` for this connection.
-    pub fn recv_state(&self) -> ReceiveState {
-        // TODO(tarcieri): avoid cloning cipher?
-        ReceiveState::new(self.state.recv_cipher.clone())
-    }
-
-    /// Initialize the `SendState` for this connection.
-    pub fn send_state(&self) -> SendState {
-        // TODO(tarcieri): avoid cloning cipher?
-        SendState::new(self.state.send_cipher.clone())
-    }
-
     /// Borrow the local signature.
     pub fn local_signature(&self) -> &ed25519::Signature {
         &self.state.local_signature
@@ -210,8 +193,8 @@ mod tests {
         let (mut alice_hs, alice_eph_pk) = Handshake::new(alice_sk);
         let (mut bob_hs, bob_eph_pk) = Handshake::new(bob_sk);
 
-        let alice_hs = alice_hs.got_key(bob_eph_pk).unwrap();
-        let bob_hs = bob_hs.got_key(alice_eph_pk).unwrap();
+        let (alice_hs, _alice_cs) = alice_hs.got_key(bob_eph_pk).unwrap();
+        let (bob_hs, _bob_cs) = bob_hs.got_key(alice_eph_pk).unwrap();
 
         let alice_sig = protocol::encode_auth_signature(&alice_pk, alice_hs.local_signature());
         let bob_sig = protocol::encode_auth_signature(&bob_pk, bob_hs.local_signature());
