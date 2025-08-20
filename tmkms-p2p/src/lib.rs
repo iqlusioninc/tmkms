@@ -39,3 +39,4 @@ pub(crate) const TOTAL_FRAME_SIZE: usize = DATA_MAX_SIZE + DATA_LEN_SIZE;
 
 /// Size of the `ChaCha20Poly1305` MAC tag
 pub(crate) const TAG_SIZE: usize = 16;
+pub(crate) const TAGGED_FRAME_SIZE: usize = TOTAL_FRAME_SIZE + TAG_SIZE;
