@@ -1,6 +1,6 @@
 //! Secret Connection peer identity public keys.
 
-use crate::{Error, Result, ed25519};
+use crate::{CryptoError, Result, ed25519};
 use sha2::{Sha256, digest::Digest};
 use std::fmt::{self, Debug, Display};
 
@@ -23,7 +23,7 @@ impl PublicKey {
     pub fn from_raw_ed25519(bytes: &[u8]) -> Result<Self> {
         ed25519::VerifyingKey::try_from(bytes)
             .map(Self::Ed25519)
-            .map_err(|_| Error::SignatureInvalid)
+            .map_err(|_| CryptoError::SIGNATURE.into())
     }
 
     /// Get Ed25519 public key.
