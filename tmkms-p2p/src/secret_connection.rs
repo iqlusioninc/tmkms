@@ -1,12 +1,13 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    DATA_LEN_SIZE, DATA_MAX_SIZE, Error, PublicKey, Result, TAG_SIZE, TOTAL_FRAME_SIZE,
+    DATA_LEN_SIZE, DATA_MAX_SIZE, EphemeralPublic, Error, PublicKey, Result, TAG_SIZE,
+    TOTAL_FRAME_SIZE, ed25519,
     encryption::{CipherState, RecvState, SendState},
+    framing,
     handshake::Handshake,
-    protobuf, protocol,
+    proto,
 };
-use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use std::{
     cmp,
     io::{self, Read, Write},
@@ -80,10 +81,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     /// - if sharing of the pubkey fails
     /// - if sharing of the signature fails
     /// - if receiving the signature fails
-    pub fn new(
-        mut io_handler: IoHandler,
-        local_privkey: ed25519_dalek::SigningKey,
-    ) -> Result<Self> {
+    pub fn new(mut io_handler: IoHandler, local_privkey: ed25519::SigningKey) -> Result<Self> {
         // Start a handshake process.
         let local_pubkey = PublicKey::from(&local_privkey);
         let (mut h, local_eph_pubkey) = Handshake::new(local_privkey);
@@ -127,15 +125,15 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     /// Encode our auth signature and decode theirs.
     fn share_auth_signature(
         &mut self,
-        pubkey: &ed25519_dalek::VerifyingKey,
-        local_signature: &ed25519_dalek::Signature,
-    ) -> Result<protobuf::p2p::AuthSigMessage> {
-        let buf = protocol::encode_auth_signature(pubkey, local_signature);
+        pubkey: &ed25519::VerifyingKey,
+        local_signature: &ed25519::Signature,
+    ) -> Result<proto::p2p::AuthSigMessage> {
+        let buf = framing::encode_auth_signature(pubkey, local_signature);
         self.write_all(&buf)?;
 
-        let mut buf = [0u8; protocol::AUTH_SIG_MSG_RESPONSE_LEN];
+        let mut buf = [0u8; framing::AUTH_SIG_MSG_RESPONSE_LEN];
         self.read_exact(&mut buf)?;
-        protocol::decode_auth_signature(&buf)
+        framing::decode_auth_signature(&buf)
     }
 }
 
@@ -266,14 +264,14 @@ fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
     // Send our pubkey and receive theirs in tandem.
     // TODO(ismail): Go does send and receive in parallel, here we do send and receive after
     // each other.
-    handler.write_all(&protocol::encode_initial_handshake(local_eph_pubkey))?;
+    handler.write_all(&framing::encode_initial_handshake(local_eph_pubkey))?;
 
     let mut response_len = 0_u8;
     handler.read_exact(slice::from_mut(&mut response_len))?;
 
     let mut buf = vec![0; response_len as usize];
     handler.read_exact(&mut buf)?;
-    protocol::decode_initial_handshake(&buf)
+    framing::decode_initial_handshake(&buf)
 }
 
 /// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.
