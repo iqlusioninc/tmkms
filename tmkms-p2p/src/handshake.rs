@@ -4,14 +4,13 @@ use crate::{
     Error, PublicKey, Result,
     ed25519::{self, Signer, Verifier},
     kdf::Kdf,
-    protobuf,
+    protobuf, protocol,
     state::{ReceiveState, SendState},
 };
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 use merlin::Transcript;
 use rand_core::{OsRng, RngCore};
-use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 /// Random scalar (before clamping).
@@ -84,15 +83,13 @@ impl Handshake<AwaitingEphKey> {
 
         let mut transcript = Transcript::new(b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH");
 
-        // Reject all-zero outputs from X25519 (i.e. from low-order points)
+        // Reject X25519 outputs which are low-order points.
         //
         // See the following for information on potential attacks this check
         // aids in mitigating:
         //
         // - https://eprint.iacr.org/2019/526.pdf
-        if shared_secret.as_bytes().ct_eq(&[0x00; 32]).unwrap_u8() == 1 {
-            return Err(Error::InsecureKey);
-        }
+        protocol::reject_low_order_point(shared_secret.as_bytes())?;
 
         // Sort by lexical order.
         #[must_use]
