@@ -30,6 +30,8 @@ signature = { version = "2", default-features = false }
 subtle = { version = "2", default-features = false }
 tendermint-proto = { version = "0.40.4", default-features = false }
 zeroize = { version = "1", default-features = false }
+proptest = "1.6.0"
 
 [dev-dependencies]
 hex-literal = "1"
+proptest = "1"

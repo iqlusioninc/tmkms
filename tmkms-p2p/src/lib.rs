@@ -25,9 +25,9 @@ pub use crate::{
     public_key::{PeerId, PublicKey},
     secret_connection::SecretConnection,
 };
+pub use ed25519_dalek as ed25519;
 
 pub(crate) use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
-pub(crate) use ed25519_dalek as ed25519;
 pub(crate) use tendermint_proto::v0_38 as proto;
 
 /// Maximum size of a message

@@ -18,7 +18,7 @@ pub trait WriteMsg {
     fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()>;
 }
 
-impl<IoHandler: Read> ReadMsg for IoHandler {
+impl<Io: Read> ReadMsg for Io {
     fn read_msg<M: Message + Default>(&mut self) -> Result<M> {
         let mut msg_bytes = Vec::with_capacity(DATA_MAX_SIZE);
 
@@ -48,7 +48,7 @@ impl<IoHandler: Read> ReadMsg for IoHandler {
     }
 }
 
-impl<IoHandler: Write> WriteMsg for IoHandler {
+impl<Io: Write> WriteMsg for Io {
     fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
         let bytes = msg.encode_length_delimited_to_vec();
         Ok(self.write_all(&bytes)?)

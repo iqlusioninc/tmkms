@@ -65,15 +65,15 @@ macro_rules! checked_io {
 /// When reading data, data smaller than [`DATA_MAX_SIZE`] is read atomically.
 ///
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
-pub struct SecretConnection<IoHandler> {
-    io_handler: IoHandler,
+pub struct SecretConnection<Io> {
+    io_handler: Io,
     remote_pubkey: Option<PublicKey>,
     cipher_state: CipherState,
     recv_buffer: Vec<u8>,
     terminate: Arc<AtomicBool>,
 }
 
-impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
+impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     /// Performs a handshake and returns a new `SecretConnection`.
     ///
     /// # Errors
@@ -81,7 +81,7 @@ impl<IoHandler: Read + Write + Send + Sync> SecretConnection<IoHandler> {
     /// - if sharing of the pubkey fails
     /// - if sharing of the signature fails
     /// - if receiving the signature fails
-    pub fn new(mut io_handler: IoHandler, local_privkey: ed25519::SigningKey) -> Result<Self> {
+    pub fn new(mut io_handler: Io, local_privkey: ed25519::SigningKey) -> Result<Self> {
         // Start a handshake process.
         let local_pubkey = PublicKey::from(&local_privkey);
         let (mut h, local_eph_pubkey) = Handshake::new(local_privkey);
@@ -172,7 +172,7 @@ impl SecretConnection<TcpStream> {
     }
 }
 
-impl<IoHandler: Read> Read for SecretConnection<IoHandler> {
+impl<Io: Read> Read for SecretConnection<Io> {
     fn read(&mut self, data: &mut [u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
@@ -186,7 +186,7 @@ impl<IoHandler: Read> Read for SecretConnection<IoHandler> {
     }
 }
 
-impl<IoHandler: Write> Write for SecretConnection<IoHandler> {
+impl<Io: Write> Write for SecretConnection<Io> {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
@@ -204,21 +204,21 @@ impl<IoHandler: Write> Write for SecretConnection<IoHandler> {
 }
 
 /// The sending end of a [`SecretConnection`].
-pub struct Sender<IoHandler> {
-    io_handler: IoHandler,
+pub struct Sender<Io> {
+    io_handler: Io,
     remote_pubkey: PublicKey,
     state: SendState,
     terminate: Arc<AtomicBool>,
 }
 
-impl<IoHandler> Sender<IoHandler> {
+impl<Io> Sender<Io> {
     /// Returns the remote pubkey. Panics if there's no key.
     pub const fn remote_pubkey(&self) -> PublicKey {
         self.remote_pubkey
     }
 }
 
-impl<IoHandler: Write> Write for Sender<IoHandler> {
+impl<Io: Write> Write for Sender<Io> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
@@ -232,22 +232,22 @@ impl<IoHandler: Write> Write for Sender<IoHandler> {
 }
 
 /// The receiving end of a [`SecretConnection`].
-pub struct Receiver<IoHandler> {
-    io_handler: IoHandler,
+pub struct Receiver<Io> {
+    io_handler: Io,
     remote_pubkey: PublicKey,
     state: RecvState,
     buffer: Vec<u8>,
     terminate: Arc<AtomicBool>,
 }
 
-impl<IoHandler> Receiver<IoHandler> {
+impl<Io> Receiver<Io> {
     /// Returns the remote pubkey. Panics if there's no key.
     pub const fn remote_pubkey(&self) -> PublicKey {
         self.remote_pubkey
     }
 }
 
-impl<IoHandler: Read> Read for Receiver<IoHandler> {
+impl<Io: Read> Read for Receiver<Io> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
@@ -257,8 +257,8 @@ impl<IoHandler: Read> Read for Receiver<IoHandler> {
 }
 
 /// Returns `remote_eph_pubkey`
-fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
-    handler: &mut IoHandler,
+fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
+    handler: &mut Io,
     local_eph_pubkey: &EphemeralPublic,
 ) -> Result<EphemeralPublic> {
     // Send our pubkey and receive theirs in tandem.
@@ -275,9 +275,9 @@ fn share_eph_pubkey<IoHandler: Read + Write + Send + Sync>(
 }
 
 /// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.
-pub(crate) fn encrypt_and_write<IoHandler: Write>(
+pub(crate) fn encrypt_and_write<Io: Write>(
     state: &mut SendState,
-    io_handler: &mut IoHandler,
+    io_handler: &mut Io,
     data: &[u8],
 ) -> io::Result<usize> {
     let mut n = 0_usize;
@@ -297,10 +297,10 @@ pub(crate) fn encrypt_and_write<IoHandler: Write>(
 }
 
 /// Read data from the provided I/O object and attempt to decrypt it.
-pub(crate) fn read_and_decrypt<IoHandler: Read>(
+pub(crate) fn read_and_decrypt<Io: Read>(
     state: &mut RecvState,
     buffer: &mut Vec<u8>,
-    io_handler: &mut IoHandler,
+    io_handler: &mut Io,
     data: &mut [u8],
 ) -> io::Result<usize> {
     if !buffer.is_empty() {
