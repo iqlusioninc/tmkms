@@ -1,11 +1,8 @@
 //! Secret Connection peer identity public keys.
 
-use crate::{CryptoError, IdentitySecret, Result, ed25519};
+use crate::{CryptoError, IdentitySecret, PeerId, Result, ed25519};
 use sha2::{Sha256, digest::Digest};
 use std::fmt::{self, Debug, Display};
-
-/// Secret Connection Peer IDs.
-pub type PeerId = [u8; 20];
 
 /// Secret Connection peer identity public keys (signing, presently Ed25519-only)
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]

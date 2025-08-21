@@ -23,12 +23,15 @@ mod test_vectors;
 pub use crate::{
     error::{CryptoError, Error, Result},
     msg_traits::{ReadMsg, WriteMsg},
-    public_key::{PeerId, PublicKey},
+    public_key::PublicKey,
     secret_connection::SecretConnection,
 };
 
 /// Secret Connection node identity secret keys.
 pub type IdentitySecret = ed25519::SigningKey;
+
+/// Secret Connection Peer IDs: 20-byte public key fingerprints.
+pub type PeerId = [u8; 20];
 
 pub(crate) use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 pub(crate) use ed25519_dalek as ed25519;
