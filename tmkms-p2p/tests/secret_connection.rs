@@ -2,7 +2,7 @@
 
 #![cfg(unix)]
 
-use proptest::prelude::*;
+use proptest::{collection, prelude::*};
 use prost_derive::Message;
 use std::{
     io::{Read, Write},
@@ -11,7 +11,8 @@ use std::{
 };
 use tmkms_p2p::{ReadMsg, SecretConnection, WriteMsg, ed25519};
 
-const EXAMPLE_MSG: &[u8] = b"Hello, world!";
+/// Maximum example message length to generate.
+const MAX_MSG_LEN: usize = 65535;
 
 prop_compose! {
     fn ed25519_signing_key()(bytes in any::<[u8; 32]>()) -> ed25519::SigningKey {
@@ -21,7 +22,11 @@ prop_compose! {
 
 proptest! {
     #[test]
-    fn integration_test(alice_sk in ed25519_signing_key(), bob_sk in ed25519_signing_key()) {
+    fn integration_test(
+        alice_sk in ed25519_signing_key(),
+        bob_sk in ed25519_signing_key(),
+        example_msg in collection::vec(any::<u8>(), 0..MAX_MSG_LEN)
+    ) {
         let bob_pk = bob_sk.verifying_key();
 
         let (sock_a, sock_b) = UnixStream::pair().unwrap();
@@ -31,10 +36,10 @@ proptest! {
         assert_eq!(conn.remote_pubkey().ed25519().unwrap().as_bytes(), bob_pk.as_bytes());
 
         // TODO(tarcieri): test randomized messages with varying lengths
-        conn.write_msg(&PingRequest { msg: EXAMPLE_MSG.into() }).unwrap();
+        conn.write_msg(&PingRequest { msg: example_msg.clone() }).unwrap();
 
         let resp: PongResponse  = conn.read_msg().unwrap();
-        prop_assert_eq!(&resp.msg, EXAMPLE_MSG);
+        prop_assert_eq!(resp.msg, example_msg);
 
         server_handle.join().unwrap();
     }
@@ -60,7 +65,6 @@ where
     // handle an incoming echo request
     fn handle_request(&mut self) {
         let req: PingRequest = self.conn.read_msg().unwrap();
-        assert_eq!(&req.msg, EXAMPLE_MSG);
         self.conn.write_msg(&PongResponse { msg: req.msg }).unwrap();
     }
 }
