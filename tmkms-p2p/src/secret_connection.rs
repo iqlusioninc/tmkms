@@ -60,10 +60,6 @@ macro_rules! checked_io {
 /// Each of these halves can then be used in a separate thread to facilitate full-duplex
 /// communication.
 ///
-/// ## Contracts
-///
-/// When reading data, data smaller than [`FRAME_MAX_SIZE`] is read atomically.
-///
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
 pub struct SecretConnection<Io> {
     io_handler: Io,
