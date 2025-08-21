@@ -1,6 +1,6 @@
 //! Secret Connection peer identity public keys.
 
-use crate::{CryptoError, Result, ed25519};
+use crate::{CryptoError, IdentitySecret, Result, ed25519};
 use sha2::{Sha256, digest::Digest};
 use std::fmt::{self, Debug, Display};
 
@@ -65,8 +65,8 @@ impl Debug for PublicKey {
     }
 }
 
-impl From<&ed25519::SigningKey> for PublicKey {
-    fn from(sk: &ed25519::SigningKey) -> Self {
+impl From<&IdentitySecret> for PublicKey {
+    fn from(sk: &IdentitySecret) -> Self {
         Self::Ed25519(sk.verifying_key())
     }
 }
@@ -74,5 +74,11 @@ impl From<&ed25519::SigningKey> for PublicKey {
 impl From<ed25519::VerifyingKey> for PublicKey {
     fn from(pk: ed25519::VerifyingKey) -> Self {
         Self::Ed25519(pk)
+    }
+}
+
+impl From<&ed25519::VerifyingKey> for PublicKey {
+    fn from(pk: &ed25519::VerifyingKey) -> Self {
+        Self::from(*pk)
     }
 }
