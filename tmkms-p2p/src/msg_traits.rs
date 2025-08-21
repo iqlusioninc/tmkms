@@ -28,25 +28,22 @@ impl<Io: Read> ReadMsg for Io {
 
         // Decode the length prefix on the proto
         let msg_prefix = &buf[..nbytes];
-        let msg_len = prost::decode_length_delimiter(msg_prefix)?;
-        let total_len = prost::length_delimiter_len(msg_len)
-            .checked_add(msg_len)
-            .expect("overflow");
+        let msg_len = decode_msg_length(msg_prefix)?;
 
-        if total_len > MAX_MSG_LEN {
-            return Err(Error::MessageOversized { size: total_len });
+        if msg_len > MAX_MSG_LEN {
+            return Err(Error::MessageOversized { size: msg_len });
         }
 
         // Skip the heap if the proto fits in a single message frame
-        if msg_prefix.len() == total_len {
+        if msg_prefix.len() == msg_len {
             return Ok(M::decode_length_delimited(msg_prefix)?);
         }
 
-        let mut msg = vec![0u8; total_len];
+        let mut msg = vec![0u8; msg_len];
         msg[..msg_prefix.len()].copy_from_slice(msg_prefix);
 
         let mut cursor = msg_prefix.len();
-        while cursor < total_len {
+        while cursor < msg_len {
             let nbytes = self.read(&mut msg[cursor..])?;
             cursor += nbytes;
         }
@@ -60,6 +57,15 @@ impl<Io: Write> WriteMsg for Io {
         let bytes = msg.encode_length_delimited_to_vec();
         Ok(self.write_all(&bytes)?)
     }
+}
+
+/// Decode the total message length including the length prefix.
+fn decode_msg_length(frame: &[u8]) -> Result<usize> {
+    let len = prost::decode_length_delimiter(frame)?;
+    let length_delimiter_len = prost::length_delimiter_len(len);
+    length_delimiter_len
+        .checked_add(len)
+        .ok_or_else(|| prost::DecodeError::new("length overflow").into())
 }
 
 // NOTE: only existing test coverage of these is in `tests/secret_connection.rs`
