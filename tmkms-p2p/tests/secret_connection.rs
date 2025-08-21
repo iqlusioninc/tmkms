@@ -12,7 +12,12 @@ use std::{
 use tmkms_p2p::{IdentitySecret, ReadMsg, SecretConnection, WriteMsg};
 
 /// Maximum example message length to generate.
-const MAX_MSG_LEN: usize = 65535;
+///
+/// Large enough to test messages spanning multiple frames (of 1024-bytes plaintext)
+const MAX_MSG_LEN: usize = 5000;
+
+/// Number of requests to answer before shutting down.
+const NUM_REQUESTS: usize = 3;
 
 prop_compose! {
     fn identity_secret()(bytes in any::<[u8; 32]>()) -> IdentitySecret {
@@ -35,11 +40,12 @@ proptest! {
         let mut conn = SecretConnection::new(sock_a, alice_sk).unwrap();
         assert_eq!(conn.remote_pubkey().ed25519().unwrap().as_bytes(), bob_pk.as_bytes());
 
-        // TODO(tarcieri): test randomized messages with varying lengths
-        conn.write_msg(&PingRequest { msg: example_msg.clone() }).unwrap();
+        for _ in 0..NUM_REQUESTS {
+            conn.write_msg(&PingRequest { msg: example_msg.clone() }).unwrap();
 
-        let resp: PongResponse  = conn.read_msg().unwrap();
-        prop_assert_eq!(resp.msg, example_msg);
+            let resp: PongResponse  = conn.read_msg().unwrap();
+            prop_assert_eq!(&resp.msg, &example_msg);
+        }
 
         server_handle.join().unwrap();
     }
@@ -57,8 +63,13 @@ where
 {
     fn run(io: Io, sk: IdentitySecret) -> thread::JoinHandle<()> {
         thread::spawn(move || {
-            let conn = SecretConnection::new(io, sk).unwrap();
-            TestServer { conn }.handle_request()
+            let mut server = TestServer {
+                conn: SecretConnection::new(io, sk).unwrap(),
+            };
+
+            for _ in 0..NUM_REQUESTS {
+                server.handle_request()
+            }
         })
     }
 
