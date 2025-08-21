@@ -20,9 +20,6 @@ pub enum Error {
     /// I/O error
     Io(std::io::Error),
 
-    /// Malformed handshake message. Possible protocol version mismatch.
-    MalformedHandshake,
-
     /// Message exceeds the maximum allowed size.
     MessageOversized {
         /// Size of the message.
@@ -46,10 +43,7 @@ impl Display for Error {
             Self::Crypto(_) => f.write_str("cryptographic error"),
             Self::Decode(_) => f.write_str("malformed protocol message (version mismatch?)"),
             Self::Io(_) => f.write_str("I/O error"),
-            Self::MalformedHandshake => {
-                f.write_str("malformed handshake message (protocol version mismatch?)")
-            }
-            Self::MessageOversized { size } => write!(f, "message is too large: {size} bytes"),
+            Self::MessageOversized { size } => write!(f, "message is too large ({size} bytes)"),
             Self::MissingKey => f.write_str("public key missing"),
             Self::MissingSecret => f.write_str("missing secret (forgot to call Handshake::new?)"),
             Self::UnsupportedKey => f.write_str("key type (e.g. secp256k1) is not supported"),

@@ -262,8 +262,10 @@ fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
     let mut response_len = 0_u8;
     handler.read_exact(slice::from_mut(&mut response_len))?;
 
-    let mut buf = vec![0; response_len as usize];
-    handler.read_exact(&mut buf)?;
+    let mut buf = vec![0; usize::from(response_len) + 1];
+    buf[0] = response_len;
+    handler.read_exact(&mut buf[1..])?;
+
     framing::decode_initial_handshake(&buf)
 }
 
