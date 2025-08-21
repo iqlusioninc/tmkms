@@ -1,7 +1,7 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    DATA_LEN_SIZE, DATA_MAX_SIZE, EphemeralPublic, Error, PublicKey, Result, TAG_SIZE,
+    EphemeralPublic, Error, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, Result, TAG_SIZE,
     TOTAL_FRAME_SIZE, ed25519,
     encryption::{CipherState, RecvState, SendState},
     framing,
@@ -62,7 +62,7 @@ macro_rules! checked_io {
 ///
 /// ## Contracts
 ///
-/// When reading data, data smaller than [`DATA_MAX_SIZE`] is read atomically.
+/// When reading data, data smaller than [`FRAME_MAX_SIZE`] is read atomically.
 ///
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
 pub struct SecretConnection<Io> {
@@ -281,7 +281,7 @@ pub(crate) fn encrypt_and_write<Io: Write>(
     data: &[u8],
 ) -> io::Result<usize> {
     let mut n = 0_usize;
-    for chunk in data.chunks(DATA_MAX_SIZE) {
+    for chunk in data.chunks(FRAME_MAX_SIZE) {
         let sealed_frame = &mut [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
         state
             .encrypt(chunk, sealed_frame)
@@ -330,16 +330,16 @@ pub(crate) fn read_and_decrypt<Io: Read>(
 
     let chunk_length = u32::from_le_bytes(frame[..4].try_into().expect("chunk framing failed"));
 
-    if chunk_length as usize > DATA_MAX_SIZE {
+    if chunk_length as usize > FRAME_MAX_SIZE {
         return Err(io::Error::other(format!(
-            "chunk is too big: {chunk_length}! max: {DATA_MAX_SIZE}"
+            "chunk is too big: {chunk_length}! max: {FRAME_MAX_SIZE}"
         )));
     }
 
     let mut chunk = vec![0; chunk_length as usize];
     chunk.clone_from_slice(
-        &frame[DATA_LEN_SIZE
-            ..(DATA_LEN_SIZE
+        &frame[LENGTH_PREFIX_SIZE
+            ..(LENGTH_PREFIX_SIZE
                 .checked_add(chunk_length as usize)
                 .expect("chunk size addition overflow"))],
     );
