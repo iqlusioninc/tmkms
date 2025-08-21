@@ -1,21 +1,36 @@
 //! Encoding/decoding support for the message frames of the Secret Connection protocol.
 
-use crate::{EphemeralPublic, Error, Result, ed25519, proto};
+use crate::{EphemeralPublic, Result, ed25519, proto};
 use prost::Message as _;
 
 /// Length of the auth message response
 // 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
 pub(crate) const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;
 
+/// Size of an ephemeral (X25519) key.
+const EPHEMERAL_PUBKEY_SIZE: usize = 32;
+
+/// Initial handshake prefix bytes.
+///
+/// These encode a `google.protobuf.BytesValue` header.
+const INITIAL_HANDSHAKE_PREFIX: &[u8] = &[0x22, 0x0a, 0x20];
+
+/// Size of the initial handshake message.
+const INITIAL_HANDSHAKE_SIZE: usize = INITIAL_HANDSHAKE_PREFIX.len() + EPHEMERAL_PUBKEY_SIZE;
+
 /// Encode the initial handshake message (i.e. first one sent by both peers)
 #[must_use]
-pub(crate) fn encode_initial_handshake(eph_pubkey: &EphemeralPublic) -> Vec<u8> {
+pub(crate) fn encode_initial_handshake(
+    eph_pubkey: &EphemeralPublic,
+) -> [u8; INITIAL_HANDSHAKE_SIZE] {
     // Equivalent Go implementation:
     // https://github.com/cometbft/cometbft/blob/f4d33ab/p2p/transport/tcp/conn/secret_connection.go#L319-L324
-    // TODO(tarcieri): proper protobuf framing
-    let mut buf = Vec::new();
-    buf.extend_from_slice(&[0x22, 0x0a, 0x20]);
-    buf.extend_from_slice(eph_pubkey.as_bytes());
+
+    // Encode `google.protobuf.BytesValue`
+    let mut buf = [0u8; INITIAL_HANDSHAKE_SIZE];
+    let (prefix, key_bytes) = buf.split_at_mut(INITIAL_HANDSHAKE_PREFIX.len());
+    prefix.copy_from_slice(INITIAL_HANDSHAKE_PREFIX);
+    key_bytes.copy_from_slice(eph_pubkey.as_bytes());
     buf
 }
 
@@ -29,12 +44,17 @@ pub(crate) fn encode_initial_handshake(eph_pubkey: &EphemeralPublic) -> Vec<u8> 
 pub(crate) fn decode_initial_handshake(bytes: &[u8]) -> Result<EphemeralPublic> {
     // Equivalent Go implementation:
     // https://github.com/cometbft/cometbft/blob/f4d33ab/p2p/transport/tcp/conn/secret_connection.go#L327-L335
-    // TODO(tarcieri): proper protobuf framing
-    if bytes.len() != 34 || bytes[..2] != [0x0a, 0x20] {
-        return Err(Error::MalformedHandshake);
+
+    // Decode `google.protobuf.BytesValue`
+    if bytes.len() != INITIAL_HANDSHAKE_SIZE
+        || &bytes[..INITIAL_HANDSHAKE_PREFIX.len()] != INITIAL_HANDSHAKE_PREFIX
+    {
+        return Err(prost::DecodeError::new("malformed initial handshake").into());
     }
 
-    let eph_pubkey_bytes: [u8; 32] = bytes[2..].try_into().expect("framing failed");
+    let eph_pubkey_bytes: [u8; 32] = bytes[INITIAL_HANDSHAKE_PREFIX.len()..]
+        .try_into()
+        .expect("framing failed");
     Ok(EphemeralPublic(eph_pubkey_bytes))
 }
 
@@ -90,7 +110,7 @@ mod tests {
         assert_eq!(bytes, ALICE_INITIAL_MSG);
 
         // TODO(tarcieri): have both encode/decode operate on the length-prefixed format
-        let decoded_key = super::decode_initial_handshake(&bytes[1..]).unwrap();
+        let decoded_key = super::decode_initial_handshake(&bytes).unwrap();
         assert_eq!(decoded_key, ALICE_X25519_PK);
     }
 
