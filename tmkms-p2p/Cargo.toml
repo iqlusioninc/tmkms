@@ -1,7 +1,7 @@
 [package]
 name = "tmkms-p2p"
 description = "Implementation of CometBFT's encrypted P2P protocol"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/iqlusioninc/tmkms"
