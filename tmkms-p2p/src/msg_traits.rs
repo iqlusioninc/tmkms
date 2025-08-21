@@ -31,7 +31,7 @@ impl<Io: Read> ReadMsg for Io {
         let msg_len = decode_msg_length(msg_prefix)?;
 
         if msg_len > MAX_MSG_LEN {
-            return Err(Error::MessageOversized { size: msg_len });
+            return Err(Error::MessageTooBig { size: msg_len });
         }
 
         // Skip the heap if the proto fits in a single message frame
