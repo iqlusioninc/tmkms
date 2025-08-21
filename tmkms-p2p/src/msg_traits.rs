@@ -54,3 +54,5 @@ impl<Io: Write> WriteMsg for Io {
         Ok(self.write_all(&bytes)?)
     }
 }
+
+// NOTE: only existing test coverage of these is in `tests/secret_connection.rs`

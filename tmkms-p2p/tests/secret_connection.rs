@@ -3,17 +3,15 @@
 #![cfg(unix)]
 
 use proptest::prelude::*;
+use prost_derive::Message;
 use std::{
-    io::{self, Read, Write},
+    io::{Read, Write},
     os::unix::net::UnixStream,
     thread,
 };
-use tmkms_p2p::{SecretConnection, ed25519};
+use tmkms_p2p::{ReadMsg, SecretConnection, WriteMsg, ed25519};
 
-const TAGGED_FRAME_SIZE: usize = 1044;
-
-const PING_MSG: &[u8] = b"ping";
-const PONG_MSG: &[u8] = b"pong";
+const EXAMPLE_MSG: &[u8] = b"Hello, world!";
 
 prop_compose! {
     fn ed25519_signing_key()(bytes in any::<[u8; 32]>()) -> ed25519::SigningKey {
@@ -32,9 +30,11 @@ proptest! {
         let mut conn = SecretConnection::new(sock_a, alice_sk).unwrap();
         assert_eq!(conn.remote_pubkey().ed25519().unwrap().as_bytes(), bob_pk.as_bytes());
 
-        conn.write(PING_MSG).unwrap();
-        let resp = Buffer::read(&mut conn).unwrap();
-        prop_assert_eq!(resp.as_bytes(), PONG_MSG);
+        // TODO(tarcieri): test randomized messages with varying lengths
+        conn.write_msg(&PingRequest { msg: EXAMPLE_MSG.into() }).unwrap();
+
+        let resp: PongResponse  = conn.read_msg().unwrap();
+        prop_assert_eq!(&resp.msg, EXAMPLE_MSG);
 
         server_handle.join().unwrap();
     }
@@ -42,7 +42,6 @@ proptest! {
 
 /// Test server used for exercising `SecretConnection`.
 /// Implements basic ping/pong functionality
-// TODO(tarcieri): use protos for requests and responses to exercise `MsgTraits`
 struct TestServer<Io> {
     conn: SecretConnection<Io>,
 }
@@ -60,26 +59,24 @@ where
 
     // handle an incoming echo request
     fn handle_request(&mut self) {
-        let buf = Buffer::read(&mut self.conn).unwrap();
-        assert_eq!(buf.as_bytes(), PING_MSG);
-        self.conn.write_all(PONG_MSG).unwrap();
+        let req: PingRequest = self.conn.read_msg().unwrap();
+        assert_eq!(&req.msg, EXAMPLE_MSG);
+        self.conn.write_msg(&PongResponse { msg: req.msg }).unwrap();
     }
 }
 
-struct Buffer {
-    buf: [u8; TAGGED_FRAME_SIZE],
-    len: usize,
+/// Example request message to send to the server
+#[derive(Clone, PartialEq, Eq, Message)]
+pub struct PingRequest {
+    /// Message to be echoed back in the response
+    #[prost(bytes, tag = "1")]
+    pub msg: Vec<u8>,
 }
 
-impl Buffer {
-    /// Create a buffer and read data into it
-    fn read(io: &mut impl Read) -> io::Result<Self> {
-        let mut buf = [0u8; TAGGED_FRAME_SIZE];
-        let len = io.read(&mut buf)?;
-        Ok(Self { buf, len })
-    }
-
-    fn as_bytes(&self) -> &[u8] {
-        &self.buf[..self.len]
-    }
+/// Example response message from the server
+#[derive(Clone, PartialEq, Eq, Message)]
+pub struct PongResponse {
+    /// Message from the original request
+    #[prost(bytes, tag = "1")]
+    pub msg: Vec<u8>,
 }
