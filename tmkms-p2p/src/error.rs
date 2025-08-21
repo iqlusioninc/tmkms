@@ -23,6 +23,12 @@ pub enum Error {
     /// Malformed handshake message. Possible protocol version mismatch.
     MalformedHandshake,
 
+    /// Message exceeds the maximum allowed size.
+    MessageOversized {
+        /// Size of the message.
+        size: usize,
+    },
+
     /// Public key missing
     MissingKey,
 
@@ -46,6 +52,7 @@ impl Display for Error {
             Self::MalformedHandshake => {
                 f.write_str("malformed handshake message (protocol version mismatch?)")
             }
+            Self::MessageOversized { size } => write!(f, "message is too large: {size} bytes"),
             Self::MissingKey => f.write_str("public key missing"),
             Self::MissingSecret => f.write_str("missing secret (forgot to call Handshake::new?)"),
             Self::UnsupportedKey => f.write_str("key type (e.g. secp256k1) is not supported"),

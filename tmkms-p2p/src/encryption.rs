@@ -1,7 +1,7 @@
 //! Symmetric encryption.
 
 use crate::{
-    CryptoError, DATA_LEN_SIZE, DATA_MAX_SIZE, Error, Result, TAG_SIZE, TAGGED_FRAME_SIZE,
+    CryptoError, Error, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, Result, TAG_SIZE, TAGGED_FRAME_SIZE,
     TOTAL_FRAME_SIZE, kdf::Kdf,
 };
 use aead::AeadInPlace;
@@ -53,13 +53,13 @@ impl SendState {
 
         assert!(!chunk.is_empty(), "chunk is empty");
         assert!(
-            chunk.len() <= TOTAL_FRAME_SIZE - DATA_LEN_SIZE,
+            chunk.len() <= TOTAL_FRAME_SIZE - LENGTH_PREFIX_SIZE,
             "chunk is too big: {}! max: {}",
             chunk.len(),
-            DATA_MAX_SIZE,
+            FRAME_MAX_SIZE,
         );
-        sealed_frame[..DATA_LEN_SIZE].copy_from_slice(&(chunk.len() as u32).to_le_bytes());
-        sealed_frame[DATA_LEN_SIZE..DATA_LEN_SIZE + chunk.len()].copy_from_slice(chunk);
+        sealed_frame[..LENGTH_PREFIX_SIZE].copy_from_slice(&(chunk.len() as u32).to_le_bytes());
+        sealed_frame[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + chunk.len()].copy_from_slice(chunk);
 
         let tag = self
             .cipher
