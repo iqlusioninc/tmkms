@@ -165,13 +165,8 @@ impl Nonce {
 #[cfg(test)]
 mod tests {
     use super::CipherState;
-    use crate::TAGGED_FRAME_SIZE;
-    use crate::kdf::Kdf;
+    use crate::{TAGGED_FRAME_SIZE, kdf::Kdf, test_vectors::SHARED_SECRET};
     use hex_literal::hex;
-
-    /// Shared secret for Alice/Bob example exchange in `handshake.rs`
-    const SHARED_SECRET: [u8; 32] =
-        hex!("d28c3fcbdb42e28d940d3823103d379693c3724a25d96e9f0524a7306b43ca44");
 
     /// Plaintext of the first message to send.
     const MSG1_PT: &[u8] = b"hello";

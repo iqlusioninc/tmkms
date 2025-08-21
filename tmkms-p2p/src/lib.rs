@@ -18,6 +18,7 @@ mod kdf;
 mod msg_traits;
 mod public_key;
 mod secret_connection;
+mod test_vectors;
 
 pub use crate::{
     error::{CryptoError, Error, Result},

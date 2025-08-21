@@ -77,34 +77,21 @@ pub(crate) fn decode_auth_signature(bytes: &[u8]) -> Result<proto::p2p::AuthSigM
 
 #[cfg(test)]
 mod tests {
-    use super::AUTH_SIG_MSG_RESPONSE_LEN;
-    use crate::{EphemeralPublic, ed25519};
-    use hex_literal::hex;
-
-    const ALICE_ED25519_PK: [u8; 32] =
-        hex!("8f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c76680");
-
-    const ALICE_X25519_PK: [u8; 32] =
-        hex!("2faa1fdf0320284c3f8aae4f30c89f02bffac563155ddd572e887214464f5463");
-
-    const ALICE_INITIAL_MSG: [u8; 35] =
-        hex!("220a202faa1fdf0320284c3f8aae4f30c89f02bffac563155ddd572e887214464f5463");
-
-    const ALICE_SIG: [u8; 64] = hex!(
-        "2735eb20c3f2b8d6643d761be7d873427ccbb83fd6f64d04e5cbf8a1fa523422dcbc17fe2fb831fcb378cf17136f19e67defaebbcbc06135df8a7471734e9406"
-    );
-    const ALICE_SIG_MSG: [u8; AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
-        "660a220a208f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c7668012402735eb20c3f2b8d6643d761be7d873427ccbb83fd6f64d04e5cbf8a1fa523422dcbc17fe2fb831fcb378cf17136f19e67defaebbcbc06135df8a7471734e9406"
-    );
+    use crate::{
+        ed25519,
+        test_vectors::{
+            ALICE_ED25519_PK, ALICE_INITIAL_MSG, ALICE_SIG, ALICE_SIG_MSG, ALICE_X25519_PK,
+        },
+    };
 
     #[test]
     fn initial_handshake_round_trip() {
-        let bytes = super::encode_initial_handshake(&EphemeralPublic(ALICE_X25519_PK));
+        let bytes = super::encode_initial_handshake(&ALICE_X25519_PK);
         assert_eq!(bytes, ALICE_INITIAL_MSG);
 
         // TODO(tarcieri): have both encode/decode operate on the length-prefixed format
         let decoded_key = super::decode_initial_handshake(&bytes[1..]).unwrap();
-        assert_eq!(decoded_key.0, ALICE_X25519_PK);
+        assert_eq!(decoded_key, ALICE_X25519_PK);
     }
 
     #[test]
