@@ -1,7 +1,7 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    EphemeralPublic, Error, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, Result, TAG_SIZE,
+    EphemeralPublic, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, Result, TAG_SIZE,
     TOTAL_FRAME_SIZE, ed25519,
     encryption::{CipherState, RecvState, SendState},
     framing,
@@ -149,10 +149,7 @@ impl SecretConnection<TcpStream> {
         let remote_pubkey = self.remote_pubkey.expect("remote_pubkey to be initialized");
         Ok((
             Sender {
-                io_handler: self
-                    .io_handler
-                    .try_clone()
-                    .map_err(|_| Error::TransportClone)?,
+                io_handler: self.io_handler.try_clone()?,
                 remote_pubkey,
                 state: self.cipher_state.send_state,
                 terminate: self.terminate.clone(),

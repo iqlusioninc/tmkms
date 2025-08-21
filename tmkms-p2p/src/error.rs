@@ -37,9 +37,6 @@ pub enum Error {
 
     /// Key type supported (e.g. secp256k1)
     UnsupportedKey,
-
-    /// Failed to clone underlying transport
-    TransportClone,
 }
 
 impl Display for Error {
@@ -56,7 +53,6 @@ impl Display for Error {
             Self::MissingKey => f.write_str("public key missing"),
             Self::MissingSecret => f.write_str("missing secret (forgot to call Handshake::new?)"),
             Self::UnsupportedKey => f.write_str("key type (e.g. secp256k1) is not supported"),
-            Self::TransportClone => f.write_str("failed to clone underlying transport"),
         }
     }
 }
