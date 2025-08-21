@@ -5,7 +5,7 @@ use crate::{
     TOTAL_FRAME_SIZE, kdf::Kdf,
 };
 use aead::AeadInPlace;
-use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
+use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit};
 
 /// Symmetric encryption state.
 pub(crate) struct CipherState {
@@ -17,8 +17,8 @@ impl CipherState {
     /// Initialize [`CipherState`] from the given KDF.
     pub(crate) fn new(kdf: Kdf) -> Self {
         Self {
-            recv_state: RecvState::new(ChaCha20Poly1305::new(&kdf.recv_secret.into())),
-            send_state: SendState::new(ChaCha20Poly1305::new(&kdf.send_secret.into())),
+            recv_state: RecvState::new(&kdf.recv_secret.into()),
+            send_state: SendState::new(&kdf.send_secret.into()),
         }
     }
 }
@@ -32,9 +32,9 @@ pub(crate) struct SendState {
 
 impl SendState {
     /// Initialize a new `SendState` with the given cipher instance.
-    pub(crate) fn new(cipher: ChaCha20Poly1305) -> Self {
+    pub(crate) fn new(key: &Key) -> Self {
         Self {
-            cipher,
+            cipher: ChaCha20Poly1305::new(key),
             nonce: Nonce::initial(),
             failed: false,
         }
@@ -89,9 +89,9 @@ pub(crate) struct RecvState {
 
 impl RecvState {
     /// Initialize a new `ReceiveState` with the given cipher instance.
-    pub(crate) fn new(cipher: ChaCha20Poly1305) -> Self {
+    pub(crate) fn new(key: &Key) -> Self {
         Self {
-            cipher,
+            cipher: ChaCha20Poly1305::new(key),
             nonce: Nonce::initial(),
             failed: false,
         }
