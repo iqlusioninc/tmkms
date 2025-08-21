@@ -17,23 +17,18 @@ pub enum Error {
     /// Protobuf decode message
     Decode(prost::DecodeError),
 
+    /// Internal error
+    // TODO(tarcieri): get rid of these cases in the code
+    Internal,
+
     /// I/O error
     Io(std::io::Error),
 
     /// Message exceeds the maximum allowed size.
-    MessageOversized {
+    MessageTooBig {
         /// Size of the message.
         size: usize,
     },
-
-    /// Public key missing
-    MissingKey,
-
-    /// Missing secret. Possibly forgot to call `Handshake::new`?
-    MissingSecret,
-
-    /// Key type supported (e.g. secp256k1)
-    UnsupportedKey,
 }
 
 impl Display for Error {
@@ -42,11 +37,9 @@ impl Display for Error {
             Self::BufferOverflow => f.write_str("output buffer is too small"),
             Self::Crypto(_) => f.write_str("cryptographic error"),
             Self::Decode(_) => f.write_str("malformed protocol message (version mismatch?)"),
+            Self::Internal => f.write_str("internal error"),
             Self::Io(_) => f.write_str("I/O error"),
-            Self::MessageOversized { size } => write!(f, "message is too large ({size} bytes)"),
-            Self::MissingKey => f.write_str("public key missing"),
-            Self::MissingSecret => f.write_str("missing secret (forgot to call Handshake::new?)"),
-            Self::UnsupportedKey => f.write_str("key type (e.g. secp256k1) is not supported"),
+            Self::MessageTooBig { size } => write!(f, "message is too big ({size} bytes)"),
         }
     }
 }

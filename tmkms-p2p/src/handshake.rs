@@ -93,9 +93,7 @@ impl Handshake<AwaitingEphKey> {
             return Err(CryptoError::INSECURE_KEY.into());
         }
 
-        let Some(local_eph_privkey) = self.state.local_eph_privkey.take() else {
-            return Err(Error::MissingSecret);
-        };
+        let local_eph_privkey = self.state.local_eph_privkey.take().ok_or(Error::Internal)?;
         let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
 
         // Compute common shared secret.
@@ -165,14 +163,13 @@ impl Handshake<AwaitingAuthSig> {
         let pk_sum = auth_sig_msg
             .pub_key
             .and_then(|key| key.sum)
-            .ok_or(Error::MissingKey)?;
+            .ok_or(Error::Internal)?;
 
         let remote_pubkey = match pk_sum {
             proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
-                ed25519::VerifyingKey::try_from(&bytes[..])
-                    .map_err(|_| CryptoError::SIGNATURE.into())
+                ed25519::VerifyingKey::try_from(&bytes[..]).map_err(|_| CryptoError::SIGNATURE)
             }
-            proto::crypto::public_key::Sum::Secp256k1(_) => Err(Error::UnsupportedKey),
+            proto::crypto::public_key::Sum::Secp256k1(_) => Err(CryptoError::SIGNATURE),
         }?;
 
         let remote_sig = ed25519::Signature::try_from(auth_sig_msg.sig.as_slice())
