@@ -9,22 +9,22 @@ use std::{
     os::unix::net::UnixStream,
     thread,
 };
-use tmkms_p2p::{ReadMsg, SecretConnection, WriteMsg, ed25519};
+use tmkms_p2p::{IdentitySecret, ReadMsg, SecretConnection, WriteMsg};
 
 /// Maximum example message length to generate.
 const MAX_MSG_LEN: usize = 65535;
 
 prop_compose! {
-    fn ed25519_signing_key()(bytes in any::<[u8; 32]>()) -> ed25519::SigningKey {
-        ed25519::SigningKey::from_bytes(&bytes)
+    fn identity_secret()(bytes in any::<[u8; 32]>()) -> IdentitySecret {
+        IdentitySecret::from_bytes(&bytes)
     }
 }
 
 proptest! {
     #[test]
     fn integration_test(
-        alice_sk in ed25519_signing_key(),
-        bob_sk in ed25519_signing_key(),
+        alice_sk in identity_secret(),
+        bob_sk in identity_secret(),
         example_msg in collection::vec(any::<u8>(), 0..MAX_MSG_LEN)
     ) {
         let bob_pk = bob_sk.verifying_key();
@@ -55,7 +55,7 @@ impl<Io> TestServer<Io>
 where
     Io: Read + Write + Send + Sync + 'static,
 {
-    fn run(io: Io, sk: ed25519::SigningKey) -> thread::JoinHandle<()> {
+    fn run(io: Io, sk: IdentitySecret) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             let conn = SecretConnection::new(io, sk).unwrap();
             TestServer { conn }.handle_request()
