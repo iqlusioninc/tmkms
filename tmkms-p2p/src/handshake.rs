@@ -34,10 +34,18 @@ pub(crate) type EphemeralSecret = [u8; 32];
 #[derive(Debug, Default)]
 pub(crate) struct InitialMessage {
     /// X25519 public key.
-    pub public_key: EphemeralPublic,
+    pub pub_key: EphemeralPublic,
 }
 
 impl InitialMessage {
+    /// Length of the initial message when encoded with a length delimiter.
+    ///
+    /// - 1-byte outer length delimiter
+    /// - 1-byte proto tag (field ID + wiretype)
+    /// - 1-byte inner length delimiter
+    /// - 32-byte X25519 public key
+    pub(crate) const ENCODED_LEN: usize = 35;
+
     /// Field ID of the public key.
     const FIELD_TAG: u8 = 1;
 
@@ -57,7 +65,7 @@ impl Message for InitialMessage {
         buf.put_u8(size_of::<EphemeralPublic>() as u8);
 
         // Bytes value
-        buf.put_slice(self.public_key.as_bytes());
+        buf.put_slice(self.pub_key.as_bytes());
     }
 
     fn merge_field(
@@ -73,7 +81,7 @@ impl Message for InitialMessage {
         if wire_type == Self::WIRE_TYPE && tag == Self::FIELD_TAG as u32 {
             let len = buf.get_u8();
             if len as usize == size_of::<EphemeralPublic>() {
-                buf.copy_to_slice(&mut self.public_key.0);
+                buf.copy_to_slice(&mut self.pub_key.0);
             } else {
                 return Err(DecodeError::new("expected a 32-byte X25519 public key"));
             }
@@ -89,6 +97,14 @@ impl Message for InitialMessage {
 
     fn clear(&mut self) {
         *self = Default::default();
+    }
+}
+
+impl From<EphemeralPublic> for InitialMessage {
+    fn from(public_key: EphemeralPublic) -> Self {
+        Self {
+            pub_key: public_key,
+        }
     }
 }
 
@@ -290,7 +306,7 @@ mod tests {
     #[test]
     fn initial_handshake_encode() {
         let handshake_msg = InitialMessage {
-            public_key: ALICE_X25519_PK,
+            pub_key: ALICE_X25519_PK,
         };
 
         assert_eq!(
@@ -305,7 +321,7 @@ mod tests {
             InitialMessage::decode_length_delimited(ALICE_HANDSHAKE_INITIAL_MSG.as_slice())
                 .unwrap();
 
-        assert_eq!(handshake_msg.public_key, ALICE_X25519_PK);
+        assert_eq!(handshake_msg.pub_key, ALICE_X25519_PK);
     }
 
     #[test]
