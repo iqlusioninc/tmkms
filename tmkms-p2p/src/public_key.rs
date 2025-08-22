@@ -1,6 +1,7 @@
 //! Secret Connection peer identity public keys.
 
-use crate::{CryptoError, IdentitySecret, PeerId, Result, ed25519};
+use crate::{CryptoError, Error, IdentitySecret, PeerId, Result, ed25519, proto};
+use prost::DecodeError;
 use sha2::{Sha256, digest::Digest};
 use std::fmt::{self, Debug, Display};
 
@@ -43,6 +44,15 @@ impl PublicKey {
             }
         }
     }
+
+    /// Convert this [`PublicKey`] into a protobuf equivalent.
+    pub fn to_proto(&self) -> proto::crypto::PublicKey {
+        let pk = match self {
+            Self::Ed25519(pk) => proto::crypto::public_key::Sum::Ed25519(pk.as_ref().to_vec()),
+        };
+
+        proto::crypto::PublicKey { sum: Some(pk) }
+    }
 }
 
 impl Display for PublicKey {
@@ -62,12 +72,6 @@ impl Debug for PublicKey {
     }
 }
 
-impl From<&IdentitySecret> for PublicKey {
-    fn from(sk: &IdentitySecret) -> Self {
-        Self::Ed25519(sk.verifying_key())
-    }
-}
-
 impl From<ed25519::VerifyingKey> for PublicKey {
     fn from(pk: ed25519::VerifyingKey) -> Self {
         Self::Ed25519(pk)
@@ -77,5 +81,52 @@ impl From<ed25519::VerifyingKey> for PublicKey {
 impl From<&ed25519::VerifyingKey> for PublicKey {
     fn from(pk: &ed25519::VerifyingKey) -> Self {
         Self::from(*pk)
+    }
+}
+
+impl From<&IdentitySecret> for PublicKey {
+    fn from(sk: &IdentitySecret) -> Self {
+        Self::Ed25519(sk.verifying_key())
+    }
+}
+
+impl From<PublicKey> for proto::crypto::PublicKey {
+    fn from(pk: PublicKey) -> Self {
+        pk.to_proto()
+    }
+}
+
+impl From<&PublicKey> for proto::crypto::PublicKey {
+    fn from(pk: &PublicKey) -> Self {
+        pk.to_proto()
+    }
+}
+
+impl TryFrom<proto::crypto::PublicKey> for PublicKey {
+    type Error = Error;
+
+    fn try_from(pk: proto::crypto::PublicKey) -> Result<Self> {
+        Self::try_from(&pk)
+    }
+}
+
+impl TryFrom<&proto::crypto::PublicKey> for PublicKey {
+    type Error = Error;
+
+    fn try_from(pk: &proto::crypto::PublicKey) -> Result<Self> {
+        match &pk.sum {
+            Some(proto::crypto::public_key::Sum::Ed25519(bytes)) => {
+                ed25519::VerifyingKey::try_from(&bytes[..])
+                    .map(Self::Ed25519)
+                    .map_err(|_| {
+                        DecodeError::new("malformed PublicKey proto with invalid Ed25519 key")
+                            .into()
+                    })
+            }
+            _ => Err(DecodeError::new(
+                "malformed PublicKey proto or unsupported public key algorithm",
+            )
+            .into()),
+        }
     }
 }

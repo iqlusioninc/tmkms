@@ -18,17 +18,17 @@ use zeroize::Zeroize;
 /// Random scalar (before clamping).
 pub(crate) type EphemeralSecret = [u8; 32];
 
-/// Initial handshake message, i.e. first message sent by both peers.
+/// First message sent by both peers in a handshake. Contains the ephemeral public key.
 ///
 /// Uses the encoding for `google.protobuf.BytesValue`.
 // Implemented by hand so we can use stack-allocated buffers
 #[derive(Debug, Default)]
-pub(crate) struct InitialHandshake {
+pub(crate) struct InitialHandshakeMessage {
     /// X25519 public key.
     pub public_key: EphemeralPublic,
 }
 
-impl InitialHandshake {
+impl InitialHandshakeMessage {
     /// Field ID of the public key.
     const FIELD_TAG: u8 = 1;
 
@@ -36,7 +36,7 @@ impl InitialHandshake {
     const WIRE_TYPE: WireType = WireType::LengthDelimited;
 }
 
-impl Message for InitialHandshake {
+impl Message for InitialHandshakeMessage {
     fn encode_raw(&self, buf: &mut impl BufMut)
     where
         Self: Sized,
@@ -257,6 +257,20 @@ impl Handshake<AwaitingAuthSig> {
     }
 }
 
+/// Helper function for encoding Ed25519 `AuthSigMessage`s.
+#[must_use]
+pub(crate) fn encode_ed25519_auth_signature(
+    pub_key: &ed25519::VerifyingKey,
+    signature: &ed25519::Signature,
+) -> Vec<u8> {
+    let pub_key = PublicKey::from(pub_key).to_proto();
+    proto::p2p::AuthSigMessage {
+        pub_key: Some(pub_key),
+        sig: signature.to_vec(),
+    }
+    .encode_length_delimited_to_vec()
+}
+
 /// Low order points from <https://cr.yp.to/ecdh.html>.
 ///
 /// Rejecting them is suggested in the "May the Fourth" paper under Section 5:
@@ -289,35 +303,39 @@ const LOW_ORDER_POINTS: &[[u8; 32]] = &[
 
 #[cfg(test)]
 mod tests {
-    use super::{Handshake, InitialHandshake, LOW_ORDER_POINTS};
+    use super::{
+        Handshake, InitialHandshakeMessage, LOW_ORDER_POINTS, encode_ed25519_auth_signature,
+    };
     use crate::{
         CryptoError, EphemeralPublic, Error, ed25519,
         error::InternalCryptoError,
-        framing,
+        proto,
         test_vectors::{
-            ALICE_ED25519_PK, ALICE_ED25519_SK, ALICE_INITIAL_MSG, ALICE_SIG_MSG, ALICE_X25519_PK,
-            ALICE_X25519_SK, BOB_ED25519_PK, BOB_ED25519_SK, BOB_SIG_MSG, BOB_X25519_PK,
-            BOB_X25519_SK,
+            ALICE_ED25519_PK, ALICE_ED25519_SK, ALICE_HANDSHAKE_INITIAL_MSG,
+            ALICE_HANDSHAKE_SIG_MSG, ALICE_X25519_PK, ALICE_X25519_SK, BOB_ED25519_PK,
+            BOB_ED25519_SK, BOB_HANDSHAKE_SIG_MSG, BOB_X25519_PK, BOB_X25519_SK,
         },
     };
     use prost::Message as _;
 
     #[test]
     fn initial_handshake_encode() {
-        let handshake_msg = InitialHandshake {
+        let handshake_msg = InitialHandshakeMessage {
             public_key: ALICE_X25519_PK,
         };
 
         assert_eq!(
             handshake_msg.encode_length_delimited_to_vec(),
-            ALICE_INITIAL_MSG
+            ALICE_HANDSHAKE_INITIAL_MSG
         );
     }
 
     #[test]
     fn initial_handshake_decode() {
-        let handshake_msg =
-            InitialHandshake::decode_length_delimited(ALICE_INITIAL_MSG.as_slice()).unwrap();
+        let handshake_msg = InitialHandshakeMessage::decode_length_delimited(
+            ALICE_HANDSHAKE_INITIAL_MSG.as_slice(),
+        )
+        .unwrap();
 
         assert_eq!(handshake_msg.public_key, ALICE_X25519_PK);
     }
@@ -342,18 +360,19 @@ mod tests {
         assert_eq!(&alice_eph_pk, &ALICE_X25519_PK);
         assert_eq!(&bob_eph_pk, &BOB_X25519_PK);
 
-        let alice_sig = framing::encode_auth_signature(&alice_pk, alice_hs.local_signature());
-        let bob_sig = framing::encode_auth_signature(&bob_pk, bob_hs.local_signature());
+        let alice_sig = encode_ed25519_auth_signature(&alice_pk, alice_hs.local_signature());
+        let bob_sig = encode_ed25519_auth_signature(&bob_pk, bob_hs.local_signature());
 
-        assert_eq!(&alice_sig, &ALICE_SIG_MSG);
-        assert_eq!(&bob_sig, &BOB_SIG_MSG);
+        assert_eq!(&alice_sig, &ALICE_HANDSHAKE_SIG_MSG);
+        assert_eq!(&bob_sig, &BOB_HANDSHAKE_SIG_MSG);
 
-        let alice_authenticated_pk = bob_hs
-            .got_signature(framing::decode_auth_signature(&alice_sig).unwrap())
-            .unwrap();
-        let bob_authenticated_pk = alice_hs
-            .got_signature(framing::decode_auth_signature(&bob_sig).unwrap())
-            .unwrap();
+        let alice_sig_msg =
+            proto::p2p::AuthSigMessage::decode_length_delimited(alice_sig.as_slice()).unwrap();
+        let bob_sig_msg =
+            proto::p2p::AuthSigMessage::decode_length_delimited(bob_sig.as_slice()).unwrap();
+
+        let alice_authenticated_pk = bob_hs.got_signature(alice_sig_msg).unwrap();
+        let bob_authenticated_pk = alice_hs.got_signature(bob_sig_msg).unwrap();
 
         assert_eq!(alice_pk, alice_authenticated_pk.ed25519().unwrap());
         assert_eq!(bob_pk, bob_authenticated_pk.ed25519().unwrap());

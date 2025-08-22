@@ -1,11 +1,10 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    EphemeralPublic, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, Result, TAG_SIZE,
-    TOTAL_FRAME_SIZE, ed25519,
+    AUTH_SIG_MSG_RESPONSE_LEN, EphemeralPublic, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey,
+    Result, TAG_SIZE, TOTAL_FRAME_SIZE, ed25519,
     encryption::{CipherState, RecvState, SendState},
-    framing,
-    handshake::{Handshake, InitialHandshake},
+    handshake::{Handshake, InitialHandshakeMessage, encode_ed25519_auth_signature},
     proto,
 };
 use prost::Message;
@@ -125,12 +124,14 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         pubkey: &ed25519::VerifyingKey,
         local_signature: &ed25519::Signature,
     ) -> Result<proto::p2p::AuthSigMessage> {
-        let buf = framing::encode_auth_signature(pubkey, local_signature);
-        self.write_all(&buf)?;
+        let msg = encode_ed25519_auth_signature(pubkey, local_signature);
+        self.write_all(&msg)?;
 
-        let mut buf = [0u8; framing::AUTH_SIG_MSG_RESPONSE_LEN];
+        let mut buf = [0u8; AUTH_SIG_MSG_RESPONSE_LEN];
         self.read_exact(&mut buf)?;
-        framing::decode_auth_signature(&buf)
+        Ok(proto::p2p::AuthSigMessage::decode_length_delimited(
+            buf.as_slice(),
+        )?)
     }
 }
 
@@ -257,7 +258,7 @@ fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
 ) -> Result<EphemeralPublic> {
     // Send our pubkey and receive theirs in tandem.
     // TODO(ismail): Go does send/receive in parallel, but we send then receive in sequence
-    let initial_handshake_msg = InitialHandshake {
+    let initial_handshake_msg = InitialHandshakeMessage {
         public_key: local_eph_pubkey,
     }
     .encode_length_delimited_to_vec();
@@ -270,7 +271,7 @@ fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
     buf[0] = response_len;
     handler.read_exact(&mut buf[1..])?;
 
-    Ok(InitialHandshake::decode_length_delimited(buf.as_slice())?.public_key)
+    Ok(InitialHandshakeMessage::decode_length_delimited(buf.as_slice())?.public_key)
 }
 
 /// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.

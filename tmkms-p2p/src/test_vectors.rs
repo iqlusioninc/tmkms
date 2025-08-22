@@ -5,24 +5,28 @@
 
 #![cfg(test)]
 
-use crate::{EphemeralPublic, ed25519, framing};
+use crate::{AUTH_SIG_MSG_RESPONSE_LEN, EphemeralPublic, ed25519};
 use hex_literal::hex;
 
+/// Alice and Bob's Ed25519 identity (signature) secret keys
 pub(crate) const ALICE_ED25519_SK: ed25519::SecretKey =
     hex!("a0d068d7c44e951610d54a7eb90279e8a31b61128d44d2dd92311763c468185c");
 pub(crate) const BOB_ED25519_SK: ed25519::SecretKey =
     hex!("b07e65300419ce0b5d7274bcbc67fcfd3fb68272de9aa52a452a6889c7d33fd5");
 
+/// Alice and Bob's Ed25519 identity (signature) public keys
 pub(crate) const ALICE_ED25519_PK: [u8; 32] =
     hex!("8f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c76680");
 pub(crate) const BOB_ED25519_PK: [u8; 32] =
     hex!("1ac739117419d70a79bc031b74a7dbcf3e1d6f82342693078d526ddbd41984c2");
 
+/// Alice and Bob's X25519 Diffie-Hellman (encryption) secret keys
 pub(crate) const ALICE_X25519_SK: crate::handshake::EphemeralSecret =
     hex!("a14d1fe92419d4e23b4007079439b497ae77494ccda0195ac1c70680bb460908");
 pub(crate) const BOB_X25519_SK: crate::handshake::EphemeralSecret =
     hex!("b19aff79f5b8cd2f37d46b19e294364d843b1d820b0ac55ec72e9d4e7e04f041");
 
+/// Alice and Bob's X25519 Diffie-Hellman (encryption) public keys
 pub(crate) const ALICE_X25519_PK: EphemeralPublic = EphemeralPublic(hex!(
     "2faa1fdf0320284c3f8aae4f30c89f02bffac563155ddd572e887214464f5463"
 ));
@@ -30,25 +34,28 @@ pub(crate) const BOB_X25519_PK: EphemeralPublic = EphemeralPublic(hex!(
     "b129035e9bfe7416c0288b0f0914faee07392ed5ce9073ee0d13ae6f7654f07a"
 ));
 
-pub(crate) const ALICE_INITIAL_MSG: [u8; 35] =
+/// Alice's initial handshake message containing her X25519 public key
+pub(crate) const ALICE_HANDSHAKE_INITIAL_MSG: [u8; 35] =
     hex!("220a202faa1fdf0320284c3f8aae4f30c89f02bffac563155ddd572e887214464f5463");
 
-pub(crate) const ALICE_SIG: [u8; 64] = hex!(
-    "2735eb20c3f2b8d6643d761be7d873427ccbb83fd6f64d04e5cbf8a1fa523422dcbc17fe2fb831fcb378cf17136f19e67defaebbcbc06135df8a7471734e9406"
-);
-pub(crate) const ALICE_SIG_MSG: [u8; framing::AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
+/// Alice and Bob's signature messages authenticating the handshake transcript
+pub(crate) const ALICE_HANDSHAKE_SIG_MSG: [u8; AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
     "660a220a208f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c7668012402735eb20c3f2b8d6643d761be7d873427ccbb83fd6f64d04e5cbf8a1fa523422dcbc17fe2fb831fcb378cf17136f19e67defaebbcbc06135df8a7471734e9406"
 );
-pub(crate) const BOB_SIG_MSG: [u8; framing::AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
+pub(crate) const BOB_HANDSHAKE_SIG_MSG: [u8; AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
     "660a220a201ac739117419d70a79bc031b74a7dbcf3e1d6f82342693078d526ddbd41984c21240fc9ecf23994aef6a1eae80ebb2fe10ac8784b9ec08cf1d17a19a5d87c1217e11430f955c7f6c213a7f00a9cecd181214c3ffc62b352417c775dec6c93b3d7f0a"
 );
 
-pub(crate) const SHARED_SECRET: [u8; 32] =
+/// X25519 shared secret computed via elliptic curve Diffie-Hellman between Alice and Bob's keys
+pub(crate) const HANDSHAKE_SHARED_SECRET: [u8; 32] =
     hex!("d28c3fcbdb42e28d940d3823103d379693c3724a25d96e9f0524a7306b43ca44");
 
+/// ChaCha20Poly1305 encryption keys derived from the shared secret.
 pub(crate) const ENCRYPTION_KEY1: [u8; 32] =
     hex!("4de5c254243a6a7b52fafd0b0c4db59175975cd435e99b7f758265aaaeeea063");
 pub(crate) const ENCRYPTION_KEY2: [u8; 32] =
     hex!("6083a1a00e5ea92cdc380c55013f3c87d87ade022666fd5aad4ae3a1530d0885");
+
+/// Challenge message derived from the KDF.
 pub(crate) const CHALLENGE: [u8; 32] =
     hex!("cad18a7a530a6fd6e7f56e372aab9ac9410eb0ab4ca1cee89f5089e58d9e9e3e");

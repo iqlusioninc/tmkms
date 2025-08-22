@@ -165,7 +165,7 @@ impl Nonce {
 #[cfg(test)]
 mod tests {
     use super::CipherState;
-    use crate::{TAGGED_FRAME_SIZE, kdf::Kdf, test_vectors::SHARED_SECRET};
+    use crate::{TAGGED_FRAME_SIZE, kdf::Kdf, test_vectors::HANDSHAKE_SHARED_SECRET};
     use hex_literal::hex;
 
     /// Plaintext of the first message to send.
@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn encrypt() {
-        let kdf = Kdf::derive_secrets_and_challenge(&SHARED_SECRET, false);
+        let kdf = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, false);
         let mut send_state = CipherState::new(kdf).send_state;
 
         let mut buffer = [0u8; TAGGED_FRAME_SIZE];
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn decrypt() {
-        let kdf = Kdf::derive_secrets_and_challenge(&SHARED_SECRET, true);
+        let kdf = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, true);
         let mut recv_state = CipherState::new(kdf).recv_state;
 
         // TODO(tarcieri): better tests and length handling for decryption
