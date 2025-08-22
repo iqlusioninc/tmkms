@@ -1,6 +1,7 @@
 //! Secret Connection peer identity public keys.
 
-use crate::{CryptoError, Error, IdentitySecret, PeerId, Result, ed25519, proto};
+use crate::{Error, IdentitySecret, PeerId, Result, ed25519, proto};
+use ed25519_dalek::Verifier;
 use prost::DecodeError;
 use sha2::{Sha256, digest::Digest};
 use std::fmt::{self, Debug, Display};
@@ -16,12 +17,9 @@ impl PublicKey {
     /// From raw Ed25519 public key bytes
     ///
     /// # Errors
-    ///
-    /// * if the bytes given are invalid
+    /// - if the bytes given are invalid
     pub fn from_raw_ed25519(bytes: &[u8]) -> Result<Self> {
-        ed25519::VerifyingKey::try_from(bytes)
-            .map(Self::Ed25519)
-            .map_err(|_| CryptoError::SIGNATURE.into())
+        Ok(ed25519::VerifyingKey::try_from(bytes).map(Self::Ed25519)?)
     }
 
     /// Get Ed25519 public key.
@@ -52,6 +50,16 @@ impl PublicKey {
         };
 
         proto::crypto::PublicKey { sum: Some(pk) }
+    }
+
+    /// Verify the given message and signature using this public key.
+    pub(crate) fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<()> {
+        match self {
+            Self::Ed25519(ed25519_vk) => {
+                let sig = ed25519::Signature::try_from(sig)?;
+                Ok(ed25519_vk.verify(msg, &sig)?)
+            }
+        }
     }
 }
 

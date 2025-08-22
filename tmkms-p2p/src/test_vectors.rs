@@ -5,7 +5,7 @@
 
 #![cfg(test)]
 
-use crate::{AUTH_SIG_MSG_RESPONSE_LEN, EphemeralPublic, ed25519};
+use crate::{EphemeralPublic, ed25519};
 use hex_literal::hex;
 
 /// Alice and Bob's Ed25519 identity (signature) secret keys
@@ -39,10 +39,10 @@ pub(crate) const ALICE_HANDSHAKE_INITIAL_MSG: [u8; 35] =
     hex!("220a202faa1fdf0320284c3f8aae4f30c89f02bffac563155ddd572e887214464f5463");
 
 /// Alice and Bob's signature messages authenticating the handshake transcript
-pub(crate) const ALICE_HANDSHAKE_SIG_MSG: [u8; AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
+pub(crate) const ALICE_HANDSHAKE_SIG_MSG: [u8; 103] = hex!(
     "660a220a208f5a716b651b628b3e6fffd28f8b1fafc765fcfca53f7cad89f4680585c7668012402735eb20c3f2b8d6643d761be7d873427ccbb83fd6f64d04e5cbf8a1fa523422dcbc17fe2fb831fcb378cf17136f19e67defaebbcbc06135df8a7471734e9406"
 );
-pub(crate) const BOB_HANDSHAKE_SIG_MSG: [u8; AUTH_SIG_MSG_RESPONSE_LEN] = hex!(
+pub(crate) const BOB_HANDSHAKE_SIG_MSG: [u8; 103] = hex!(
     "660a220a201ac739117419d70a79bc031b74a7dbcf3e1d6f82342693078d526ddbd41984c21240fc9ecf23994aef6a1eae80ebb2fe10ac8784b9ec08cf1d17a19a5d87c1217e11430f955c7f6c213a7f00a9cecd181214c3ffc62b352417c775dec6c93b3d7f0a"
 );
 

@@ -1,8 +1,17 @@
-//! Secret connection handshakes.
+//! Secret Connection handshakes.
+//!
+//! Performs an authenticated key exchange, first using ephemeral X25519 D-H to establish a shared
+//! symmetric key, using [Merlin] to compute a signature over the handshake, then signing the result
+//! using Ed25519, providing the signature in the handshake response message.
+//!
+//! For more information, see the [sepcification].
+//!
+//! [Merlin]:
+//! [specification]: https://github.com/cometbft/cometbft/blob/015f455/spec/p2p/legacy-docs/peer.md#authenticated-encryption-handshake
 
 use crate::{
     CryptoError, EphemeralPublic, Error, PublicKey, Result,
-    ed25519::{self, Signer, Verifier},
+    ed25519::{self, Signer},
     encryption::CipherState,
     kdf::Kdf,
     proto,
@@ -23,12 +32,12 @@ pub(crate) type EphemeralSecret = [u8; 32];
 /// Uses the encoding for `google.protobuf.BytesValue`.
 // Implemented by hand so we can use stack-allocated buffers
 #[derive(Debug, Default)]
-pub(crate) struct InitialHandshakeMessage {
+pub(crate) struct InitialMessage {
     /// X25519 public key.
     pub public_key: EphemeralPublic,
 }
 
-impl InitialHandshakeMessage {
+impl InitialMessage {
     /// Field ID of the public key.
     const FIELD_TAG: u8 = 1;
 
@@ -36,7 +45,7 @@ impl InitialHandshakeMessage {
     const WIRE_TYPE: WireType = WireType::LengthDelimited;
 }
 
-impl Message for InitialHandshakeMessage {
+impl Message for InitialMessage {
     fn encode_raw(&self, buf: &mut impl BufMut)
     where
         Self: Sized,
@@ -83,30 +92,19 @@ impl Message for InitialHandshakeMessage {
     }
 }
 
-/// Handshake is a process of establishing the `SecretConnection` between two peers.
-/// [Specification](https://github.com/cometbft/cometbft/blob/015f455/spec/p2p/legacy-docs/peer.md#authenticated-encryption-handshake)
-pub(crate) struct Handshake<S> {
-    state: S,
-}
-
-//
-// Handshake states
-//
-
-/// `AwaitingEphKey` means we're waiting for the remote ephemeral pubkey.
-pub(crate) struct AwaitingEphKey {
+/// Initial state of the handshake where we are waiting for the remote ephemeral pubkey.
+pub(crate) struct InitialState {
     local_privkey: ed25519::SigningKey,
     local_eph_privkey: Option<EphemeralSecret>,
 }
 
-impl Drop for AwaitingEphKey {
+impl Drop for InitialState {
     fn drop(&mut self) {
         self.local_eph_privkey.zeroize();
     }
 }
 
-#[allow(clippy::use_self)]
-impl Handshake<AwaitingEphKey> {
+impl InitialState {
     /// Initiate a handshake with a randomly generated ephemeral secret.
     pub(crate) fn new(local_privkey: ed25519::SigningKey) -> (Self, EphemeralPublic) {
         let mut local_eph_privkey = EphemeralSecret::default();
@@ -123,11 +121,9 @@ impl Handshake<AwaitingEphKey> {
         let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
 
         (
-            Self {
-                state: AwaitingEphKey {
-                    local_privkey,
-                    local_eph_privkey: Some(local_eph_privkey),
-                },
+            InitialState {
+                local_privkey,
+                local_eph_privkey: Some(local_eph_privkey),
             },
             local_eph_pubkey,
         )
@@ -145,7 +141,7 @@ impl Handshake<AwaitingEphKey> {
     pub fn got_key(
         &mut self,
         remote_eph_pubkey: EphemeralPublic,
-    ) -> Result<(Handshake<AwaitingAuthSig>, CipherState)> {
+    ) -> Result<(AwaitingResponse, CipherState)> {
         // Reject the remote public key if it is of low order. This is a belt-and-suspenders defense
         // though the real security of the protocol lies in MAC verification via the Merlin
         // transcript hash.
@@ -161,7 +157,7 @@ impl Handshake<AwaitingEphKey> {
             return Err(CryptoError::INSECURE_KEY.into());
         }
 
-        let local_eph_privkey = self.state.local_eph_privkey.take().ok_or(Error::Internal)?;
+        let local_eph_privkey = self.local_eph_privkey.take().ok_or(Error::Internal)?;
         let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
 
         // Compute common shared secret.
@@ -204,71 +200,46 @@ impl Handshake<AwaitingEphKey> {
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
 
         // Sign the challenge bytes for authentication.
-        let local_signature = self.state.local_privkey.sign(&sc_mac);
+        let local_signature = self.local_privkey.sign(&sc_mac);
 
-        let state = AwaitingAuthSig {
+        let state = AwaitingResponse {
             sc_mac,
             local_signature,
         };
 
-        Ok((Handshake { state }, cipher_state))
+        Ok((state, cipher_state))
     }
 }
 
-/// `AwaitingAuthSig` means we're waiting for the remote authenticated signature.
-pub(crate) struct AwaitingAuthSig {
+/// State after we've received the initial handshake message where we're waiting for the remote
+/// authenticated signature (`AuthSigMsg`).
+pub(crate) struct AwaitingResponse {
     sc_mac: [u8; 32],
     local_signature: ed25519::Signature,
 }
 
-impl Handshake<AwaitingAuthSig> {
+impl AwaitingResponse {
     /// Returns a verified pubkey of the remote peer.
     ///
     /// # Errors
-    ///
-    /// * if signature scheme isn't supported
+    /// - if signature scheme isn't supported
+    /// - if signature fails to verify
     pub fn got_signature(&self, auth_sig_msg: proto::p2p::AuthSigMessage) -> Result<PublicKey> {
-        let pk_sum = auth_sig_msg
+        let remote_pubkey: PublicKey = auth_sig_msg
             .pub_key
-            .and_then(|key| key.sum)
-            .ok_or(Error::Internal)?;
+            .ok_or(DecodeError::new("public key missing from `AuthSigMsg`"))?
+            .try_into()?;
 
-        let remote_pubkey = match pk_sum {
-            proto::crypto::public_key::Sum::Ed25519(ref bytes) => {
-                ed25519::VerifyingKey::try_from(&bytes[..]).map_err(|_| CryptoError::SIGNATURE)
-            }
-            proto::crypto::public_key::Sum::Secp256k1(_) => Err(CryptoError::SIGNATURE),
-        }?;
+        remote_pubkey.verify(&self.sc_mac, &auth_sig_msg.sig)?;
 
-        let remote_sig = ed25519::Signature::try_from(auth_sig_msg.sig.as_slice())
-            .map_err(|_| CryptoError::SIGNATURE)?;
-
-        remote_pubkey
-            .verify(&self.state.sc_mac, &remote_sig)
-            .map_err(|_| CryptoError::SIGNATURE)?;
-
-        // We've authorized.
-        Ok(remote_pubkey.into())
+        // We've authenticated the remote peer's signature over the handshake.
+        Ok(remote_pubkey)
     }
 
     /// Borrow the local signature.
     pub fn local_signature(&self) -> &ed25519::Signature {
-        &self.state.local_signature
+        &self.local_signature
     }
-}
-
-/// Helper function for encoding Ed25519 `AuthSigMessage`s.
-#[must_use]
-pub(crate) fn encode_ed25519_auth_signature(
-    pub_key: &ed25519::VerifyingKey,
-    signature: &ed25519::Signature,
-) -> Vec<u8> {
-    let pub_key = PublicKey::from(pub_key).to_proto();
-    proto::p2p::AuthSigMessage {
-        pub_key: Some(pub_key),
-        sig: signature.to_vec(),
-    }
-    .encode_length_delimited_to_vec()
 }
 
 /// Low order points from <https://cr.yp.to/ecdh.html>.
@@ -303,11 +274,9 @@ const LOW_ORDER_POINTS: &[[u8; 32]] = &[
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        Handshake, InitialHandshakeMessage, LOW_ORDER_POINTS, encode_ed25519_auth_signature,
-    };
+    use super::{InitialMessage, InitialState, LOW_ORDER_POINTS};
     use crate::{
-        CryptoError, EphemeralPublic, Error, ed25519,
+        CryptoError, EphemeralPublic, Error, PublicKey, ed25519,
         error::InternalCryptoError,
         proto,
         test_vectors::{
@@ -320,7 +289,7 @@ mod tests {
 
     #[test]
     fn initial_handshake_encode() {
-        let handshake_msg = InitialHandshakeMessage {
+        let handshake_msg = InitialMessage {
             public_key: ALICE_X25519_PK,
         };
 
@@ -332,10 +301,9 @@ mod tests {
 
     #[test]
     fn initial_handshake_decode() {
-        let handshake_msg = InitialHandshakeMessage::decode_length_delimited(
-            ALICE_HANDSHAKE_INITIAL_MSG.as_slice(),
-        )
-        .unwrap();
+        let handshake_msg =
+            InitialMessage::decode_length_delimited(ALICE_HANDSHAKE_INITIAL_MSG.as_slice())
+                .unwrap();
 
         assert_eq!(handshake_msg.public_key, ALICE_X25519_PK);
     }
@@ -351,8 +319,9 @@ mod tests {
         assert_eq!(&alice_pk.to_bytes(), &ALICE_ED25519_PK);
         assert_eq!(&bob_pk.to_bytes(), &BOB_ED25519_PK);
 
-        let (mut alice_hs, alice_eph_pk) = Handshake::new_with_ephemeral(alice_sk, ALICE_X25519_SK);
-        let (mut bob_hs, bob_eph_pk) = Handshake::new_with_ephemeral(bob_sk, BOB_X25519_SK);
+        let (mut alice_hs, alice_eph_pk) =
+            InitialState::new_with_ephemeral(alice_sk, ALICE_X25519_SK);
+        let (mut bob_hs, bob_eph_pk) = InitialState::new_with_ephemeral(bob_sk, BOB_X25519_SK);
 
         let (alice_hs, _alice_cs) = alice_hs.got_key(bob_eph_pk).unwrap();
         let (bob_hs, _bob_cs) = bob_hs.got_key(alice_eph_pk).unwrap();
@@ -360,19 +329,26 @@ mod tests {
         assert_eq!(&alice_eph_pk, &ALICE_X25519_PK);
         assert_eq!(&bob_eph_pk, &BOB_X25519_PK);
 
-        let alice_sig = encode_ed25519_auth_signature(&alice_pk, alice_hs.local_signature());
-        let bob_sig = encode_ed25519_auth_signature(&bob_pk, bob_hs.local_signature());
+        let alice_sig = proto::p2p::AuthSigMessage {
+            pub_key: Some(PublicKey::from(&alice_pk).into()),
+            sig: alice_hs.local_signature().to_vec(),
+        };
+        let bob_sig = proto::p2p::AuthSigMessage {
+            pub_key: Some(PublicKey::from(&bob_pk).into()),
+            sig: bob_hs.local_signature().to_vec(),
+        };
 
-        assert_eq!(&alice_sig, &ALICE_HANDSHAKE_SIG_MSG);
-        assert_eq!(&bob_sig, &BOB_HANDSHAKE_SIG_MSG);
+        assert_eq!(
+            &alice_sig.encode_length_delimited_to_vec(),
+            &ALICE_HANDSHAKE_SIG_MSG
+        );
+        assert_eq!(
+            &bob_sig.encode_length_delimited_to_vec(),
+            &BOB_HANDSHAKE_SIG_MSG
+        );
 
-        let alice_sig_msg =
-            proto::p2p::AuthSigMessage::decode_length_delimited(alice_sig.as_slice()).unwrap();
-        let bob_sig_msg =
-            proto::p2p::AuthSigMessage::decode_length_delimited(bob_sig.as_slice()).unwrap();
-
-        let alice_authenticated_pk = bob_hs.got_signature(alice_sig_msg).unwrap();
-        let bob_authenticated_pk = alice_hs.got_signature(bob_sig_msg).unwrap();
+        let alice_authenticated_pk = bob_hs.got_signature(alice_sig).unwrap();
+        let bob_authenticated_pk = alice_hs.got_signature(bob_sig).unwrap();
 
         assert_eq!(alice_pk, alice_authenticated_pk.ed25519().unwrap());
         assert_eq!(bob_pk, bob_authenticated_pk.ed25519().unwrap());
@@ -384,7 +360,7 @@ mod tests {
 
         for point in LOW_ORDER_POINTS {
             let (mut handshake, _) =
-                Handshake::new_with_ephemeral(alice_sk.clone(), ALICE_X25519_SK);
+                InitialState::new_with_ephemeral(alice_sk.clone(), ALICE_X25519_SK);
             let err = handshake.got_key(EphemeralPublic(*point)).err().unwrap();
             assert!(matches!(
                 err,
