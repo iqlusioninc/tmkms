@@ -5,9 +5,10 @@ use crate::{
     TOTAL_FRAME_SIZE, ed25519,
     encryption::{CipherState, RecvState, SendState},
     framing,
-    handshake::Handshake,
+    handshake::{Handshake, InitialHandshake},
     proto,
 };
+use prost::Message;
 use std::{
     cmp,
     io::{self, Read, Write},
@@ -83,7 +84,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         let (mut h, local_eph_pubkey) = Handshake::new(local_privkey);
 
         // Write local ephemeral pubkey and receive one too.
-        let remote_eph_pubkey = share_eph_pubkey(&mut io_handler, &local_eph_pubkey)?;
+        let remote_eph_pubkey = share_eph_pubkey(&mut io_handler, local_eph_pubkey)?;
 
         // Compute a local signature (also recv_cipher & send_cipher)
         let (h, cipher_state) = h.got_key(remote_eph_pubkey)?;
@@ -252,12 +253,15 @@ impl<Io: Read> Read for Receiver<Io> {
 /// Returns `remote_eph_pubkey`
 fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
     handler: &mut Io,
-    local_eph_pubkey: &EphemeralPublic,
+    local_eph_pubkey: EphemeralPublic,
 ) -> Result<EphemeralPublic> {
     // Send our pubkey and receive theirs in tandem.
-    // TODO(ismail): Go does send and receive in parallel, here we do send and receive after
-    // each other.
-    handler.write_all(&framing::encode_initial_handshake(local_eph_pubkey))?;
+    // TODO(ismail): Go does send/receive in parallel, but we send then receive in sequence
+    let initial_handshake_msg = InitialHandshake {
+        public_key: local_eph_pubkey,
+    }
+    .encode_length_delimited_to_vec();
+    handler.write_all(&initial_handshake_msg)?;
 
     let mut response_len = 0_u8;
     handler.read_exact(slice::from_mut(&mut response_len))?;
@@ -266,7 +270,7 @@ fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
     buf[0] = response_len;
     handler.read_exact(&mut buf[1..])?;
 
-    framing::decode_initial_handshake(&buf)
+    Ok(InitialHandshake::decode_length_delimited(buf.as_slice())?.public_key)
 }
 
 /// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.
