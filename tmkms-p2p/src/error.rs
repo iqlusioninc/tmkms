@@ -8,9 +8,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Error type
 #[derive(Debug)]
 pub enum Error {
-    /// Output buffer is too small
-    BufferOverflow,
-
     /// Cryptographic errors
     Crypto(CryptoError),
 
@@ -34,7 +31,6 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::BufferOverflow => f.write_str("output buffer is too small"),
             Self::Crypto(_) => f.write_str("cryptographic error"),
             Self::Decode(_) => f.write_str("malformed protocol message (version mismatch?)"),
             Self::Internal => f.write_str("internal error"),
