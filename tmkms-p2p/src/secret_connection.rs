@@ -10,7 +10,6 @@ use prost::Message;
 use std::{
     cmp,
     io::{self, Read, Write},
-    net::TcpStream,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -46,17 +45,6 @@ macro_rules! checked_io {
 /// Due to the underlying encryption mechanism (currently [RFC 8439]), when a
 /// read or write failure occurs, it is necessary to disconnect from the remote
 /// peer and attempt to reconnect.
-///
-/// ## Half and full-duplex connections
-/// By default, a `SecretConnection` facilitates half-duplex operations (i.e.
-/// one can either read from the connection or write to it at a given time, but
-/// not both simultaneously).
-///
-/// If, however, the underlying I/O handler is a [`TcpStream`], then you can use
-/// [`SecretConnection::split`] to split the `SecretConnection` into sending and receiving halves.
-///
-/// Each of these halves can then be used in a separate thread to facilitate full-duplex
-/// communication.
 ///
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
 pub struct SecretConnection<Io> {
@@ -203,91 +191,6 @@ impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
         self.read_exact(&mut msg[msg_prefix.len()..])?;
 
         Ok(M::decode_length_delimited(msg.as_slice())?)
-    }
-}
-
-impl SecretConnection<TcpStream> {
-    /// For secret connections whose underlying I/O layer is a [`TcpStream`], this splits a
-    /// connection into its sending and receiving halves.
-    ///
-    /// This facilitates full-duplex communications when each half is used in
-    /// a separate thread.
-    ///
-    /// # Errors
-    /// Fails when the `try_clone` operation for the underlying I/O handler fails.
-    ///
-    /// # Panics
-    /// - if the remote pubkey is not initialized.
-    pub fn split(self) -> Result<(Sender<TcpStream>, Receiver<TcpStream>)> {
-        let remote_pubkey = self.remote_pubkey.expect("remote_pubkey to be initialized");
-        Ok((
-            Sender {
-                io_handler: self.io_handler.try_clone()?,
-                remote_pubkey,
-                state: self.cipher_state.send_state,
-                terminate: self.terminate.clone(),
-            },
-            Receiver {
-                io_handler: self.io_handler,
-                remote_pubkey,
-                state: self.cipher_state.recv_state,
-                buffer: self.recv_buffer,
-                terminate: self.terminate,
-            },
-        ))
-    }
-}
-
-/// The sending end of a [`SecretConnection`].
-pub struct Sender<Io> {
-    io_handler: Io,
-    remote_pubkey: PublicKey,
-    state: SendState,
-    terminate: Arc<AtomicBool>,
-}
-
-impl<Io> Sender<Io> {
-    /// Returns the remote pubkey. Panics if there's no key.
-    pub const fn remote_pubkey(&self) -> PublicKey {
-        self.remote_pubkey
-    }
-}
-
-impl<Io: Write> Write for Sender<Io> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        checked_io!(
-            self.terminate,
-            encrypt_and_write(&mut self.state, &mut self.io_handler, buf)
-        )
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        checked_io!(self.terminate, self.io_handler.flush())
-    }
-}
-
-/// The receiving end of a [`SecretConnection`].
-pub struct Receiver<Io> {
-    io_handler: Io,
-    remote_pubkey: PublicKey,
-    state: RecvState,
-    buffer: Vec<u8>,
-    terminate: Arc<AtomicBool>,
-}
-
-impl<Io> Receiver<Io> {
-    /// Returns the remote pubkey. Panics if there's no key.
-    pub const fn remote_pubkey(&self) -> PublicKey {
-        self.remote_pubkey
-    }
-}
-
-impl<Io: Read> Read for Receiver<Io> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        checked_io!(
-            self.terminate,
-            read_and_decrypt(&mut self.state, &mut self.buffer, &mut self.io_handler, buf)
-        )
     }
 }
 
