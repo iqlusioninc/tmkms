@@ -1,8 +1,8 @@
 //! Symmetric encryption.
 
 use crate::{
-    CryptoError, Error, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, Result, TAG_SIZE, TAGGED_FRAME_SIZE,
-    TOTAL_FRAME_SIZE, kdf::Kdf,
+    CryptoError, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, TAG_SIZE, TAGGED_FRAME_SIZE, TOTAL_FRAME_SIZE,
+    kdf::Kdf,
 };
 use aead::AeadInPlace;
 use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit};
@@ -46,9 +46,9 @@ impl SendState {
         &mut self,
         chunk: &[u8],
         sealed_frame: &mut [u8; TAGGED_FRAME_SIZE],
-    ) -> Result<()> {
+    ) -> Result<(), CryptoError> {
         if self.failed {
-            return Err(CryptoError::ENCRYPTION.into());
+            return Err(CryptoError::ENCRYPTION);
         }
 
         assert!(!chunk.is_empty(), "chunk is empty");
@@ -98,16 +98,20 @@ impl RecvState {
     }
 
     /// Decrypt AEAD authenticated data
-    pub(crate) fn decrypt(&mut self, ciphertext: &[u8], out: &mut [u8]) -> Result<usize> {
+    pub(crate) fn decrypt(
+        &mut self,
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, CryptoError> {
         if self.failed || ciphertext.len() < TAG_SIZE {
-            return Err(CryptoError::ENCRYPTION.into());
+            return Err(CryptoError::ENCRYPTION);
         }
 
         // Split ChaCha20 ciphertext from the Poly1305 tag
         let (ct, tag) = ciphertext.split_at(ciphertext.len() - TAG_SIZE);
 
         if out.len() < ct.len() {
-            return Err(Error::BufferOverflow);
+            return Err(CryptoError::ENCRYPTION);
         }
 
         let in_out = &mut out[..ct.len()];
@@ -119,7 +123,7 @@ impl RecvState {
             .is_err()
         {
             self.failed = true;
-            return Err(CryptoError::ENCRYPTION.into());
+            return Err(CryptoError::ENCRYPTION);
         }
 
         self.nonce.increment();
