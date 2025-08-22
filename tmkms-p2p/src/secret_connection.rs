@@ -1,8 +1,8 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    EphemeralPublic, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, ReadMsg, Result, TAG_SIZE,
-    TOTAL_FRAME_SIZE, WriteMsg, ed25519,
+    FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, ReadMsg, Result, TAG_SIZE, TOTAL_FRAME_SIZE,
+    WriteMsg, ed25519,
     encryption::{CipherState, RecvState, SendState},
     handshake, proto,
 };
@@ -11,7 +11,6 @@ use std::{
     cmp,
     io::{self, Read, Write},
     net::TcpStream,
-    slice,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -77,14 +76,23 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     /// - if sharing of the signature fails
     /// - if receiving the signature fails
     pub fn new(mut io_handler: Io, local_privkey: ed25519::SigningKey) -> Result<Self> {
-        // Start a handshake process.
+        // Start a handshake process, generating a local ephemeral X25519 public key.
         let local_pubkey = PublicKey::from(&local_privkey);
         let (mut h, local_eph_pubkey) = handshake::InitialState::new(local_privkey);
 
-        // Write local ephemeral pubkey and receive one too.
-        let remote_eph_pubkey = share_eph_pubkey(&mut io_handler, local_eph_pubkey)?;
+        // Send our ephemeral X25519 public key to the remote peer (unencrypted).
+        // TODO(ismail): Go does send/receive in parallel, but we send then receive in sequence
+        io_handler.write_msg(&handshake::InitialMessage::from(local_eph_pubkey))?;
 
-        // Compute a local signature (also recv_cipher & send_cipher)
+        // Read the remote side's initial message containing their X25519 public key (unencrypted)
+        // TODO(tarcieri): use `ReadMsg` (currently incompatible with this use case)
+        let mut response_buf = [0u8; handshake::InitialMessage::ENCODED_LEN];
+        io_handler.read_exact(&mut response_buf)?;
+        let remote_eph_pubkey =
+            handshake::InitialMessage::decode_length_delimited(response_buf.as_slice())?.pub_key;
+
+        // Compute signature over the handshake transcript and initialize symmetric cipher state
+        // using shared secret computed using X25519.
         let (h, cipher_state) = h.got_key(remote_eph_pubkey)?;
 
         let mut sc = Self {
@@ -95,14 +103,15 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
             terminate: Arc::new(AtomicBool::new(false)),
         };
 
-        // Send our identity signing public key and signature over the transcript to the peer
+        // Send our identity's Ed25519 public key and signature over the transcript to the peer.
         sc.write_msg(&proto::p2p::AuthSigMessage {
             pub_key: Some(local_pubkey.into()),
             sig: h.local_signature().to_vec(),
         })?;
 
-        // Read the peer's identity signing public key and signature over the transcript
-        let auth_sig_msg = sc.read_msg::<proto::p2p::AuthSigMessage>()?;
+        // Read the peer's Ed25519 public key and use it to verify their signature over the
+        // handshake transcript.
+        let auth_sig_msg: proto::p2p::AuthSigMessage = sc.read_msg()?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
         let remote_pubkey = h.got_signature(auth_sig_msg)?;
@@ -235,29 +244,6 @@ impl<Io: Read> Read for Receiver<Io> {
             read_and_decrypt(&mut self.state, &mut self.buffer, &mut self.io_handler, buf)
         )
     }
-}
-
-/// Returns `remote_eph_pubkey`
-fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
-    handler: &mut Io,
-    local_eph_pubkey: EphemeralPublic,
-) -> Result<EphemeralPublic> {
-    // Send our pubkey and receive theirs in tandem.
-    // TODO(ismail): Go does send/receive in parallel, but we send then receive in sequence
-    let initial_handshake_msg = handshake::InitialMessage {
-        public_key: local_eph_pubkey,
-    }
-    .encode_length_delimited_to_vec();
-    handler.write_all(&initial_handshake_msg)?;
-
-    let mut response_len = 0_u8;
-    handler.read_exact(slice::from_mut(&mut response_len))?;
-
-    let mut buf = vec![0; usize::from(response_len) + 1];
-    buf[0] = response_len;
-    handler.read_exact(&mut buf[1..])?;
-
-    Ok(handshake::InitialMessage::decode_length_delimited(buf.as_slice())?.public_key)
 }
 
 /// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.
