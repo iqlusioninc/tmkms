@@ -10,22 +10,27 @@ use std::io::{Read, Write};
 /// we only support up to 1 MiB messages (`MAX_MSG_LEN`), which use 3-byte headers.
 const PREFIX_LEN: usize = 3;
 
+// NOTE: trait definitions below use a generic parameter on the trait rather than the method to
+// support dyn compatibility / object safety.
+//
+// For example, tmkms has a `ReadMsg + WriteMsg` connection type it stores in a `Box`.
+
 /// Read the given Protobuf message from the underlying I/O object.
-pub trait ReadMsg {
+pub trait ReadMsg<M: Message + Default> {
     /// Read from the underlying I/O object, decoding (and if necessary decrypting) the data
     /// to the given Protobuf message.
-    fn read_msg<M: Message + Default>(&mut self) -> Result<M>;
+    fn read_msg(&mut self) -> Result<M>;
 }
 
 /// Write the given Protobuf message to the underlying I/O object.
-pub trait WriteMsg {
+pub trait WriteMsg<M: Message> {
     /// Encode the given Protobuf as bytes and write them to the underlying I/O object
     /// (and encrypting if necessary).
-    fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()>;
+    fn write_msg(&mut self, msg: &M) -> Result<()>;
 }
 
-impl<Io: Read> ReadMsg for Io {
-    fn read_msg<M: Message + Default>(&mut self) -> Result<M> {
+impl<M: Message + Default, Io: Read> ReadMsg<M> for Io {
+    fn read_msg(&mut self) -> Result<M> {
         let mut prefix = [0u8; PREFIX_LEN];
         self.read_exact(&mut prefix)?;
 
@@ -45,8 +50,8 @@ impl<Io: Read> ReadMsg for Io {
     }
 }
 
-impl<Io: Write> WriteMsg for Io {
-    fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
+impl<M: Message, Io: Write> WriteMsg<M> for Io {
+    fn write_msg(&mut self, msg: &M) -> Result<()> {
         let bytes = msg.encode_length_delimited_to_vec();
         Ok(self.write_all(&bytes)?)
     }

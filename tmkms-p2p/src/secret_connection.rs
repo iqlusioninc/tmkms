@@ -85,11 +85,11 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         io_handler.write_msg(&handshake::InitialMessage::from(local_eph_pubkey))?;
 
         // Read the remote side's initial message containing their X25519 public key (unencrypted)
-        let remote_eph_pubkey = io_handler.read_msg::<handshake::InitialMessage>()?.pub_key;
+        let remote_initial_message: handshake::InitialMessage = io_handler.read_msg()?;
 
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
-        let (h, cipher_state) = h.got_key(remote_eph_pubkey)?;
+        let (h, cipher_state) = h.got_key(remote_initial_message.pub_key)?;
 
         let mut sc = Self {
             io_handler,
@@ -180,8 +180,8 @@ impl<Io: Write> Write for SecretConnection<Io> {
     }
 }
 
-impl<Io: Read> ReadMsg for SecretConnection<Io> {
-    fn read_msg<M: Message + Default>(&mut self) -> Result<M> {
+impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
+    fn read_msg(&mut self) -> Result<M> {
         let mut buf = [0u8; FRAME_MAX_SIZE];
         let nbytes = self.read(&mut buf)?;
 

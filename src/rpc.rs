@@ -29,7 +29,7 @@ impl Request {
         conn: &mut C,
         expected_chain_id: &chain::Id,
     ) -> Result<Self, Error> {
-        let msg = conn.read_request()?;
+        let msg = conn.read_msg()?;
 
         let (req, chain_id) = match msg.sum {
             Some(proto::privval::message::Sum::SignVoteRequest(
