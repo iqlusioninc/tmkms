@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 /// Message prefix length to always consume. This also represents the minimum message size.
 ///
 /// This is picked to ensure that the entire length prefix will always fit in this size, namely
-/// we only support up to 1 MiB messages (`MAX_MSG_LEN`), which use 3-byte headers.
+/// we only support up to 1 MiB messages (`MAX_MSG_LEN`), which use max 3-byte length prefixes.
 const PREFIX_LEN: usize = 3;
 
 // NOTE: trait definitions below use a generic parameter on the trait rather than the method to

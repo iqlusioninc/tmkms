@@ -14,10 +14,6 @@ pub enum Error {
     /// Protobuf decode message
     Decode(prost::DecodeError),
 
-    /// Internal error
-    // TODO(tarcieri): get rid of these cases in the code
-    Internal,
-
     /// I/O error
     Io(std::io::Error),
 
@@ -33,7 +29,6 @@ impl Display for Error {
         match self {
             Self::Crypto(_) => f.write_str("cryptographic error"),
             Self::Decode(_) => f.write_str("malformed protocol message (version mismatch?)"),
-            Self::Internal => f.write_str("internal error"),
             Self::Io(_) => f.write_str("I/O error"),
             Self::MessageSize { size } => write!(f, "unexpected message size ({size} bytes)"),
         }
