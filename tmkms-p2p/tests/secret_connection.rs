@@ -3,7 +3,7 @@
 #![cfg(unix)]
 
 use proptest::{collection, prelude::*};
-use prost_derive::Message;
+use prost::Message;
 use std::{
     io::{Read, Write},
     os::unix::net::UnixStream,
