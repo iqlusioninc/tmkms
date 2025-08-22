@@ -64,16 +64,18 @@ impl Drop for Kdf {
 #[cfg(test)]
 mod tests {
     use super::Kdf;
-    use crate::test_vectors::{CHALLENGE, ENCRYPTION_KEY1, ENCRYPTION_KEY2, SHARED_SECRET};
+    use crate::test_vectors::{
+        CHALLENGE, ENCRYPTION_KEY1, ENCRYPTION_KEY2, HANDSHAKE_SHARED_SECRET,
+    };
 
     #[test]
     fn kdf() {
-        let kdf1 = Kdf::derive_secrets_and_challenge(&SHARED_SECRET, false);
+        let kdf1 = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, false);
         assert_eq!(kdf1.recv_secret, ENCRYPTION_KEY1);
         assert_eq!(kdf1.send_secret, ENCRYPTION_KEY2);
         assert_eq!(kdf1.challenge, CHALLENGE);
 
-        let kdf2 = Kdf::derive_secrets_and_challenge(&SHARED_SECRET, true);
+        let kdf2 = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, true);
         assert_eq!(kdf2.recv_secret, ENCRYPTION_KEY2);
         assert_eq!(kdf2.send_secret, ENCRYPTION_KEY1);
         assert_eq!(kdf2.challenge, CHALLENGE);

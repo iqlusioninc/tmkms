@@ -12,7 +12,6 @@
 
 mod encryption;
 mod error;
-mod framing;
 mod handshake;
 mod kdf;
 mod msg_traits;
@@ -47,3 +46,7 @@ pub(crate) const TOTAL_FRAME_SIZE: usize = FRAME_MAX_SIZE + LENGTH_PREFIX_SIZE;
 /// Size of the `ChaCha20Poly1305` MAC tag
 pub(crate) const TAG_SIZE: usize = 16;
 pub(crate) const TAGGED_FRAME_SIZE: usize = TOTAL_FRAME_SIZE + TAG_SIZE;
+
+/// Length of the auth message response
+// 32 + 64 + (proto overhead = 1 prefix + 2 fields + 2 lengths + total length)
+pub(crate) const AUTH_SIG_MSG_RESPONSE_LEN: usize = 103;

@@ -20,13 +20,12 @@ authors = [
 aead = { version = "0.5", default-features = false }
 chacha20poly1305 = { version = "0.10", default-features = false }
 curve25519-dalek = { version = "4", default-features = false, features = ["rand_core"] }
-ed25519-dalek = { version = "2", default-features = false, features = ["zeroize"] }
+ed25519-dalek = { version = "2", default-features = false, features = ["alloc", "zeroize"] }
 hkdf = { version = "0.12.3", default-features = false }
 merlin = { version = "3", default-features = false }
 prost = { version = "0.13", default-features = false, features = ["std"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 sha2 = { version = "0.10", default-features = false }
-signature = { version = "2", default-features = false }
 subtle = { version = "2", default-features = false }
 tendermint-proto = { version = "0.40.4", default-features = false }
 zeroize = { version = "1", default-features = false }
