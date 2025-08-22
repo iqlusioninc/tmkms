@@ -15,6 +15,7 @@ mod error;
 mod handshake;
 mod kdf;
 mod msg_traits;
+mod proto;
 mod public_key;
 mod secret_connection;
 mod test_vectors;
@@ -34,7 +35,6 @@ pub type PeerId = [u8; 20];
 
 pub(crate) use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 pub(crate) use ed25519_dalek as ed25519;
-pub(crate) use tendermint_proto::v0_38 as proto;
 
 /// Maximum size of a message
 pub(crate) const FRAME_MAX_SIZE: usize = 1024;
