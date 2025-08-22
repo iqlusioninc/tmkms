@@ -122,7 +122,7 @@ impl Session {
             &self.config.chain_id, &self.config.addr, &response
         );
 
-        self.connection.write_response(&response.to_proto())?;
+        self.connection.write_msg(&response.to_proto())?;
         Ok(true)
     }
 

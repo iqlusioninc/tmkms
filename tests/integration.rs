@@ -14,14 +14,13 @@ use tempfile::NamedTempFile;
 use tendermint::node;
 use tendermint_proto as proto;
 use tmkms::connection::Connection;
-use tmkms::error::Error;
 use tmkms::{
     config::provider::KeyType,
     connection::unix::UnixConnection,
     keyring::ed25519,
     privval::{SignableMsg, SignedMsgType},
 };
-use tmkms_p2p::{self, PublicKey, SecretConnection};
+use tmkms_p2p::{self as p2p, PublicKey, ReadMsg, SecretConnection, WriteMsg};
 
 /// Integration tests for the KMS command-line interface
 mod cli;
@@ -49,18 +48,22 @@ enum KmsConnection {
     Unix(UnixConnection<UnixStream>),
 }
 
-impl Connection for KmsConnection {
-    fn read_request(&mut self) -> Result<proto::privval::Message, Error> {
+impl Connection for KmsConnection {}
+
+impl ReadMsg<proto::privval::Message> for KmsConnection {
+    fn read_msg(&mut self) -> p2p::Result<proto::privval::Message> {
         match self {
-            KmsConnection::Tcp(conn) => conn.read_request(),
-            KmsConnection::Unix(conn) => conn.read_request(),
+            KmsConnection::Tcp(conn) => conn.read_msg(),
+            KmsConnection::Unix(conn) => conn.read_msg(),
         }
     }
+}
 
-    fn write_response(&mut self, msg: &proto::privval::Message) -> Result<(), Error> {
+impl WriteMsg<proto::privval::Message> for KmsConnection {
+    fn write_msg(&mut self, msg: &proto::privval::Message) -> p2p::Result<()> {
         match self {
-            KmsConnection::Tcp(conn) => conn.write_response(msg),
-            KmsConnection::Unix(conn) => conn.write_response(msg),
+            KmsConnection::Tcp(conn) => conn.write_msg(msg),
+            KmsConnection::Unix(conn) => conn.write_msg(msg),
         }
     }
 }
@@ -241,17 +244,21 @@ impl Drop for ProtocolTester {
     }
 }
 
-impl Connection for ProtocolTester {
-    fn read_request(&mut self) -> Result<proto::privval::Message, Error> {
-        let tcp_msg = self.tcp_connection.read_request()?;
-        let unix_msg = self.unix_connection.read_request()?;
+impl Connection for ProtocolTester {}
+
+impl ReadMsg<proto::privval::Message> for ProtocolTester {
+    fn read_msg(&mut self) -> p2p::Result<proto::privval::Message> {
+        let tcp_msg = self.tcp_connection.read_msg()?;
+        let unix_msg = self.unix_connection.read_msg()?;
         assert_eq!(tcp_msg, unix_msg);
         Ok(tcp_msg)
     }
+}
 
-    fn write_response(&mut self, msg: &proto::privval::Message) -> Result<(), Error> {
-        self.tcp_connection.write_response(&msg)?;
-        self.unix_connection.write_response(&msg)?;
+impl WriteMsg<proto::privval::Message> for ProtocolTester {
+    fn write_msg(&mut self, msg: &proto::privval::Message) -> p2p::Result<()> {
+        self.tcp_connection.write_msg(&msg)?;
+        self.unix_connection.write_msg(&msg)?;
         Ok(())
     }
 }
@@ -585,13 +592,10 @@ fn test_handle_and_sign_ping_pong() {
 /// Encode request as a Protobuf message
 fn send_request(request: proto::privval::message::Sum, pt: &mut ProtocolTester) {
     let request = proto::privval::Message { sum: Some(request) };
-    pt.write_response(&request).unwrap();
+    pt.write_msg(&request).unwrap();
 }
 
 /// Read the response as a Protobuf message
 fn read_response(pt: &mut ProtocolTester) -> proto::privval::message::Sum {
-    pt.read_request()
-        .unwrap()
-        .sum
-        .expect("no sum field in message")
+    pt.read_msg().unwrap().sum.expect("no sum field in message")
 }
