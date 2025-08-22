@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0 (2025-08-22)
+### Added
+- `MAX_MSG_LEN` constant (#1053)
+
+### Changed
+- Drop `tendermint-proto` dependency (#1047)
+- Move `ReadMsg`/`WriteMsg` generic to trait (#1050)
+
+### Removed
+- `Error::BufferOverflow` (#1051)
+- `Error::Internal` (#1052)
+- `SecretConnection::split` (#1054)
+- Explicit low order point check (#1055)
+
 ## 0.3.0 (2025-08-20)
 ### Added
 - Re-export `IdentitySecret` (#1032)
