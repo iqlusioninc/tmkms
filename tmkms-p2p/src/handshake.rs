@@ -1,13 +1,12 @@
 //! Secret Connection handshakes.
 //!
 //! Performs an authenticated key exchange, first using ephemeral X25519 D-H to establish a shared
-//! symmetric key, using [Merlin] to compute a signature over the handshake, then signing the result
+//! symmetric key, using Merlin to compute a signature over the handshake, then signing the result
 //! using Ed25519, providing the signature in the handshake response message.
 //!
-//! For more information, see the [sepcification].
+//! For more information, see the specification:
 //!
-//! [Merlin]:
-//! [specification]: https://github.com/cometbft/cometbft/blob/015f455/spec/p2p/legacy-docs/peer.md#authenticated-encryption-handshake
+//! <https://github.com/cometbft/cometbft/blob/015f455/spec/p2p/legacy-docs/peer.md#authenticated-encryption-handshake>
 
 use crate::{
     CryptoError, EphemeralPublic, PublicKey, Result,
