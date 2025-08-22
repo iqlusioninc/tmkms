@@ -8,12 +8,80 @@ use crate::{
     proto,
 };
 use merlin::Transcript;
+use prost::bytes::{Buf, BufMut};
+use prost::encoding::{DecodeContext, WireType};
+use prost::{DecodeError, Message};
 use rand_core::{OsRng, RngCore};
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 /// Random scalar (before clamping).
 pub(crate) type EphemeralSecret = [u8; 32];
+
+/// Initial handshake message, i.e. first message sent by both peers.
+///
+/// Uses the encoding for `google.protobuf.BytesValue`.
+// Implemented by hand so we can use stack-allocated buffers
+#[derive(Debug, Default)]
+pub(crate) struct InitialHandshake {
+    /// X25519 public key.
+    pub public_key: EphemeralPublic,
+}
+
+impl InitialHandshake {
+    /// Field ID of the public key.
+    const FIELD_TAG: u8 = 1;
+
+    /// Wire type of the public key.
+    const WIRE_TYPE: WireType = WireType::LengthDelimited;
+}
+
+impl Message for InitialHandshake {
+    fn encode_raw(&self, buf: &mut impl BufMut)
+    where
+        Self: Sized,
+    {
+        // Protobuf tag: field 1, wiretype for length-delimited data (2)
+        buf.put_u8(Self::FIELD_TAG << 3 | Self::WIRE_TYPE as u8);
+
+        // Length of the public key in bytes (32)
+        buf.put_u8(size_of::<EphemeralPublic>() as u8);
+
+        // Bytes value
+        buf.put_slice(self.public_key.as_bytes());
+    }
+
+    fn merge_field(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut impl Buf,
+        _ctx: DecodeContext,
+    ) -> std::result::Result<(), DecodeError>
+    where
+        Self: Sized,
+    {
+        if wire_type == Self::WIRE_TYPE && tag == Self::FIELD_TAG as u32 {
+            let len = buf.get_u8();
+            if len as usize == size_of::<EphemeralPublic>() {
+                buf.copy_to_slice(&mut self.public_key.0);
+            } else {
+                return Err(DecodeError::new("expected a 32-byte X25519 public key"));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn encoded_len(&self) -> usize {
+        // 2-byte tag + length prefix
+        2 + size_of::<EphemeralPublic>()
+    }
+
+    fn clear(&mut self) {
+        *self = Default::default();
+    }
+}
 
 /// Handshake is a process of establishing the `SecretConnection` between two peers.
 /// [Specification](https://github.com/cometbft/cometbft/blob/015f455/spec/p2p/legacy-docs/peer.md#authenticated-encryption-handshake)
@@ -221,20 +289,41 @@ const LOW_ORDER_POINTS: &[[u8; 32]] = &[
 
 #[cfg(test)]
 mod tests {
-    use super::{Handshake, LOW_ORDER_POINTS};
+    use super::{Handshake, InitialHandshake, LOW_ORDER_POINTS};
     use crate::{
-        CryptoError, Error, ed25519,
+        CryptoError, EphemeralPublic, Error, ed25519,
         error::InternalCryptoError,
         framing,
         test_vectors::{
-            ALICE_ED25519_PK, ALICE_ED25519_SK, ALICE_SIG_MSG, ALICE_X25519_PK, ALICE_X25519_SK,
-            BOB_ED25519_PK, BOB_ED25519_SK, BOB_SIG_MSG, BOB_X25519_PK, BOB_X25519_SK,
+            ALICE_ED25519_PK, ALICE_ED25519_SK, ALICE_INITIAL_MSG, ALICE_SIG_MSG, ALICE_X25519_PK,
+            ALICE_X25519_SK, BOB_ED25519_PK, BOB_ED25519_SK, BOB_SIG_MSG, BOB_X25519_PK,
+            BOB_X25519_SK,
         },
     };
-    use curve25519_dalek::MontgomeryPoint;
+    use prost::Message as _;
 
     #[test]
-    fn happy_path() {
+    fn initial_handshake_encode() {
+        let handshake_msg = InitialHandshake {
+            public_key: ALICE_X25519_PK,
+        };
+
+        assert_eq!(
+            handshake_msg.encode_length_delimited_to_vec(),
+            ALICE_INITIAL_MSG
+        );
+    }
+
+    #[test]
+    fn initial_handshake_decode() {
+        let handshake_msg =
+            InitialHandshake::decode_length_delimited(ALICE_INITIAL_MSG.as_slice()).unwrap();
+
+        assert_eq!(handshake_msg.public_key, ALICE_X25519_PK);
+    }
+
+    #[test]
+    fn handshake_happy_path() {
         let alice_sk = ed25519::SigningKey::from_bytes(&ALICE_ED25519_SK);
         let bob_sk = ed25519::SigningKey::from_bytes(&BOB_ED25519_SK);
 
@@ -271,13 +360,13 @@ mod tests {
     }
 
     #[test]
-    fn reject_low_order_points() {
+    fn handshake_rejects_low_order_points() {
         let alice_sk = ed25519::SigningKey::from_bytes(&ALICE_ED25519_SK);
 
         for point in LOW_ORDER_POINTS {
             let (mut handshake, _) =
                 Handshake::new_with_ephemeral(alice_sk.clone(), ALICE_X25519_SK);
-            let err = handshake.got_key(MontgomeryPoint(*point)).err().unwrap();
+            let err = handshake.got_key(EphemeralPublic(*point)).err().unwrap();
             assert!(matches!(
                 err,
                 Error::Crypto(CryptoError(InternalCryptoError::InsecureKey))
