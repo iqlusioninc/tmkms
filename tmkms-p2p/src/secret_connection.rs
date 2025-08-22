@@ -1,11 +1,10 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    AUTH_SIG_MSG_RESPONSE_LEN, EphemeralPublic, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey,
-    Result, TAG_SIZE, TOTAL_FRAME_SIZE, ed25519,
+    EphemeralPublic, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, ReadMsg, Result, TAG_SIZE,
+    TOTAL_FRAME_SIZE, WriteMsg, ed25519,
     encryption::{CipherState, RecvState, SendState},
-    handshake::{Handshake, InitialHandshakeMessage, encode_ed25519_auth_signature},
-    proto,
+    handshake, proto,
 };
 use prost::Message;
 use std::{
@@ -80,7 +79,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     pub fn new(mut io_handler: Io, local_privkey: ed25519::SigningKey) -> Result<Self> {
         // Start a handshake process.
         let local_pubkey = PublicKey::from(&local_privkey);
-        let (mut h, local_eph_pubkey) = Handshake::new(local_privkey);
+        let (mut h, local_eph_pubkey) = handshake::InitialState::new(local_privkey);
 
         // Write local ephemeral pubkey and receive one too.
         let remote_eph_pubkey = share_eph_pubkey(&mut io_handler, local_eph_pubkey)?;
@@ -96,13 +95,16 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
             terminate: Arc::new(AtomicBool::new(false)),
         };
 
-        // Share each other's pubkey & challenge signature.
-        // NOTE: the data must be encrypted/decrypted using ciphers.
-        let auth_sig_msg = match local_pubkey {
-            PublicKey::Ed25519(ref pk) => sc.share_auth_signature(pk, h.local_signature())?,
-        };
+        // Send our identity signing public key and signature over the transcript to the peer
+        sc.write_msg(&proto::p2p::AuthSigMessage {
+            pub_key: Some(local_pubkey.into()),
+            sig: h.local_signature().to_vec(),
+        })?;
 
-        // Authenticate remote pubkey.
+        // Read the peer's identity signing public key and signature over the transcript
+        let auth_sig_msg = sc.read_msg::<proto::p2p::AuthSigMessage>()?;
+
+        // Verify the key and signature validate for our computed Merlin transcript hash
         let remote_pubkey = h.got_signature(auth_sig_msg)?;
 
         // All good!
@@ -116,22 +118,6 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     /// - if the remote pubkey is not initialized.
     pub fn remote_pubkey(&self) -> PublicKey {
         self.remote_pubkey.expect("remote_pubkey uninitialized")
-    }
-
-    /// Encode our auth signature and decode theirs.
-    fn share_auth_signature(
-        &mut self,
-        pubkey: &ed25519::VerifyingKey,
-        local_signature: &ed25519::Signature,
-    ) -> Result<proto::p2p::AuthSigMessage> {
-        let msg = encode_ed25519_auth_signature(pubkey, local_signature);
-        self.write_all(&msg)?;
-
-        let mut buf = [0u8; AUTH_SIG_MSG_RESPONSE_LEN];
-        self.read_exact(&mut buf)?;
-        Ok(proto::p2p::AuthSigMessage::decode_length_delimited(
-            buf.as_slice(),
-        )?)
     }
 }
 
@@ -258,7 +244,7 @@ fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
 ) -> Result<EphemeralPublic> {
     // Send our pubkey and receive theirs in tandem.
     // TODO(ismail): Go does send/receive in parallel, but we send then receive in sequence
-    let initial_handshake_msg = InitialHandshakeMessage {
+    let initial_handshake_msg = handshake::InitialMessage {
         public_key: local_eph_pubkey,
     }
     .encode_length_delimited_to_vec();
@@ -271,7 +257,7 @@ fn share_eph_pubkey<Io: Read + Write + Send + Sync>(
     buf[0] = response_len;
     handler.read_exact(&mut buf[1..])?;
 
-    Ok(InitialHandshakeMessage::decode_length_delimited(buf.as_slice())?.public_key)
+    Ok(handshake::InitialMessage::decode_length_delimited(buf.as_slice())?.public_key)
 }
 
 /// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.

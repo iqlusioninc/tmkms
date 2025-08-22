@@ -101,6 +101,12 @@ impl From<CryptoError> for Error {
     }
 }
 
+impl From<ed25519_dalek::ed25519::Error> for Error {
+    fn from(_: ed25519_dalek::ed25519::Error) -> Self {
+        CryptoError::SIGNATURE.into()
+    }
+}
+
 impl std::error::Error for CryptoError {}
 
 /// Hidden inner type for tracking what type of cryptographic error occurred.
