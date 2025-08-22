@@ -38,14 +38,6 @@ pub(crate) struct InitialMessage {
 }
 
 impl InitialMessage {
-    /// Length of the initial message when encoded with a length delimiter.
-    ///
-    /// - 1-byte outer length delimiter
-    /// - 1-byte proto tag (field ID + wiretype)
-    /// - 1-byte inner length delimiter
-    /// - 32-byte X25519 public key
-    pub(crate) const ENCODED_LEN: usize = 35;
-
     /// Field ID of the public key.
     const FIELD_TAG: u8 = 1;
 

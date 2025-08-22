@@ -85,11 +85,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         io_handler.write_msg(&handshake::InitialMessage::from(local_eph_pubkey))?;
 
         // Read the remote side's initial message containing their X25519 public key (unencrypted)
-        // TODO(tarcieri): use `ReadMsg` (currently incompatible with this use case)
-        let mut response_buf = [0u8; handshake::InitialMessage::ENCODED_LEN];
-        io_handler.read_exact(&mut response_buf)?;
-        let remote_eph_pubkey =
-            handshake::InitialMessage::decode_length_delimited(response_buf.as_slice())?.pub_key;
+        let remote_eph_pubkey = io_handler.read_msg::<handshake::InitialMessage>()?.pub_key;
 
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
@@ -204,7 +200,7 @@ impl<Io: Read> ReadMsg for SecretConnection<Io> {
         let msg_len = decode_length_delimiter_inclusive(msg_prefix)?;
 
         if msg_len > MAX_MSG_LEN {
-            return Err(Error::MessageTooBig { size: msg_len });
+            return Err(Error::MessageSize { size: msg_len });
         }
 
         // Skip the heap if the proto fits in a single message frame
