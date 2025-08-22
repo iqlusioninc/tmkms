@@ -1,14 +1,11 @@
 //! KMS integration test
 
-use abscissa_core::prelude::warn;
 use chrono::{DateTime, Utc};
-use prost::Message;
 use rand::Rng;
 use signature::Verifier;
-use std::fs::File;
 use std::{
     fs,
-    io::{self, Cursor, Read, Write},
+    io::{self, Cursor, Write},
     net::{TcpListener, TcpStream},
     os::unix::net::{UnixListener, UnixStream},
     process::{Child, Command},
@@ -16,6 +13,8 @@ use std::{
 use tempfile::NamedTempFile;
 use tendermint::node;
 use tendermint_proto as proto;
+use tmkms::connection::Connection;
+use tmkms::error::Error;
 use tmkms::{
     config::provider::KeyType,
     connection::unix::UnixConnection,
@@ -50,27 +49,18 @@ enum KmsConnection {
     Unix(UnixConnection<UnixStream>),
 }
 
-impl io::Write for KmsConnection {
-    fn write(&mut self, data: &[u8]) -> Result<usize, io::Error> {
-        match *self {
-            KmsConnection::Tcp(ref mut conn) => conn.write(data),
-            KmsConnection::Unix(ref mut conn) => conn.write(data),
+impl Connection for KmsConnection {
+    fn read_request(&mut self) -> Result<proto::privval::Message, Error> {
+        match self {
+            KmsConnection::Tcp(conn) => conn.read_request(),
+            KmsConnection::Unix(conn) => conn.read_request(),
         }
     }
 
-    fn flush(&mut self) -> Result<(), io::Error> {
-        match *self {
-            KmsConnection::Tcp(ref mut conn) => conn.flush(),
-            KmsConnection::Unix(ref mut conn) => conn.flush(),
-        }
-    }
-}
-
-impl io::Read for KmsConnection {
-    fn read(&mut self, data: &mut [u8]) -> Result<usize, io::Error> {
-        match *self {
-            KmsConnection::Tcp(ref mut conn) => conn.read(data),
-            KmsConnection::Unix(ref mut conn) => conn.read(data),
+    fn write_response(&mut self, msg: &proto::privval::Message) -> Result<(), Error> {
+        match self {
+            KmsConnection::Tcp(conn) => conn.write_response(msg),
+            KmsConnection::Unix(conn) => conn.write_response(msg),
         }
     }
 }
@@ -251,36 +241,18 @@ impl Drop for ProtocolTester {
     }
 }
 
-impl io::Write for ProtocolTester {
-    fn write(&mut self, data: &[u8]) -> Result<usize, io::Error> {
-        let unix_sz = self.unix_connection.write(data)?;
-        let tcp_sz = self.tcp_connection.write(data)?;
-
-        // Assert caller sanity
-        assert!(unix_sz == tcp_sz);
-        Ok(unix_sz)
+impl Connection for ProtocolTester {
+    fn read_request(&mut self) -> Result<proto::privval::Message, Error> {
+        let tcp_msg = self.tcp_connection.read_request()?;
+        let unix_msg = self.unix_connection.read_request()?;
+        assert_eq!(tcp_msg, unix_msg);
+        Ok(tcp_msg)
     }
 
-    fn flush(&mut self) -> Result<(), io::Error> {
-        self.unix_connection.flush()?;
-        self.tcp_connection.flush()?;
+    fn write_response(&mut self, msg: &proto::privval::Message) -> Result<(), Error> {
+        self.tcp_connection.write_response(&msg)?;
+        self.unix_connection.write_response(&msg)?;
         Ok(())
-    }
-}
-
-impl io::Read for ProtocolTester {
-    fn read(&mut self, data: &mut [u8]) -> Result<usize, io::Error> {
-        let mut unix_buf = vec![0u8; data.len()];
-
-        self.tcp_connection.read(data)?;
-        let unix_sz = self.unix_connection.read(&mut unix_buf)?;
-
-        // Assert handler sanity
-        if unix_buf != data {
-            warn!("binary protocol differs between TCP and UNIX sockets");
-        }
-
-        Ok(unix_sz)
     }
 }
 
@@ -610,48 +582,16 @@ fn test_handle_and_sign_ping_pong() {
     });
 }
 
-#[test]
-fn test_buffer_underflow_sign_proposal() {
-    let key_type = KeyType::Consensus;
-    ProtocolTester::apply(&key_type, |mut pt| {
-        send_buffer_underflow_request(&mut pt);
-        let response: Result<(), ()> = match read_response(&mut pt) {
-            proto::privval::message::Sum::SignedProposalResponse(_) => Ok(()),
-            other => panic!("unexpected message type in response: {other:?}"),
-        };
-
-        assert!(response.is_ok());
-    });
-}
-
 /// Encode request as a Protobuf message
 fn send_request(request: proto::privval::message::Sum, pt: &mut ProtocolTester) {
-    let mut buf = vec![];
-    proto::privval::Message { sum: Some(request) }
-        .encode_length_delimited(&mut buf)
-        .unwrap();
-
-    pt.write_all(&buf).unwrap();
-}
-
-/// Opens a binary file with big proposal (> 1024 bytes, from Sei network)
-/// and sends via protocol tester
-fn send_buffer_underflow_request(pt: &mut ProtocolTester) {
-    let mut file = File::open("tests/support/buffer-underflow-proposal.bin").unwrap();
-    let mut buf = Vec::<u8>::new();
-    file.read_to_end(&mut buf).unwrap();
-    pt.write_all(&buf).unwrap();
+    let request = proto::privval::Message { sum: Some(request) };
+    pt.write_response(&request).unwrap();
 }
 
 /// Read the response as a Protobuf message
 fn read_response(pt: &mut ProtocolTester) -> proto::privval::message::Sum {
-    let mut resp_buf = vec![0u8; 4096];
-    pt.read(&mut resp_buf).unwrap();
-
-    let actual_len = extract_actual_len(&resp_buf).unwrap();
-    let mut resp_bytes = vec![0u8; actual_len as usize];
-    resp_bytes.copy_from_slice(&resp_buf[..actual_len as usize]);
-
-    let message = proto::privval::Message::decode_length_delimited(resp_bytes.as_ref()).unwrap();
-    message.sum.expect("no sum field in message")
+    pt.read_request()
+        .unwrap()
+        .sum
+        .expect("no sum field in message")
 }

@@ -1,8 +1,8 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, PublicKey, ReadMsg, Result, TAG_SIZE, TOTAL_FRAME_SIZE,
-    WriteMsg, ed25519,
+    Error, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, MAX_MSG_LEN, PublicKey, ReadMsg, Result, TAG_SIZE,
+    TOTAL_FRAME_SIZE, WriteMsg, decode_length_delimiter_inclusive, ed25519,
     encryption::{CipherState, RecvState, SendState},
     handshake, proto,
 };
@@ -130,6 +130,103 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     }
 }
 
+impl<Io: Read> SecretConnection<Io> {
+    /// Perform a read which will potentially not fill the entire provided slice.
+    ///
+    /// # Returns
+    /// - number of bytes successfully read
+    fn read_partial(&mut self, data: &mut [u8]) -> io::Result<usize> {
+        checked_io!(
+            self.terminate,
+            read_and_decrypt(
+                &mut self.cipher_state.recv_state,
+                &mut self.recv_buffer,
+                &mut self.io_handler,
+                data
+            )
+        )
+    }
+
+    /// Read and decrypt exact amount of data, filling the entire provided slice.
+    fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
+        let mut cursor = 0;
+
+        while cursor < buf.len() {
+            let nbytes = self.read_partial(&mut buf[cursor..])?;
+            cursor += nbytes;
+        }
+
+        Ok(())
+    }
+}
+
+impl<Io: Write> SecretConnection<Io> {
+    /// Flush the underlying I/O handler.
+    pub fn flush(&mut self) -> io::Result<()> {
+        checked_io!(self.terminate, self.io_handler.flush())
+    }
+
+    /// Perform a write which will potentially not complete sending the entire buffer.
+    ///
+    /// # Returns
+    /// - number of bytes successfully written
+    fn write_partial(&mut self, data: &[u8]) -> io::Result<usize> {
+        checked_io!(
+            self.terminate,
+            encrypt_and_write(
+                &mut self.cipher_state.send_state,
+                &mut self.io_handler,
+                data
+            )
+        )
+    }
+
+    /// Encrypt and write the exact amount of data given in the provided slice.
+    fn write_exact(&mut self, buf: &[u8]) -> io::Result<()> {
+        let mut cursor = 0;
+
+        while cursor < buf.len() {
+            let nbytes = self.write_partial(&buf[cursor..])?;
+            cursor += nbytes;
+        }
+
+        Ok(())
+    }
+}
+
+impl<Io: Read> ReadMsg for SecretConnection<Io> {
+    fn read_msg<M: Message + Default>(&mut self) -> Result<M> {
+        let mut buf = [0u8; FRAME_MAX_SIZE];
+        let nbytes = self.read_partial(&mut buf)?;
+
+        // Decode the length prefix on the proto
+        let msg_prefix = &buf[..nbytes];
+        let msg_len = decode_length_delimiter_inclusive(msg_prefix)?;
+
+        if msg_len > MAX_MSG_LEN {
+            return Err(Error::MessageTooBig { size: msg_len });
+        }
+
+        // Skip the heap if the proto fits in a single message frame
+        if msg_prefix.len() == msg_len {
+            return Ok(M::decode_length_delimited(msg_prefix)?);
+        }
+
+        let mut msg = vec![0u8; msg_len];
+        msg[..msg_prefix.len()].copy_from_slice(msg_prefix);
+        self.read_exact(&mut msg[msg_prefix.len()..])?;
+
+        Ok(M::decode_length_delimited(msg.as_slice())?)
+    }
+}
+
+impl<Io: Write> WriteMsg for SecretConnection<Io> {
+    fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
+        let bytes = msg.encode_length_delimited_to_vec();
+        Ok(self.write_exact(&bytes)?)
+    }
+}
+
 impl SecretConnection<TcpStream> {
     /// For secret connections whose underlying I/O layer is a [`TcpStream`], this splits a
     /// connection into its sending and receiving halves.
@@ -159,37 +256,6 @@ impl SecretConnection<TcpStream> {
                 terminate: self.terminate,
             },
         ))
-    }
-}
-
-impl<Io: Read> Read for SecretConnection<Io> {
-    fn read(&mut self, data: &mut [u8]) -> io::Result<usize> {
-        checked_io!(
-            self.terminate,
-            read_and_decrypt(
-                &mut self.cipher_state.recv_state,
-                &mut self.recv_buffer,
-                &mut self.io_handler,
-                data
-            )
-        )
-    }
-}
-
-impl<Io: Write> Write for SecretConnection<Io> {
-    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        checked_io!(
-            self.terminate,
-            encrypt_and_write(
-                &mut self.cipher_state.send_state,
-                &mut self.io_handler,
-                data
-            )
-        )
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        checked_io!(self.terminate, self.io_handler.flush())
     }
 }
 
@@ -259,7 +325,7 @@ pub(crate) fn encrypt_and_write<Io: Write>(
             .encrypt(chunk, sealed_frame)
             .map_err(io::Error::other)?;
 
-        io_handler.write_all(&sealed_frame[..])?;
+        io_handler.write_all(sealed_frame.as_ref())?;
         n = n
             .checked_add(chunk.len())
             .expect("overflow when adding chunk lengths");

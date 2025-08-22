@@ -6,9 +6,9 @@
 use crate::privval::SignableMsg;
 use tendermint::{Proposal, Vote, chain};
 use tendermint_proto as proto;
-use tmkms_p2p::ReadMsg;
 
 use crate::{
+    connection::Connection,
     error::{Error, ErrorKind},
     prelude::*,
 };
@@ -25,8 +25,11 @@ pub enum Request {
 
 impl Request {
     /// Read a request from the given readable.
-    pub fn read(conn: &mut impl ReadMsg, expected_chain_id: &chain::Id) -> Result<Self, Error> {
-        let msg: proto::privval::Message = conn.read_msg()?;
+    pub fn read<C: Connection + ?Sized>(
+        conn: &mut C,
+        expected_chain_id: &chain::Id,
+    ) -> Result<Self, Error> {
+        let msg = conn.read_request()?;
 
         let (req, chain_id) = match msg.sum {
             Some(proto::privval::message::Sum::SignVoteRequest(

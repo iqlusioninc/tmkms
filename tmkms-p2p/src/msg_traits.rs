@@ -1,11 +1,8 @@
 //! Helper traits for reading and writing Protobuf messages.
 
-use crate::{Error, FRAME_MAX_SIZE, Result};
+use crate::{Error, FRAME_MAX_SIZE, MAX_MSG_LEN, Result, decode_length_delimiter_inclusive};
 use prost::Message;
 use std::io::{Read, Write};
-
-/// Sanity limit (in bytes) to ensure we don't allocate excessively large buffers.
-const MAX_MSG_LEN: usize = 1_048_576; // 1 MiB
 
 /// Read the given Protobuf message from the underlying I/O object.
 pub trait ReadMsg {
@@ -28,7 +25,7 @@ impl<Io: Read> ReadMsg for Io {
 
         // Decode the length prefix on the proto
         let msg_prefix = &buf[..nbytes];
-        let msg_len = decode_msg_length(msg_prefix)?;
+        let msg_len = decode_length_delimiter_inclusive(msg_prefix)?;
 
         if msg_len > MAX_MSG_LEN {
             return Err(Error::MessageTooBig { size: msg_len });
@@ -41,6 +38,7 @@ impl<Io: Read> ReadMsg for Io {
 
         let mut msg = vec![0u8; msg_len];
         msg[..msg_prefix.len()].copy_from_slice(msg_prefix);
+        self.read_exact(&mut msg[msg_prefix.len()..])?;
 
         let mut cursor = msg_prefix.len();
         while cursor < msg_len {
@@ -57,15 +55,6 @@ impl<Io: Write> WriteMsg for Io {
         let bytes = msg.encode_length_delimited_to_vec();
         Ok(self.write_all(&bytes)?)
     }
-}
-
-/// Decode the total message length including the length prefix.
-fn decode_msg_length(frame: &[u8]) -> Result<usize> {
-    let len = prost::decode_length_delimiter(frame)?;
-    let length_delimiter_len = prost::length_delimiter_len(len);
-    length_delimiter_len
-        .checked_add(len)
-        .ok_or_else(|| prost::DecodeError::new("length overflow").into())
 }
 
 // NOTE: only existing test coverage of these is in `tests/secret_connection.rs`

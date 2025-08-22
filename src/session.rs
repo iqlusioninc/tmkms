@@ -13,7 +13,6 @@ use std::{os::unix::net::UnixStream, time::Instant};
 use tendermint::{TendermintKey, consensus, node};
 use tendermint_config::net;
 use tendermint_proto as proto;
-use tmkms_p2p::WriteMsg;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -103,7 +102,7 @@ impl Session {
 
     /// Handle an incoming request from the validator
     fn handle_request(&mut self) -> Result<bool, Error> {
-        let request = Request::read(&mut self.connection, &self.config.chain_id)?;
+        let request = Request::read(&mut *self.connection, &self.config.chain_id)?;
         debug!(
             "[{}@{}] received request: {:?}",
             &self.config.chain_id, &self.config.addr, &request
@@ -123,7 +122,7 @@ impl Session {
             &self.config.chain_id, &self.config.addr, &response
         );
 
-        self.connection.write_msg(&response.to_proto())?;
+        self.connection.write_response(&response.to_proto())?;
         Ok(true)
     }
 
