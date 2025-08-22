@@ -126,12 +126,19 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     }
 }
 
+// NOTE: we deliberately don't impl the `Read` trait so we can support a more efficient custom
+// implementation of the `ReadMsg` trait than is possible if we needed to support a generic `Read`
+// API as well.
+//
+// Namely, since we consume whole length-delimited messages at a time, we don't need to buffer
+// decrypted data which hasn't yet been consumed.
 impl<Io: Read> SecretConnection<Io> {
-    /// Perform a read which will potentially not fill the entire provided slice.
+    /// Perform a read which will potentially not fill the entire provided slice (internally this
+    /// is only consuming one encrypted 1024-byte frame at a time)
     ///
     /// # Returns
     /// - number of bytes successfully read
-    fn read_partial(&mut self, data: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, data: &mut [u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
             read_and_decrypt(
@@ -148,7 +155,7 @@ impl<Io: Read> SecretConnection<Io> {
         let mut cursor = 0;
 
         while cursor < buf.len() {
-            let nbytes = self.read_partial(&mut buf[cursor..])?;
+            let nbytes = self.read(&mut buf[cursor..])?;
             cursor += nbytes;
         }
 
@@ -156,17 +163,8 @@ impl<Io: Read> SecretConnection<Io> {
     }
 }
 
-impl<Io: Write> SecretConnection<Io> {
-    /// Flush the underlying I/O handler.
-    pub fn flush(&mut self) -> io::Result<()> {
-        checked_io!(self.terminate, self.io_handler.flush())
-    }
-
-    /// Perform a write which will potentially not complete sending the entire buffer.
-    ///
-    /// # Returns
-    /// - number of bytes successfully written
-    fn write_partial(&mut self, data: &[u8]) -> io::Result<usize> {
+impl<Io: Write> Write for SecretConnection<Io> {
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         checked_io!(
             self.terminate,
             encrypt_and_write(
@@ -177,23 +175,15 @@ impl<Io: Write> SecretConnection<Io> {
         )
     }
 
-    /// Encrypt and write the exact amount of data given in the provided slice.
-    fn write_exact(&mut self, buf: &[u8]) -> io::Result<()> {
-        let mut cursor = 0;
-
-        while cursor < buf.len() {
-            let nbytes = self.write_partial(&buf[cursor..])?;
-            cursor += nbytes;
-        }
-
-        Ok(())
+    fn flush(&mut self) -> io::Result<()> {
+        checked_io!(self.terminate, self.io_handler.flush())
     }
 }
 
 impl<Io: Read> ReadMsg for SecretConnection<Io> {
     fn read_msg<M: Message + Default>(&mut self) -> Result<M> {
         let mut buf = [0u8; FRAME_MAX_SIZE];
-        let nbytes = self.read_partial(&mut buf)?;
+        let nbytes = self.read(&mut buf)?;
 
         // Decode the length prefix on the proto
         let msg_prefix = &buf[..nbytes];
@@ -213,13 +203,6 @@ impl<Io: Read> ReadMsg for SecretConnection<Io> {
         self.read_exact(&mut msg[msg_prefix.len()..])?;
 
         Ok(M::decode_length_delimited(msg.as_slice())?)
-    }
-}
-
-impl<Io: Write> WriteMsg for SecretConnection<Io> {
-    fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
-        let bytes = msg.encode_length_delimited_to_vec();
-        Ok(self.write_exact(&bytes)?)
     }
 }
 
