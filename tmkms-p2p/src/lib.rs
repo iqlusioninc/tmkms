@@ -28,6 +28,8 @@ pub use crate::{
 };
 
 /// Secret Connection node identity secret keys.
+///
+/// Ed25519 is currently the only supported signature algorithm.
 pub type IdentitySecret = ed25519::SigningKey;
 
 /// Secret Connection Peer IDs: 20-byte public key fingerprints.
@@ -36,11 +38,10 @@ pub type PeerId = [u8; 20];
 pub(crate) use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 pub(crate) use ed25519_dalek as ed25519;
 
-/// Limit (in bytes) on the maximum size of a length delimited message (e.g. Protobuf), where the
-/// message potentially spans multiple encrypted frames.
+/// Message size limit which applies to length-delimited messages read via the [`ReadMsg`] trait.
 ///
-/// It ensures we won't allocate excessively large buffers when consuming incoming requests.
-pub(crate) const MAX_MSG_LEN: usize = 1_048_576; // 1 MiB
+/// Ensures we won't allocate excessively large buffers when consuming incoming requests.
+pub const MAX_MSG_LEN: usize = 1_048_576; // 1 MiB
 
 /// Maximum size of a message frame
 pub(crate) const FRAME_MAX_SIZE: usize = 1024;
