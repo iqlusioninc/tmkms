@@ -25,7 +25,7 @@ pub enum Error {
     Io(std::io::Error),
 
     /// Message exceeds the maximum allowed size.
-    MessageTooBig {
+    MessageSize {
         /// Size of the message.
         size: usize,
     },
@@ -39,7 +39,7 @@ impl Display for Error {
             Self::Decode(_) => f.write_str("malformed protocol message (version mismatch?)"),
             Self::Internal => f.write_str("internal error"),
             Self::Io(_) => f.write_str("I/O error"),
-            Self::MessageTooBig { size } => write!(f, "message is too big ({size} bytes)"),
+            Self::MessageSize { size } => write!(f, "unexpected message size ({size} bytes)"),
         }
     }
 }
