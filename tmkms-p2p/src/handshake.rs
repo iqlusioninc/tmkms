@@ -10,7 +10,7 @@
 //! [specification]: https://github.com/cometbft/cometbft/blob/015f455/spec/p2p/legacy-docs/peer.md#authenticated-encryption-handshake
 
 use crate::{
-    CryptoError, EphemeralPublic, Error, PublicKey, Result,
+    CryptoError, EphemeralPublic, PublicKey, Result,
     ed25519::{self, Signer},
     encryption::CipherState,
     kdf::Kdf,
@@ -165,7 +165,10 @@ impl InitialState {
             return Err(CryptoError::INSECURE_KEY.into());
         }
 
-        let local_eph_privkey = self.local_eph_privkey.take().ok_or(Error::Internal)?;
+        let local_eph_privkey = self
+            .local_eph_privkey
+            .take()
+            .ok_or(CryptoError::ENCRYPTION)?;
         let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
 
         // Compute common shared secret.
