@@ -37,7 +37,7 @@ proptest! {
         let (sock_a, sock_b) = UnixStream::pair().unwrap();
         let server_handle = TestServer::run(sock_b, bob_sk);
 
-        let mut conn = SecretConnection::new(sock_a, alice_sk).unwrap();
+        let mut conn = SecretConnection::new(sock_a, &alice_sk).unwrap();
         assert_eq!(conn.remote_pubkey().ed25519().unwrap().as_bytes(), bob_pk.as_bytes());
 
         for _ in 0..NUM_REQUESTS {
@@ -64,7 +64,7 @@ where
     fn run(io: Io, sk: IdentitySecret) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             let mut server = TestServer {
-                conn: SecretConnection::new(io, sk).unwrap(),
+                conn: SecretConnection::new(io, &sk).unwrap(),
             };
 
             for _ in 0..NUM_REQUESTS {

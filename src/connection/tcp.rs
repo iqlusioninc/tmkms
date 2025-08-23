@@ -4,7 +4,7 @@ use std::{net::TcpStream, path::PathBuf, time::Duration};
 
 use subtle::ConstantTimeEq;
 use tendermint::node;
-use tmkms_p2p::{PublicKey, SecretConnection};
+use tmkms_p2p::{IdentitySecret, PublicKey, SecretConnection};
 
 use crate::{
     error::{Error, ErrorKind::*},
@@ -32,7 +32,7 @@ pub fn open_secret_connection(
         )
     })?;
 
-    let identity_key = key_utils::load_base64_ed25519_key(identity_key_path)?;
+    let identity_key = IdentitySecret::from(key_utils::load_base64_ed25519_key(identity_key_path)?);
     info!("KMS node ID: {}", PublicKey::from(&identity_key));
 
     let socket = TcpStream::connect(format!("{host}:{port}"))?;
@@ -40,7 +40,7 @@ pub fn open_secret_connection(
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = match SecretConnection::new(socket, identity_key.into()) {
+    let connection = match SecretConnection::new(socket, &identity_key) {
         Ok(conn) => conn,
         Err(error) => fail!(ProtocolError, format!("{error}")),
     };

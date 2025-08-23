@@ -1,7 +1,8 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
+    Error, MAX_MSG_LEN, PublicKey, Result,
+    ed25519::{self, Signer},
     encryption::{CipherState, Frame},
     handshake,
     msg_traits::{ReadMsg, WriteMsg, decode_length_delimiter_inclusive},
@@ -9,6 +10,9 @@ use crate::{
 };
 use prost::Message;
 use std::io::{self, Read, Write};
+
+#[cfg(doc)]
+use crate::IdentitySecret;
 
 /// Encrypted connection between peers in a CometBFT network.
 ///
@@ -26,39 +30,46 @@ pub struct SecretConnection<Io> {
 }
 
 impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
-    /// Performs a handshake and returns a new `SecretConnection`.
+    /// Performs a handshake and returns a new `SecretConnection`, authenticating ourselves with the
+    /// provided `Identity` (Ed25519 signing key).
+    ///
+    /// The [`IdentitySecret`] type can be used as an `identity_key`.
     ///
     /// # Errors
     ///
     /// - if sharing of the pubkey fails
     /// - if sharing of the signature fails
     /// - if receiving the signature fails
-    pub fn new(mut io_handler: Io, local_privkey: ed25519::SigningKey) -> Result<Self> {
+    pub fn new<Identity>(mut io: Io, identity_key: &Identity) -> Result<Self>
+    where
+        Identity: Signer<ed25519::Signature>,
+        ed25519::VerifyingKey: for<'a> From<&'a Identity>,
+    {
         // Start a handshake process, generating a local ephemeral X25519 public key.
-        let local_pubkey = PublicKey::from(&local_privkey);
-        let (mut h, local_eph_pubkey) = handshake::InitialState::new(local_privkey);
+        let identity_pub_key: PublicKey = ed25519::VerifyingKey::from(identity_key).into();
+        let (mut initial_state, initial_message) = handshake::InitialState::new();
 
         // Send our ephemeral X25519 public key to the remote peer (unencrypted).
-        // TODO(ismail): Go does send/receive in parallel, but we send then receive in sequence
-        io_handler.write_msg(&handshake::InitialMessage::from(local_eph_pubkey))?;
+        io.write_msg(&initial_message)?;
 
         // Read the remote side's initial message containing their X25519 public key (unencrypted)
-        let remote_initial_message: handshake::InitialMessage = io_handler.read_msg()?;
+        let remote_initial_message: handshake::InitialMessage = io.read_msg()?;
 
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
-        let (h, cipher_state) = h.got_key(remote_initial_message.pub_key)?;
+        let (challenge, cipher_state) = initial_state.got_key(remote_initial_message.pub_key)?;
+        let sig = challenge.sign_challenge(identity_key);
 
         let mut sc = Self {
-            io: io_handler,
+            io,
             remote_pubkey: None,
             cipher_state,
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
         sc.write_msg(&proto::p2p::AuthSigMessage {
-            pub_key: Some(local_pubkey.into()),
-            sig: h.local_signature().to_vec(),
+            pub_key: Some(identity_pub_key.into()),
+            sig: sig.to_vec(),
         })?;
 
         // Read the peer's Ed25519 public key and use it to verify their signature over the
@@ -66,7 +77,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         let auth_sig_msg: proto::p2p::AuthSigMessage = sc.read_msg()?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
-        let remote_pubkey = h.got_signature(auth_sig_msg)?;
+        let remote_pubkey = challenge.got_signature(auth_sig_msg)?;
 
         // All good!
         sc.remote_pubkey = Some(remote_pubkey);
