@@ -46,7 +46,12 @@ impl std::error::Error for Error {
     }
 }
 
-// TODO(tarcieri): avoid leaking `prost::DecodeError` in public API?
+impl From<ed25519_dalek::ed25519::Error> for Error {
+    fn from(err: ed25519_dalek::ed25519::Error) -> Self {
+        CryptoError::from(err).into()
+    }
+}
+
 impl From<prost::DecodeError> for Error {
     fn from(e: prost::DecodeError) -> Self {
         Self::Decode(e)
@@ -86,19 +91,25 @@ impl Display for CryptoError {
     }
 }
 
+impl std::error::Error for CryptoError {}
+
 impl From<CryptoError> for Error {
     fn from(err: CryptoError) -> Self {
         Error::Crypto(err)
     }
 }
 
-impl From<ed25519_dalek::ed25519::Error> for Error {
-    fn from(_: ed25519_dalek::ed25519::Error) -> Self {
-        CryptoError::SIGNATURE.into()
+impl From<aead::Error> for CryptoError {
+    fn from(_: aead::Error) -> Self {
+        CryptoError::ENCRYPTION
     }
 }
 
-impl std::error::Error for CryptoError {}
+impl From<ed25519_dalek::ed25519::Error> for CryptoError {
+    fn from(_: ed25519_dalek::ed25519::Error) -> Self {
+        CryptoError::SIGNATURE
+    }
+}
 
 /// Hidden inner type for tracking what type of cryptographic error occurred.
 #[derive(Debug)]
