@@ -3,40 +3,13 @@
 use crate::{
     Error, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, MAX_MSG_LEN, PublicKey, ReadMsg, Result, TAG_SIZE,
     TOTAL_FRAME_SIZE, WriteMsg, decode_length_delimiter_inclusive, ed25519,
-    encryption::{CipherState, RecvState, SendState},
-    handshake, proto,
+    encryption::CipherState, handshake, proto,
 };
 use prost::Message;
 use std::{
     cmp,
     io::{self, Read, Write},
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
 };
-
-/// Macro usage allows us to avoid unnecessarily cloning the `Arc<AtomicBool>`
-/// that indicates whether we need to terminate the connection.
-///
-/// Limitation: this only checks once prior to the execution of an I/O operation
-/// whether we need to terminate. This should be sufficient for our purposes
-/// though.
-macro_rules! checked_io {
-    ($term:expr, $f:expr) => {{
-        if $term.load(Ordering::SeqCst) {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "secret connection was terminated elsewhere by previous error",
-            ));
-        }
-        let result = { $f };
-        if result.is_err() {
-            $term.store(true, Ordering::SeqCst);
-        }
-        result
-    }};
-}
 
 /// Encrypted connection between peers in a CometBFT network.
 ///
@@ -48,11 +21,10 @@ macro_rules! checked_io {
 ///
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
 pub struct SecretConnection<Io> {
-    io_handler: Io,
+    io: Io,
     remote_pubkey: Option<PublicKey>,
     cipher_state: CipherState,
     recv_buffer: Vec<u8>,
-    terminate: Arc<AtomicBool>,
 }
 
 impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
@@ -80,11 +52,10 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         let (h, cipher_state) = h.got_key(remote_initial_message.pub_key)?;
 
         let mut sc = Self {
-            io_handler,
+            io: io_handler,
             remote_pubkey: None,
             cipher_state,
             recv_buffer: Vec::new(),
-            terminate: Arc::new(AtomicBool::new(false)),
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
@@ -127,15 +98,53 @@ impl<Io: Read> SecretConnection<Io> {
     /// # Returns
     /// - number of bytes successfully read
     fn read(&mut self, data: &mut [u8]) -> io::Result<usize> {
-        checked_io!(
-            self.terminate,
-            read_and_decrypt(
-                &mut self.cipher_state.recv_state,
-                &mut self.recv_buffer,
-                &mut self.io_handler,
-                data
-            )
-        )
+        if !self.recv_buffer.is_empty() {
+            let n = cmp::min(data.len(), self.recv_buffer.len());
+            data.copy_from_slice(&self.recv_buffer[..n]);
+            let mut leftover_portion = vec![
+                0;
+                self.recv_buffer
+                    .len()
+                    .checked_sub(n)
+                    .expect("leftover calculation failed")
+            ];
+            leftover_portion.clone_from_slice(&self.recv_buffer[n..]);
+            self.recv_buffer = leftover_portion;
+
+            return Ok(n);
+        }
+
+        let mut sealed_frame = [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
+        self.io.read_exact(&mut sealed_frame)?;
+
+        // decrypt the frame
+        let mut frame = [0_u8; TOTAL_FRAME_SIZE];
+        self.cipher_state
+            .recv_state
+            .decrypt(&sealed_frame, &mut frame)
+            .map_err(io::Error::other)?;
+
+        let chunk_length = u32::from_le_bytes(frame[..4].try_into().expect("chunk framing failed"));
+
+        if chunk_length as usize > FRAME_MAX_SIZE {
+            return Err(io::Error::other(format!(
+                "chunk is too big: {chunk_length}! max: {FRAME_MAX_SIZE}"
+            )));
+        }
+
+        let mut chunk = vec![0; chunk_length as usize];
+        chunk.clone_from_slice(
+            &frame[LENGTH_PREFIX_SIZE
+                ..(LENGTH_PREFIX_SIZE
+                    .checked_add(chunk_length as usize)
+                    .expect("chunk size addition overflow"))],
+        );
+
+        let n = cmp::min(data.len(), chunk.len());
+        data[..n].copy_from_slice(&chunk[..n]);
+        self.recv_buffer.copy_from_slice(&chunk[n..]);
+
+        Ok(n)
     }
 
     /// Read and decrypt exact amount of data, filling the entire provided slice.
@@ -153,18 +162,25 @@ impl<Io: Read> SecretConnection<Io> {
 
 impl<Io: Write> Write for SecretConnection<Io> {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        checked_io!(
-            self.terminate,
-            encrypt_and_write(
-                &mut self.cipher_state.send_state,
-                &mut self.io_handler,
-                data
-            )
-        )
+        let mut n = 0_usize;
+        for chunk in data.chunks(FRAME_MAX_SIZE) {
+            let sealed_frame = &mut [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
+            self.cipher_state
+                .send_state
+                .encrypt(chunk, sealed_frame)
+                .map_err(io::Error::other)?;
+
+            self.io.write_all(sealed_frame.as_ref())?;
+            n = n
+                .checked_add(chunk.len())
+                .expect("overflow when adding chunk lengths");
+        }
+
+        Ok(n)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        checked_io!(self.terminate, self.io_handler.flush())
+        self.io.flush()
     }
 }
 
@@ -192,81 +208,4 @@ impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
 
         Ok(M::decode_length_delimited(msg.as_slice())?)
     }
-}
-
-/// Writes encrypted frames of `TAG_SIZE` + `TOTAL_FRAME_SIZE`.
-pub(crate) fn encrypt_and_write<Io: Write>(
-    state: &mut SendState,
-    io_handler: &mut Io,
-    data: &[u8],
-) -> io::Result<usize> {
-    let mut n = 0_usize;
-    for chunk in data.chunks(FRAME_MAX_SIZE) {
-        let sealed_frame = &mut [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
-        state
-            .encrypt(chunk, sealed_frame)
-            .map_err(io::Error::other)?;
-
-        io_handler.write_all(sealed_frame.as_ref())?;
-        n = n
-            .checked_add(chunk.len())
-            .expect("overflow when adding chunk lengths");
-    }
-
-    Ok(n)
-}
-
-/// Read data from the provided I/O object and attempt to decrypt it.
-pub(crate) fn read_and_decrypt<Io: Read>(
-    state: &mut RecvState,
-    buffer: &mut Vec<u8>,
-    io_handler: &mut Io,
-    data: &mut [u8],
-) -> io::Result<usize> {
-    if !buffer.is_empty() {
-        let n = cmp::min(data.len(), buffer.len());
-        data.copy_from_slice(&buffer[..n]);
-        let mut leftover_portion = vec![
-            0;
-            buffer
-                .len()
-                .checked_sub(n)
-                .expect("leftover calculation failed")
-        ];
-        leftover_portion.clone_from_slice(&buffer[n..]);
-        *buffer = leftover_portion;
-
-        return Ok(n);
-    }
-
-    let mut sealed_frame = [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
-    io_handler.read_exact(&mut sealed_frame)?;
-
-    // decrypt the frame
-    let mut frame = [0_u8; TOTAL_FRAME_SIZE];
-    state
-        .decrypt(&sealed_frame, &mut frame)
-        .map_err(io::Error::other)?;
-
-    let chunk_length = u32::from_le_bytes(frame[..4].try_into().expect("chunk framing failed"));
-
-    if chunk_length as usize > FRAME_MAX_SIZE {
-        return Err(io::Error::other(format!(
-            "chunk is too big: {chunk_length}! max: {FRAME_MAX_SIZE}"
-        )));
-    }
-
-    let mut chunk = vec![0; chunk_length as usize];
-    chunk.clone_from_slice(
-        &frame[LENGTH_PREFIX_SIZE
-            ..(LENGTH_PREFIX_SIZE
-                .checked_add(chunk_length as usize)
-                .expect("chunk size addition overflow"))],
-    );
-
-    let n = cmp::min(data.len(), chunk.len());
-    data[..n].copy_from_slice(&chunk[..n]);
-    buffer.copy_from_slice(&chunk[n..]);
-
-    Ok(n)
 }
