@@ -11,7 +11,6 @@ use std::{
     process::{Child, Command},
 };
 use tempfile::NamedTempFile;
-use tendermint::node;
 use tendermint_proto as proto;
 use tmkms::{
     config::provider::KeyType,
@@ -146,9 +145,8 @@ impl KmsProcess {
             path = "{}"
             key_type = "{}"
         "#,
-            node::Id::new(peer_id).to_string(), port, signing_key_path(key_type), key_type
-        )
-            .unwrap();
+            peer_id.to_string(), port, signing_key_path(key_type), key_type
+        ).unwrap();
 
         config_file
     }
