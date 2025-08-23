@@ -1,11 +1,15 @@
 //! Symmetric encryption.
 
-use crate::{
-    CryptoError, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, TAG_SIZE, TAGGED_FRAME_SIZE, TOTAL_FRAME_SIZE,
-    kdf::Kdf,
-};
+mod frame;
+mod nonce;
+
+pub(crate) use frame::Frame;
+
+use crate::{CryptoError, kdf::Kdf};
 use aead::AeadInPlace;
-use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit};
+use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, Tag};
+use frame::TOTAL_FRAME_SIZE;
+use nonce::Nonce;
 
 /// Symmetric encryption state.
 pub(crate) struct CipherState {
@@ -40,43 +44,33 @@ impl SendState {
         }
     }
 
-    /// Encrypt AEAD authenticated data
-    #[allow(clippy::cast_possible_truncation)]
-    pub(crate) fn encrypt(
-        &mut self,
-        chunk: &[u8],
-        sealed_frame: &mut [u8; TAGGED_FRAME_SIZE],
-    ) -> Result<(), CryptoError> {
-        if self.failed {
+    /// Encrypt the frame with the given AEAD cipher, appending the tag to the end.
+    pub fn encrypt_frame(&mut self, frame: &mut Frame) -> Result<(), CryptoError> {
+        if self.failed || frame.encrypted {
             return Err(CryptoError::ENCRYPTION);
         }
 
-        assert!(!chunk.is_empty(), "chunk is empty");
-        assert!(
-            chunk.len() <= TOTAL_FRAME_SIZE - LENGTH_PREFIX_SIZE,
-            "chunk is too big: {}! max: {}",
-            chunk.len(),
-            FRAME_MAX_SIZE,
+        let aad = b"";
+        let result = self.cipher.encrypt_in_place_detached(
+            self.nonce.as_ref(),
+            aad,
+            &mut frame.bytes[..TOTAL_FRAME_SIZE],
         );
-        sealed_frame[..LENGTH_PREFIX_SIZE].copy_from_slice(&(chunk.len() as u32).to_le_bytes());
-        sealed_frame[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + chunk.len()].copy_from_slice(chunk);
 
-        let tag = self
-            .cipher
-            .encrypt_in_place_detached(
-                &self.nonce.to_bytes(),
-                b"",
-                &mut sealed_frame[..TOTAL_FRAME_SIZE],
-            )
-            .map_err(|_| {
-                self.failed = true;
-                CryptoError::ENCRYPTION
-            })?;
-
+        // Always increment the nonce just in case
         self.nonce.increment();
-        sealed_frame[TOTAL_FRAME_SIZE..].copy_from_slice(tag.as_slice());
 
-        Ok(())
+        match result {
+            Ok(tag) => {
+                frame.bytes[TOTAL_FRAME_SIZE..].copy_from_slice(&tag);
+                frame.encrypted = true;
+                Ok(())
+            }
+            Err(_) => {
+                self.failed = true;
+                Err(CryptoError::ENCRYPTION)
+            }
+        }
     }
 }
 
@@ -97,79 +91,45 @@ impl RecvState {
         }
     }
 
-    /// Decrypt AEAD authenticated data
-    pub(crate) fn decrypt(
-        &mut self,
-        ciphertext: &[u8],
-        out: &mut [u8],
-    ) -> Result<usize, CryptoError> {
-        if self.failed || ciphertext.len() < TAG_SIZE {
+    /// Decrypt the frame with the given AEAD cipher, validating the tag and length.
+    pub fn decrypt_frame(&mut self, frame: &mut Frame) -> Result<(), CryptoError> {
+        if self.failed || !frame.encrypted {
             return Err(CryptoError::ENCRYPTION);
         }
 
-        // Split ChaCha20 ciphertext from the Poly1305 tag
-        let (ct, tag) = ciphertext.split_at(ciphertext.len() - TAG_SIZE);
+        let aad = b"";
+        let tag = frame.tag();
 
-        if out.len() < ct.len() {
-            return Err(CryptoError::ENCRYPTION);
-        }
-
-        let in_out = &mut out[..ct.len()];
-        in_out.copy_from_slice(ct);
-
-        if self
+        let success = self
             .cipher
-            .decrypt_in_place_detached(&self.nonce.to_bytes(), b"", in_out, tag.into())
-            .is_err()
-        {
+            .decrypt_in_place_detached(
+                self.nonce.as_ref(),
+                aad,
+                &mut frame.bytes[..TOTAL_FRAME_SIZE],
+                &tag,
+            )
+            .is_ok();
+
+        // Always increment the nonce just in case
+        self.nonce.increment();
+
+        if !success || frame.length_prefix() > Frame::MAX_SIZE {
             self.failed = true;
             return Err(CryptoError::ENCRYPTION);
         }
 
-        self.nonce.increment();
-        Ok(in_out.len())
-    }
-}
-
-/// `SecretConnection` nonces (i.e. `ChaCha20` nonces)
-struct Nonce(pub [u8; Self::SIZE]);
-
-impl Nonce {
-    /// Size of a `ChaCha20` (IETF) nonce
-    const SIZE: usize = 12;
-
-    /// Get the initial all-zero nonce. This must only be used once and then incremented!
-    fn initial() -> Self {
-        Self([0_u8; Self::SIZE])
-    }
-
-    /// Increment the nonce's counter by 1
-    ///
-    /// # Panics
-    /// - if the counter overflows
-    /// - if the nonce is not 12 bytes long
-    fn increment(&mut self) {
-        let counter: u64 = u64::from_le_bytes(self.0[4..].try_into().expect("framing failed"));
-        self.0[4..].copy_from_slice(
-            &counter
-                .checked_add(1)
-                .expect("overflow in counter addition")
-                .to_le_bytes(),
-        );
-    }
-
-    /// Serialize nonce as bytes (little endian)
-    #[inline]
-    #[must_use]
-    fn to_bytes(&self) -> chacha20poly1305::Nonce {
-        self.0.into()
+        frame.encrypted = false;
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::CipherState;
-    use crate::{TAGGED_FRAME_SIZE, kdf::Kdf, test_vectors::HANDSHAKE_SHARED_SECRET};
+    use super::{
+        CipherState,
+        frame::{Frame, TAGGED_FRAME_SIZE},
+    };
+    use crate::{kdf::Kdf, test_vectors::HANDSHAKE_SHARED_SECRET};
     use hex_literal::hex;
 
     /// Plaintext of the first message to send.
@@ -183,7 +143,7 @@ mod tests {
     const MSG2_PT: &[u8] = b"world";
     /// Ciphertext of the second message after encryption.
     const MSG2_CT: [u8; TAGGED_FRAME_SIZE] = hex!(
-        "ddb1c1382101f0bfd537b677ec38aafbc5801a6f04c55aca863e2321fb3d7791b233fb24c9749963a3d91a74013e1dc06e20a37eeb927c5713bbb8187916641bb18e41fb8254e5067ae88df69c4942a186e5f00373577dbf6947ebb8a4254367e091038168efe3ffc571d01a016143fd5b630105f565519955e4236414278328f3ed2e1d44a8e831be29a502d045474ea3bfb36cef648ebdfdc9c9bceb46705274276073093909eee64ef6f39ffea6571a27639937dc56b27fea2275b6266fa5c91337d9f1da4ad268d1d93e8a8fa403d499777ff58a8cb5a5fe46944478a5f9ce65adae802e1afb721cf34061c2a46ba26770813246397f4c9c2a218a7a2205cfefb0abc7eba9808542954f5d1dd0d67c4984cf0d89008674b6d81290498dbed17718295a0fb451b1932b9fac37bc54895d28175f7dffafe821d952daa732b8200984db5c605e67930eb39609ddd9570e765e9c641555aae4245921d548ab84fee400eebf1d8ee1aa89a1d4886b89bda9eeeace303f1488a4b23820106106c1400d4af8edb0eef5597cfa384916d346b65df10db5a4f3070dd66ae71dd137c07b9eada5cf878fcc4aff143282cc7d66e5e797b883a0f7e13099678c5df7632200977952a183175c1fa13399e2fdff37dee08aa1cbd3d1c40e6fc4c255ef65cf6acc88bd22e093c536f9b6ff4af333a255155fc512c15f26d6f1d802e9456c76575409145a72e4690a8d65157a407f32f7ab566bf824664a39c4befb74ca794cd05ae121fc2a82c629bf3392b39bd9cd5a15ba78fa00940d1ede5ed2529605db69cbe4559d0f6522e0d596b28b0e123d66d40d624f83852eb8d98221fc8f75760613d816fd36871f746a1852f7543d5f6edc21e76531a427d5db0565043683177c5343a5feb3cacc160f62abe97f9fe98a91dca96a75b544a6045f23bfaaa8b93611f7fcff5ba807e93fa3931a560f8d963e48a363c6a3eacb570b0eb553f1a8d7449c1f18121fb81d7c862119e7424e444d68c3f79e0e463df304e5d2c6ef93ed95867dbc8062989e63cd22fb5891a49a721ff45dd8c2101097c3a3842beeb4ddadb78201b0ddbb58d87d86257b19e1358650dfa5056e8ec32a80ca7d9baa5a1352f74b6adfad6886d77963fad1dbd8effda2b7b6a3e1610114b1f473a57c0adeb5af7a527351cb8e843d7a182198e43b6e9349f88f96c134bb7ebaf803ec0545208cd8cd5221b7f4a1308e2c3232afe361834915cc6ff8afbbe0554ef0779c84e96849fe31db43af0d6d2cab66d9995bcba531bdad893cce1f710b4662d74d325e61b751005b1632e8597ade2448882341c158228609f7f89a5e32011b6cd61780fe6ab929aadb567ad3707e22e3c1d27055dda3df0363566271f8325fb55b5fb49364579310b4029c8b41a53065774628a7fb8cdf9fd17d01e3f64390d2add29bacc7ab00b3927d57c2e1ff383e826ded5784"
+        "ddb1c1382101f0bfd5bfe76ffe3a5e86c5b57a8cf788a5a709f3b0b629da3ec2c2b8347620ab1dc0b30de194bc8ab1ece29c62006f463e4731f5a64e59ebcb3bab1d64d48cfefe4e70dea3088d234ddef1f0a9331e5bacf9295f29a9881c1bad6255e2e76db6debeaa0eeea2be8eb7dd0aac3803a9fb3fe8955ee0c7ef706f5f76df5847ce66248bc60581a8f679855c9fad318f562e126b2cb2b42b48db6f49b54a4d6b75090cf411e4280adee3d7dbd962cce7d5607cd471ebb12464acc728c6ce934262fec8e7c124b2ff46cd02fa7acc2165d19220d2d7d2b340fbb3b0b7146ef3adbac624018d7c0f40be2b5d1e4b852c46647cc5b43df29c10f5248c1d6782c02803be861a805db2454d474fb79e22500fa9641db33a80213a58ae2f75aecabfc2e5e6c4b2019ced0f4ec889a8cc9c80a5f220f87364496f12b646b9811e6e3c94f18f32ec1262614c8ddf3610e0f9372646b5ed8495aef217fe24e5201fc08ab6052bd38981468d1943eb3e9425ab1afa1355bb7ac7b3fbc6084746634bd72407883fc6ef24fabeca5e88f6a66c13b010d751c18fec853f34c2e4715a51719d7cc0318ebbee1b853f9940ca3d0b3b4167cc90c4b37a2a03d9e558c7ae80515e10429366fba3ffe0ba33431252074217d27e102699a6cb0ce469eec3a08f15443969a02a4b458f46d24aace1b1894fc0c340200fa9b0306e61e592d2fe39e3f51fe9f0eae81ba8c8683a4fe67b9cbee9a2d45fb6b120a7f30a64f98c87418a1f7ef0b74fad1939a5c1a1f34f948f0905537eafafbc14499c2e9b2260c517452a7e683e9673a939af209b8c2a5b5728416efc5b352c088646f8ee74aea45c8a2bf04541ad9dd3c1e02cfa4fcae13370b31dca88b14048c72bba0a8b105ffa327bfc06341c3edbae6d2f35a7ef4038f2bc7362b2d046628940d1355e854e19d5a707da3b963e51f9f72fea333bf9aed499e188a06c172104439d42343f8143b64a3648df6fce17e6097bbfa331fa07a032fea61d9651444370f2228b794029ee7bb12070da9e34199c5856d2494a0b52c990f921ba074a972f4412eacd0d530239d78b816f38361ea288539caed336c4c42ca1fd5649daba61f64e87fdc9f279851ae010f9cbe958830ccf291ec0cbabd403ff66945b4f766f670697c6bbd37ec592a9cc4abdfb4ea95c8ddf57a3c71c60012a3247a64a97741d3e37656c528a2a32690f13e5e6e0019923424e7d27eb1d002db795cbce95298bb1d0ce82a5fe2b9aea28c6b7369d22f08dee987df76499eaf09b641a7dfc3acaeb5089990556604fa54814f4141e1772449d65c1667f7c23c20bd323431a8e37d271cde7d23a03658ec19b48741353dbd009d1ae705f91b5959f6b129531b1776a1bd8be3468e6eb480863025c11903382da7d31a1ad44c69eef60052bb59021802c7cf8497b2236ed030bcdf9d4a6a281cc5ebab1f847c9"
     );
 
     #[test]
@@ -191,11 +151,13 @@ mod tests {
         let kdf = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, false);
         let mut send_state = CipherState::new(kdf).send_state;
 
-        let mut buffer = [0u8; TAGGED_FRAME_SIZE];
-        send_state.encrypt(MSG1_PT, &mut buffer).unwrap();
-        assert_eq!(buffer, MSG1_CT);
-        send_state.encrypt(MSG2_PT, &mut buffer).unwrap();
-        assert_eq!(buffer, MSG2_CT);
+        let mut frame1 = Frame::plaintext(MSG1_PT).unwrap();
+        send_state.encrypt_frame(&mut frame1).unwrap();
+        assert_eq!(frame1.bytes, MSG1_CT);
+
+        let mut frame2 = Frame::plaintext(MSG2_PT).unwrap();
+        send_state.encrypt_frame(&mut frame2).unwrap();
+        assert_eq!(frame2.bytes, MSG2_CT);
     }
 
     #[test]
@@ -203,11 +165,12 @@ mod tests {
         let kdf = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, true);
         let mut recv_state = CipherState::new(kdf).recv_state;
 
-        // TODO(tarcieri): better tests and length handling for decryption
-        let mut buffer = [0u8; TAGGED_FRAME_SIZE];
-        recv_state.decrypt(&MSG1_CT, &mut buffer).unwrap();
-        assert_eq!(&buffer[4..(4 + MSG1_PT.len())], MSG1_PT);
-        recv_state.decrypt(&MSG2_CT, &mut buffer).unwrap();
-        assert_eq!(&buffer[4..(4 + MSG2_PT.len())], MSG2_PT);
+        let mut frame1 = Frame::ciphertext(MSG1_CT);
+        recv_state.decrypt_frame(&mut frame1).unwrap();
+        assert_eq!(frame1.as_bytes(), MSG1_PT);
+
+        let mut frame2 = Frame::ciphertext(MSG2_CT);
+        recv_state.decrypt_frame(&mut frame2).unwrap();
+        assert_eq!(frame2.as_bytes(), MSG2_PT);
     }
 }

@@ -1,15 +1,14 @@
 //! Encrypted connection between peers in a CometBFT network.
 
 use crate::{
-    Error, FRAME_MAX_SIZE, LENGTH_PREFIX_SIZE, MAX_MSG_LEN, PublicKey, ReadMsg, Result, TAG_SIZE,
-    TOTAL_FRAME_SIZE, WriteMsg, decode_length_delimiter_inclusive, ed25519,
-    encryption::CipherState, handshake, proto,
+    Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
+    encryption::{CipherState, Frame},
+    handshake,
+    msg_traits::{ReadMsg, WriteMsg, decode_length_delimiter_inclusive},
+    proto,
 };
 use prost::Message;
-use std::{
-    cmp,
-    io::{self, Read, Write},
-};
+use std::io::{self, Read, Write};
 
 /// Encrypted connection between peers in a CometBFT network.
 ///
@@ -24,7 +23,6 @@ pub struct SecretConnection<Io> {
     io: Io,
     remote_pubkey: Option<PublicKey>,
     cipher_state: CipherState,
-    recv_buffer: Vec<u8>,
 }
 
 impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
@@ -55,7 +53,6 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
             io: io_handler,
             remote_pubkey: None,
             cipher_state,
-            recv_buffer: Vec::new(),
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
@@ -85,127 +82,66 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     }
 }
 
-// NOTE: we deliberately don't impl the `Read` trait so we can support a more efficient custom
-// implementation of the `ReadMsg` trait than is possible if we needed to support a generic `Read`
-// API as well.
-//
-// Namely, since we consume whole length-delimited messages at a time, we don't need to buffer
-// decrypted data which hasn't yet been consumed.
 impl<Io: Read> SecretConnection<Io> {
-    /// Perform a read which will potentially not fill the entire provided slice (internally this
-    /// is only consuming one encrypted 1024-byte frame at a time)
-    ///
-    /// # Returns
-    /// - number of bytes successfully read
-    fn read(&mut self, data: &mut [u8]) -> io::Result<usize> {
-        if !self.recv_buffer.is_empty() {
-            let n = cmp::min(data.len(), self.recv_buffer.len());
-            data.copy_from_slice(&self.recv_buffer[..n]);
-            let mut leftover_portion = vec![
-                0;
-                self.recv_buffer
-                    .len()
-                    .checked_sub(n)
-                    .expect("leftover calculation failed")
-            ];
-            leftover_portion.clone_from_slice(&self.recv_buffer[n..]);
-            self.recv_buffer = leftover_portion;
-
-            return Ok(n);
-        }
-
-        let mut sealed_frame = [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
-        self.io.read_exact(&mut sealed_frame)?;
-
-        // decrypt the frame
-        let mut frame = [0_u8; TOTAL_FRAME_SIZE];
-        self.cipher_state
-            .recv_state
-            .decrypt(&sealed_frame, &mut frame)
-            .map_err(io::Error::other)?;
-
-        let chunk_length = u32::from_le_bytes(frame[..4].try_into().expect("chunk framing failed"));
-
-        if chunk_length as usize > FRAME_MAX_SIZE {
-            return Err(io::Error::other(format!(
-                "chunk is too big: {chunk_length}! max: {FRAME_MAX_SIZE}"
-            )));
-        }
-
-        let mut chunk = vec![0; chunk_length as usize];
-        chunk.clone_from_slice(
-            &frame[LENGTH_PREFIX_SIZE
-                ..(LENGTH_PREFIX_SIZE
-                    .checked_add(chunk_length as usize)
-                    .expect("chunk size addition overflow"))],
-        );
-
-        let n = cmp::min(data.len(), chunk.len());
-        data[..n].copy_from_slice(&chunk[..n]);
-        self.recv_buffer.copy_from_slice(&chunk[n..]);
-
-        Ok(n)
-    }
-
-    /// Read and decrypt exact amount of data, filling the entire provided slice.
-    fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
-        let mut cursor = 0;
-
-        while cursor < buf.len() {
-            let nbytes = self.read(&mut buf[cursor..])?;
-            cursor += nbytes;
-        }
-
-        Ok(())
+    /// Read and decrypt a frame from the network.
+    #[inline]
+    fn read_frame(&mut self) -> Result<Frame> {
+        let mut frame = Frame::read(&mut self.io)?;
+        self.cipher_state.recv_state.decrypt_frame(&mut frame)?;
+        Ok(frame)
     }
 }
 
-impl<Io: Write> Write for SecretConnection<Io> {
-    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        let mut n = 0_usize;
-        for chunk in data.chunks(FRAME_MAX_SIZE) {
-            let sealed_frame = &mut [0_u8; TAG_SIZE + TOTAL_FRAME_SIZE];
-            self.cipher_state
-                .send_state
-                .encrypt(chunk, sealed_frame)
-                .map_err(io::Error::other)?;
-
-            self.io.write_all(sealed_frame.as_ref())?;
-            n = n
-                .checked_add(chunk.len())
-                .expect("overflow when adding chunk lengths");
-        }
-
-        Ok(n)
+impl<Io: Write> SecretConnection<Io> {
+    /// Flush the underlying I/O object's write buffer.
+    pub fn flush(&mut self) -> io::Result<()> {
+        self.io.flush()
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.io.flush()
+    /// Encrypt and write a frame to the network.
+    #[inline]
+    fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
+        let mut frame = Frame::plaintext(plaintext)?;
+        self.cipher_state.send_state.encrypt_frame(&mut frame)?;
+        Ok(frame.write(&mut self.io)?)
     }
 }
 
 impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
     fn read_msg(&mut self) -> Result<M> {
-        let mut buf = [0u8; FRAME_MAX_SIZE];
-        let nbytes = self.read(&mut buf)?;
+        let frame = self.read_frame()?;
 
         // Decode the length prefix on the proto
-        let msg_prefix = &buf[..nbytes];
-        let msg_len = decode_length_delimiter_inclusive(msg_prefix)?;
+        let msg_len = decode_length_delimiter_inclusive(frame.as_bytes())?;
 
         if msg_len > MAX_MSG_LEN {
             return Err(Error::MessageSize { size: msg_len });
         }
 
         // Skip the heap if the proto fits in a single message frame
-        if msg_prefix.len() == msg_len {
-            return Ok(M::decode_length_delimited(msg_prefix)?);
+        if frame.as_bytes().len() == msg_len {
+            return Ok(M::decode_length_delimited(frame.as_bytes())?);
         }
 
-        let mut msg = vec![0u8; msg_len];
-        msg[..msg_prefix.len()].copy_from_slice(msg_prefix);
-        self.read_exact(&mut msg[msg_prefix.len()..])?;
+        let mut msg = Vec::with_capacity(msg_len);
+        msg.extend_from_slice(frame.as_bytes());
+
+        while msg.len() < msg_len {
+            msg.extend_from_slice(self.read_frame()?.as_bytes());
+        }
 
         Ok(M::decode_length_delimited(msg.as_slice())?)
+    }
+}
+
+impl<M: Message, Io: Write> WriteMsg<M> for SecretConnection<Io> {
+    fn write_msg(&mut self, msg: &M) -> Result<()> {
+        let bytes = msg.encode_length_delimited_to_vec();
+
+        for chunk in bytes.chunks(Frame::MAX_SIZE) {
+            self.write_frame(chunk)?;
+        }
+
+        Ok(())
     }
 }
