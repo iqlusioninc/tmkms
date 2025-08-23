@@ -13,14 +13,14 @@ use std::{
 use tempfile::NamedTempFile;
 use tendermint::node;
 use tendermint_proto as proto;
-use tmkms::connection::Connection;
 use tmkms::{
     config::provider::KeyType,
+    connection::Connection,
     connection::unix::UnixConnection,
     keyring::ed25519,
     privval::{SignableMsg, SignedMsgType},
 };
-use tmkms_p2p::{self as p2p, PublicKey, ReadMsg, SecretConnection, WriteMsg};
+use tmkms_p2p::{self as p2p, IdentitySecret, PublicKey, ReadMsg, SecretConnection, WriteMsg};
 
 /// Integration tests for the KMS command-line interface
 mod cli;
@@ -186,12 +186,12 @@ impl KmsProcess {
         match self.socket {
             KmsSocket::TCP(ref sock) => {
                 // we use the same key for both sides:
-                let identity_key = test_ed25519_keypair();
+                let identity_key = IdentitySecret::from(test_ed25519_keypair());
 
                 // Here we reply to the kms with a "remote" ephemeral key, auth signature etc:
                 let socket_cp = sock.try_clone().unwrap();
 
-                KmsConnection::Tcp(SecretConnection::new(socket_cp, identity_key.into()).unwrap())
+                KmsConnection::Tcp(SecretConnection::new(socket_cp, &identity_key).unwrap())
             }
 
             KmsSocket::UNIX(ref sock) => {

@@ -1,7 +1,7 @@
 [package]
 name = "tmkms-p2p"
 description = "Implementation of CometBFT's encrypted P2P protocol"
-version = "0.4.1"
+version = "0.5.0-pre"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/iqlusioninc/tmkms"
@@ -20,7 +20,7 @@ authors = [
 aead = { version = "0.5", default-features = false }
 chacha20poly1305 = { version = "0.10", default-features = false }
 curve25519-dalek = { version = "4", default-features = false, features = ["rand_core"] }
-ed25519-dalek = { version = "2", default-features = false, features = ["alloc", "zeroize"] }
+ed25519-dalek = { version = "2", default-features = false, features = ["alloc", "rand_core", "zeroize"] }
 hkdf = { version = "0.12.3", default-features = false }
 merlin = { version = "3", default-features = false }
 prost = { version = "0.13", default-features = false, features = ["derive", "std"] }

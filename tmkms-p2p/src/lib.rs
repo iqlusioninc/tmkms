@@ -10,6 +10,23 @@
     unused_qualifications
 )]
 
+//! # Usage
+//!
+//! ```no_run
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use std::net::TcpStream;
+//! use tmkms_p2p::{SecretConnection, IdentitySecret, rand_core::OsRng};
+//!
+//! let node_identity = IdentitySecret::generate(&mut OsRng);
+//! let tcp_sock = TcpStream::connect("example.com:26656")?;
+//! let conn = SecretConnection::new(tcp_sock, &node_identity)?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! The [`SecretConnection`] type (`conn`) impls the [`ReadMsg`] and [`WriteMsg`] traits which can
+//! be used to receive and send Protobuf messages which impl the [`prost::Message`] trait.
+
 mod encryption;
 mod error;
 mod handshake;
@@ -26,6 +43,7 @@ pub use crate::{
     public_key::PublicKey,
     secret_connection::SecretConnection,
 };
+pub use rand_core;
 
 /// Secret Connection node identity secret keys.
 ///
