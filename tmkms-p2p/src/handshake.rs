@@ -1,8 +1,8 @@
 //! Secret Connection handshakes.
 //!
 //! Performs an authenticated key exchange, first using ephemeral X25519 D-H to establish a shared
-//! symmetric key, using Merlin to compute a signature over the handshake, then signing the result
-//! using Ed25519, providing the signature in the handshake response message.
+//! symmetric key, then using Merlin to compute a transcript hash over the handshake and signing
+//! the result using Ed25519, and finally providing the signature in the handshake response message.
 //!
 //! For more information, see the specification:
 //!
@@ -25,6 +25,9 @@ use zeroize::Zeroize;
 
 /// Random scalar (before clamping).
 pub(crate) type EphemeralSecret = [u8; 32];
+
+/// Challenge computed using Merlin.
+type Challenge = [u8; 32];
 
 /// First message sent by both peers in a handshake. Contains the ephemeral public key.
 ///
@@ -137,11 +140,11 @@ impl InitialState {
     }
 
     /// Performs a Diffie-Hellman key agreement and creates a local signature.
-    /// Transitions Handshake into `AwaitingAuthSig` state.
+    /// Transitions Handshake into [`AwaitingResponse`] state.
     ///
     /// # Errors
-    /// * if protocol order was violated, e.g. handshake missing
-    /// * if challenge signing fails
+    /// - if protocol order was violated, e.g. handshake missing
+    /// - if challenge signing fails
     ///
     /// # Panics
     /// - if Protobuf encoding of `AuthSigMessage` fails.
@@ -196,7 +199,7 @@ impl InitialState {
         let kdf = Kdf::derive_secrets_and_challenge(shared_secret.as_bytes(), loc_is_least);
         let cipher_state = CipherState::new(kdf);
 
-        let mut sc_mac: [u8; 32] = [0; 32];
+        let mut sc_mac = Challenge::default();
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
 
         // Sign the challenge bytes for authentication.
@@ -214,7 +217,7 @@ impl InitialState {
 /// State after we've received the initial handshake message where we're waiting for the remote
 /// authenticated signature (`AuthSigMsg`).
 pub(crate) struct AwaitingResponse {
-    sc_mac: [u8; 32],
+    sc_mac: Challenge,
     local_signature: ed25519::Signature,
 }
 
