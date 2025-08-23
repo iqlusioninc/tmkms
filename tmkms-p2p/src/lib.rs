@@ -32,6 +32,7 @@ mod error;
 mod handshake;
 mod kdf;
 mod msg_traits;
+mod peer_id;
 mod proto;
 mod public_key;
 mod secret_connection;
@@ -40,6 +41,7 @@ mod test_vectors;
 pub use crate::{
     error::{CryptoError, Error, Result},
     msg_traits::{ReadMsg, WriteMsg},
+    peer_id::PeerId,
     public_key::PublicKey,
     secret_connection::SecretConnection,
 };
@@ -49,9 +51,6 @@ pub use rand_core;
 ///
 /// Ed25519 is currently the only supported signature algorithm.
 pub type IdentitySecret = ed25519::SigningKey;
-
-/// Secret Connection Peer IDs: 20-byte public key fingerprints.
-pub type PeerId = [u8; 20];
 
 pub(crate) use curve25519_dalek::montgomery::MontgomeryPoint as EphemeralPublic;
 pub(crate) use ed25519_dalek as ed25519;

@@ -16,6 +16,13 @@ use crate::IdentitySecret;
 
 /// Encrypted connection between peers in a CometBFT network.
 ///
+/// ## Sending and receiving messages
+///
+/// The [`SecretConnection`] type implements a message-oriented interface which can send and receive
+/// Protobuf-encoded messages that impl the [`prost::Message`] trait.
+///
+/// The [`ReadMsg`] and [`WriteMsg`] traits can be used for sending/receiving Protobuf messages.
+///
 /// ## Connection integrity and failures
 ///
 /// Due to the underlying encryption mechanism (currently [RFC 8439]), when a
@@ -40,6 +47,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     /// - if sharing of the pubkey fails
     /// - if sharing of the signature fails
     /// - if receiving the signature fails
+    /// - if verifying the signature fails
     pub fn new<Identity>(mut io: Io, identity_key: &Identity) -> Result<Self>
     where
         Identity: Signer<ed25519::Signature>,

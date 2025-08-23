@@ -38,7 +38,7 @@ impl PublicKey {
         match self {
             Self::Ed25519(pk) => {
                 let digest = Sha256::digest(pk.as_bytes());
-                digest[..20].try_into().expect("should be 20 bytes")
+                PeerId(digest[..20].try_into().expect("should be 20 bytes"))
             }
         }
     }
@@ -65,9 +65,16 @@ impl PublicKey {
 
 impl Display for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for byte in self.peer_id() {
-            write!(f, "{byte:02x}")?;
+        match self {
+            Self::Ed25519(ed25519_key) => {
+                write!(f, "PublicKey::Ed25519(")?;
+                for byte in ed25519_key.to_bytes() {
+                    write!(f, "{byte:02x}")?;
+                }
+                write!(f, ")")?;
+            }
         }
+
         Ok(())
     }
 }
