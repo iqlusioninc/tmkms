@@ -104,38 +104,38 @@ impl From<EphemeralPublic> for InitialMessage {
 
 /// Initial state of the handshake where we are waiting for the remote ephemeral pubkey.
 pub(crate) struct InitialState {
-    local_privkey: ed25519::SigningKey,
-    local_eph_privkey: Option<EphemeralSecret>,
+    identity_sec_key: ed25519::SigningKey,
+    ephemeral_sec_key: Option<EphemeralSecret>,
 }
 
 impl Drop for InitialState {
     fn drop(&mut self) {
-        self.local_eph_privkey.zeroize();
+        self.ephemeral_sec_key.zeroize();
     }
 }
 
 impl InitialState {
-    /// Initiate a handshake with a randomly generated ephemeral secret.
-    pub(crate) fn new(local_privkey: ed25519::SigningKey) -> (Self, EphemeralPublic) {
-        let mut local_eph_privkey = EphemeralSecret::default();
-        OsRng.fill_bytes(&mut local_eph_privkey);
-        Self::new_with_ephemeral(local_privkey, local_eph_privkey)
+    /// Initiate a new handshake with a randomly generated ephemeral secret.
+    pub(crate) fn new(identity_sec_key: ed25519::SigningKey) -> (Self, EphemeralPublic) {
+        let mut ephemeral_sec_key = EphemeralSecret::default();
+        OsRng.fill_bytes(&mut ephemeral_sec_key);
+        Self::new_with_ephemeral_key(identity_sec_key, ephemeral_sec_key)
     }
 
     /// Initiate a handshake with an explicit ephemeral secret.
     #[must_use]
-    fn new_with_ephemeral(
-        local_privkey: ed25519::SigningKey,
-        local_eph_privkey: EphemeralSecret,
+    fn new_with_ephemeral_key(
+        identity_sec_key: ed25519::SigningKey,
+        ephemeral_sec_key: EphemeralSecret,
     ) -> (Self, EphemeralPublic) {
-        let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
+        let ephemeral_pub_key = EphemeralPublic::mul_base_clamped(ephemeral_sec_key);
 
         (
             InitialState {
-                local_privkey,
-                local_eph_privkey: Some(local_eph_privkey),
+                identity_sec_key,
+                ephemeral_sec_key: Some(ephemeral_sec_key),
             },
-            local_eph_pubkey,
+            ephemeral_pub_key,
         )
     }
 
@@ -150,16 +150,17 @@ impl InitialState {
     /// - if Protobuf encoding of `AuthSigMessage` fails.
     pub fn got_key(
         &mut self,
-        remote_eph_pubkey: EphemeralPublic,
+        remote_ephemeral_pub_key: EphemeralPublic,
     ) -> Result<(AwaitingResponse, CipherState)> {
-        let local_eph_privkey = self
-            .local_eph_privkey
+        let ephemeral_sec_key = self
+            .ephemeral_sec_key
             .take()
             .ok_or(CryptoError::ENCRYPTION)?;
-        let local_eph_pubkey = EphemeralPublic::mul_base_clamped(local_eph_privkey);
+
+        let ephemeral_pub_key = EphemeralPublic::mul_base_clamped(ephemeral_sec_key);
 
         // Compute common shared secret.
-        let shared_secret = remote_eph_pubkey.mul_clamped(local_eph_privkey);
+        let shared_secret = remote_ephemeral_pub_key.mul_clamped(ephemeral_sec_key);
 
         // All-zero output from X25519 indicates an error (e.g. multiplication by low order point).
         // This should be rejected via the Merlin transcript hash but here for belt-and-suspenders
@@ -175,26 +176,18 @@ impl InitialState {
 
         let mut transcript = Transcript::new(b"TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH");
 
-        // Sort by lexical order.
-        #[must_use]
-        fn sort32(first: [u8; 32], second: [u8; 32]) -> ([u8; 32], [u8; 32]) {
-            if second > first {
-                (first, second)
-            } else {
-                (second, first)
-            }
-        }
+        let mut ephemeral_pub_keys = [
+            ephemeral_pub_key.to_bytes(),
+            remote_ephemeral_pub_key.to_bytes(),
+        ];
+        ephemeral_pub_keys.sort();
 
-        let local_eph_pubkey_bytes = *local_eph_pubkey.as_bytes();
-        let (low_eph_pubkey_bytes, high_eph_pubkey_bytes) =
-            sort32(local_eph_pubkey_bytes, *remote_eph_pubkey.as_bytes());
-
-        transcript.append_message(b"EPHEMERAL_LOWER_PUBLIC_KEY", &low_eph_pubkey_bytes);
-        transcript.append_message(b"EPHEMERAL_UPPER_PUBLIC_KEY", &high_eph_pubkey_bytes);
+        transcript.append_message(b"EPHEMERAL_LOWER_PUBLIC_KEY", &ephemeral_pub_keys[0]);
+        transcript.append_message(b"EPHEMERAL_UPPER_PUBLIC_KEY", &ephemeral_pub_keys[1]);
         transcript.append_message(b"DH_SECRET", shared_secret.as_bytes());
 
         // Check if the local ephemeral public key was the least, lexicographically sorted.
-        let loc_is_least = local_eph_pubkey_bytes == low_eph_pubkey_bytes;
+        let loc_is_least = ephemeral_pub_key.as_bytes() == &ephemeral_pub_keys[0];
 
         let kdf = Kdf::derive_secrets_and_challenge(shared_secret.as_bytes(), loc_is_least);
         let cipher_state = CipherState::new(kdf);
@@ -203,7 +196,7 @@ impl InitialState {
         transcript.challenge_bytes(b"SECRET_CONNECTION_MAC", &mut sc_mac);
 
         // Sign the challenge bytes for authentication.
-        let local_signature = self.local_privkey.sign(&sc_mac);
+        let local_signature = self.identity_sec_key.sign(&sc_mac);
 
         let state = AwaitingResponse {
             sc_mac,
@@ -318,8 +311,8 @@ mod tests {
         assert_eq!(&bob_pk.to_bytes(), &BOB_ED25519_PK);
 
         let (mut alice_hs, alice_eph_pk) =
-            InitialState::new_with_ephemeral(alice_sk, ALICE_X25519_SK);
-        let (mut bob_hs, bob_eph_pk) = InitialState::new_with_ephemeral(bob_sk, BOB_X25519_SK);
+            InitialState::new_with_ephemeral_key(alice_sk, ALICE_X25519_SK);
+        let (mut bob_hs, bob_eph_pk) = InitialState::new_with_ephemeral_key(bob_sk, BOB_X25519_SK);
 
         let (alice_hs, _alice_cs) = alice_hs.got_key(bob_eph_pk).unwrap();
         let (bob_hs, _bob_cs) = bob_hs.got_key(alice_eph_pk).unwrap();
@@ -358,7 +351,7 @@ mod tests {
 
         for point in LOW_ORDER_POINTS {
             let (mut handshake, _) =
-                InitialState::new_with_ephemeral(alice_sk.clone(), ALICE_X25519_SK);
+                InitialState::new_with_ephemeral_key(alice_sk.clone(), ALICE_X25519_SK);
             let err = handshake.got_key(EphemeralPublic(*point)).err().unwrap();
             assert!(matches!(
                 err,
