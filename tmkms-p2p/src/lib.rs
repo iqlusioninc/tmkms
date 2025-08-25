@@ -60,7 +60,7 @@ pub use rand_core;
 
 #[cfg(feature = "async")]
 pub use crate::{
-    async_secret_connection::AsyncSecretConnection,
+    async_secret_connection::{AsyncMsgReader, AsyncMsgWriter, AsyncSecretConnection},
     traits::{AsyncReadMsg, AsyncWriteMsg},
 };
 
