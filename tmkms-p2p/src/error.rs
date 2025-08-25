@@ -1,5 +1,6 @@
 //! Error types
 
+use crate::PeerId;
 use std::fmt::{self, Display};
 
 /// Result type for the `tmkms-p2p` crate.
@@ -7,6 +8,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Error type
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// Cryptographic errors
     Crypto(CryptoError),
@@ -22,6 +24,9 @@ pub enum Error {
         /// Size of the message.
         size: usize,
     },
+
+    /// Failure to verify the remote peer ID.
+    VerifyPeer(VerifyPeerError),
 }
 
 impl Display for Error {
@@ -31,6 +36,7 @@ impl Display for Error {
             Self::Decode(_) => f.write_str("malformed protocol message (version mismatch?)"),
             Self::Io(_) => f.write_str("I/O error"),
             Self::MessageSize { size } => write!(f, "unexpected message size ({size} bytes)"),
+            Self::VerifyPeer(_) => f.write_str("peer verification failed"),
         }
     }
 }
@@ -41,8 +47,21 @@ impl std::error::Error for Error {
             Self::Crypto(e) => Some(e),
             Self::Decode(e) => Some(e),
             Self::Io(e) => Some(e),
+            Self::VerifyPeer(e) => Some(e),
             _ => None,
         }
+    }
+}
+
+impl From<CryptoError> for Error {
+    fn from(err: CryptoError) -> Self {
+        Error::Crypto(err)
+    }
+}
+
+impl From<VerifyPeerError> for Error {
+    fn from(err: VerifyPeerError) -> Self {
+        Error::VerifyPeer(err)
     }
 }
 
@@ -93,12 +112,6 @@ impl Display for CryptoError {
 
 impl std::error::Error for CryptoError {}
 
-impl From<CryptoError> for Error {
-    fn from(err: CryptoError) -> Self {
-        Error::Crypto(err)
-    }
-}
-
 impl From<aead::Error> for CryptoError {
     fn from(_: aead::Error) -> Self {
         CryptoError::ENCRYPTION
@@ -123,3 +136,25 @@ pub(crate) enum InternalCryptoError {
     /// Signature error
     SignatureInvalid,
 }
+
+/// Peer verification error.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VerifyPeerError {
+    /// Expected peer ID.
+    pub expected_peer_id: PeerId,
+
+    /// Actual peer ID.
+    pub actual_peer_id: PeerId,
+}
+
+impl Display for VerifyPeerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "peer verification error: expected {}, got {}",
+            self.expected_peer_id, self.actual_peer_id
+        )
+    }
+}
+
+impl std::error::Error for VerifyPeerError {}

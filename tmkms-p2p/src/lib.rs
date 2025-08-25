@@ -16,12 +16,18 @@
 //! ```no_run
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # type ExampleMessage = String; // example that impls `prost::Message`
+//! # let expected_peer_id = tmkms_p2p::PeerId(Default::default());
 //! use std::net::TcpStream;
 //! use tmkms_p2p::{SecretConnection, IdentitySecret, ReadMsg, rand_core::OsRng};
 //!
 //! let node_identity = IdentitySecret::generate(&mut OsRng);
 //! let tcp_sock = TcpStream::connect("example.com:26656")?;
 //! let mut conn = SecretConnection::new(tcp_sock, &node_identity)?;
+//!
+//! // Verify remote peer ID
+//! conn.remote_pubkey().peer_id().verify(expected_peer_id)?;
+//!
+//! // Read Protobuf message from the remote peer
 //! let msg: ExampleMessage = conn.read_msg()?;
 //! # Ok(())
 //! # }
@@ -43,7 +49,7 @@ mod test_vectors;
 mod traits;
 
 pub use crate::{
-    error::{CryptoError, Error, Result},
+    error::{CryptoError, Error, Result, VerifyPeerError},
     peer_id::PeerId,
     public_key::PublicKey,
     secret_connection::SecretConnection,

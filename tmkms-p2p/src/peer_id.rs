@@ -1,12 +1,13 @@
 //! Secret Connection peer IDs.
 
-use crate::{Error, Result};
+use crate::{Error, VerifyPeerError};
 use base16ct::mixed as hex;
 use prost::DecodeError;
 use std::{
     fmt::{self, Debug, Display},
     str::FromStr,
 };
+use subtle::{Choice, ConstantTimeEq};
 
 /// Secret Connection peer IDs (i.e. key fingerprints)
 // TODO(tarcieri): use `cometbft::node::Id`
@@ -32,11 +33,30 @@ impl PeerId {
     pub fn to_bytes(self) -> [u8; Self::LENGTH] {
         self.0
     }
+
+    /// Verify this [`PeerId`] matches another one, returning [`Error::VerifyPeer`] in the event
+    /// there is a mismatch.
+    pub fn verify(self, expected_peer_id: PeerId) -> Result<(), VerifyPeerError> {
+        if bool::from(self.ct_eq(&expected_peer_id)) {
+            Ok(())
+        } else {
+            Err(VerifyPeerError {
+                expected_peer_id,
+                actual_peer_id: self,
+            })
+        }
+    }
 }
 
 impl AsRef<[u8]> for PeerId {
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
+    }
+}
+
+impl ConstantTimeEq for PeerId {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.0.ct_eq(&other.0)
     }
 }
 
@@ -77,12 +97,35 @@ impl From<&PeerId> for [u8; PeerId::LENGTH] {
 impl FromStr for PeerId {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self, Error> {
         // Accept either upper or lower case hex
         let bytes = hex::decode_vec(s).map_err(|_| DecodeError::new("hex decoding error"))?;
         bytes
             .try_into()
             .map(Self)
             .map_err(|_| DecodeError::new("invalid peer ID length").into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PeerId;
+    use crate::VerifyPeerError;
+
+    const PEER_ID_1: PeerId = PeerId([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+    const PEER_ID_2: PeerId = PeerId([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
+
+    #[test]
+    fn verify_peer() {
+        assert!(PEER_ID_1.verify(PEER_ID_1).is_ok());
+
+        let err = PEER_ID_1.verify(PEER_ID_2).unwrap_err();
+        assert_eq!(
+            err,
+            VerifyPeerError {
+                expected_peer_id: PEER_ID_2,
+                actual_peer_id: PEER_ID_1
+            }
+        )
     }
 }
