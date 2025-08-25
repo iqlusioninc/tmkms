@@ -52,19 +52,20 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
         // Start a handshake process, generating a local ephemeral X25519 public key.
         let local_public_key: PublicKey = ed25519::VerifyingKey::from(identity_key).into();
         let (mut initial_state, initial_message) = handshake::InitialState::new();
-
         let (mut io_read, mut io_write) = io::split(io);
 
-        // Send our ephemeral X25519 public key to the remote peer (unencrypted).
-        // TODO(tarcieri): do this concurrently with reading the remote peer's key
+        // Send our ephemeral X25519 public key to the remote peer (unencrypted) and simultaneously
+        // read theirs.
         let initial_message = initial_message.encode_length_delimited_to_vec();
-        io_write.write_all(&initial_message).await?;
-
-        let remote_initial_message = read_initial_msg(&mut io_read).await?;
+        let write_future = io_write.write_all(&initial_message);
+        let read_future = read_initial_msg(&mut io_read);
+        let (peer_initial_bytes, _) = tokio::try_join!(read_future, write_future)?;
 
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
-        let (challenge, cipher_state) = initial_state.got_key(remote_initial_message.pub_key)?;
+        let peer_initial_msg =
+            handshake::InitialMessage::decode_length_delimited(peer_initial_bytes.as_slice())?;
+        let (challenge, cipher_state) = initial_state.got_key(peer_initial_msg.pub_key)?;
 
         // Create the async message reader and writer objects.
         let mut reader = AsyncMsgReader {
@@ -77,20 +78,19 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
-        let sig = challenge.sign_challenge(identity_key);
-        writer
-            .write_msg(&proto::p2p::AuthSigMessage {
-                pub_key: Some(local_public_key.into()),
-                sig: sig.to_vec(),
-            })
-            .await?;
+        let auth_sig_msg = proto::p2p::AuthSigMessage {
+            pub_key: Some(local_public_key.into()),
+            sig: challenge.sign_challenge(identity_key).to_vec(),
+        };
+        let write_future = writer.write_msg(&auth_sig_msg);
 
         // Read the peer's Ed25519 public key and use it to verify their signature over the
         // handshake transcript.
-        let auth_sig_msg: proto::p2p::AuthSigMessage = reader.read_msg().await?;
+        let read_future = AsyncReadMsg::<proto::p2p::AuthSigMessage>::read_msg(&mut reader);
+        let (peer_auth_sig_msg, _) = tokio::try_join!(read_future, write_future)?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
-        let peer_public_key = challenge.got_signature(auth_sig_msg)?;
+        let peer_public_key = challenge.got_signature(peer_auth_sig_msg)?;
 
         // All good!
         Ok(Self {
@@ -237,13 +237,11 @@ impl<M: Message, Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg<M> for A
 /// Read the `handshake::InitialMessage` from the underlying `Io` object.
 async fn read_initial_msg<Io: AsyncReadExt + Unpin>(
     io: &mut Io,
-) -> Result<handshake::InitialMessage> {
+) -> io::Result<[u8; 1 + handshake::InitialMessage::LENGTH]> {
     // Read the remote side's initial message containing their X25519 public key
     let mut buf = [0u8; 1 + handshake::InitialMessage::LENGTH]; // extra byte for length prefix
     io.read_exact(&mut buf).await?;
-    let remote_initial_message =
-        handshake::InitialMessage::decode_length_delimited(buf.as_slice())?;
-    Ok(remote_initial_message)
+    Ok(buf)
 }
 
 // NOTE: tests are in `tests/async_secret_connection.rs`
