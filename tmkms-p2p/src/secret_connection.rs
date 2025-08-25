@@ -4,9 +4,8 @@ use crate::{
     Error, MAX_MSG_LEN, PublicKey, Result,
     ed25519::{self, Signer},
     encryption::{CipherState, Frame},
-    handshake,
-    msg_traits::{ReadMsg, WriteMsg},
-    proto,
+    handshake, proto,
+    traits::{ReadMsg, WriteMsg},
 };
 use prost::Message;
 use std::io::{self, Read, Write};

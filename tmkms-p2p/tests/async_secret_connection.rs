@@ -7,7 +7,7 @@ mod common;
 use common::{PingRequest, PongResponse, TestServer};
 use rand_core::{OsRng, RngCore};
 use std::{os::unix, thread};
-use tmkms_p2p::{AsyncSecretConnection, IdentitySecret};
+use tmkms_p2p::{AsyncReadMsg, AsyncSecretConnection, AsyncWriteMsg, IdentitySecret};
 
 /// Maximum example message length to generate.
 ///

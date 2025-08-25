@@ -35,24 +35,27 @@ mod encryption;
 mod error;
 mod handshake;
 mod kdf;
-mod msg_traits;
 mod peer_id;
 mod proto;
 mod public_key;
 mod secret_connection;
 mod test_vectors;
+mod traits;
 
 pub use crate::{
     error::{CryptoError, Error, Result},
-    msg_traits::{ReadMsg, WriteMsg},
     peer_id::PeerId,
     public_key::PublicKey,
     secret_connection::SecretConnection,
+    traits::{ReadMsg, WriteMsg},
 };
 pub use rand_core;
 
 #[cfg(feature = "async")]
-pub use crate::async_secret_connection::AsyncSecretConnection;
+pub use crate::{
+    async_secret_connection::AsyncSecretConnection,
+    traits::{AsyncReadMsg, AsyncWriteMsg},
+};
 
 /// Secret Connection node identity secret keys.
 ///
