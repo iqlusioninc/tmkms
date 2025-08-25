@@ -44,7 +44,7 @@ pub fn open_secret_connection(
         Ok(conn) => conn,
         Err(error) => fail!(ProtocolError, format!("{error}")),
     };
-    let actual_peer_id = connection.remote_pubkey().peer_id();
+    let actual_peer_id = connection.peer_public_key().peer_id();
 
     // TODO(tarcieri): move this into `SecretConnection::new`
     if let Some(expected_peer_id) = peer_id {

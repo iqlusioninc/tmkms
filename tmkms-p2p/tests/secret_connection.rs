@@ -36,7 +36,7 @@ proptest! {
         let server_handle = thread::spawn(move || TestServer::run(sock_b, bob_sk, NUM_REQUESTS));
 
         let mut conn = SecretConnection::new(sock_a, &alice_sk).unwrap();
-        assert_eq!(conn.remote_pubkey().ed25519().unwrap().as_bytes(), bob_pk.as_bytes());
+        assert_eq!(conn.peer_public_key().ed25519().unwrap().as_bytes(), bob_pk.as_bytes());
 
         for _ in 0..NUM_REQUESTS {
             conn.write_msg(&PingRequest { msg: example_msg.clone() }).unwrap();

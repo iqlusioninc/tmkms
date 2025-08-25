@@ -35,7 +35,7 @@ async fn integration_test() {
         .unwrap();
 
     assert_eq!(
-        conn.remote_pubkey().ed25519().unwrap().as_bytes(),
+        conn.peer_public_key().ed25519().unwrap().as_bytes(),
         bob_pk.as_bytes()
     );
 

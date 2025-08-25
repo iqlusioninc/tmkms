@@ -63,7 +63,7 @@ impl Session {
                         "[{}@{}]: unverified validator peer ID! ({})",
                         &config.chain_id,
                         &config.addr,
-                        conn.remote_pubkey().peer_id()
+                        conn.peer_public_key().peer_id()
                     );
                 }
 
