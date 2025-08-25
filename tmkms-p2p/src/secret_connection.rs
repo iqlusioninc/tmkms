@@ -30,8 +30,16 @@ use crate::IdentitySecret;
 ///
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
 pub struct SecretConnection<Io> {
+    /// Inner I/O object this connection type wraps.
     io: Io,
-    remote_pubkey: Option<PublicKey>,
+
+    /// Our identity's Ed25519 public key.
+    local_public_key: PublicKey,
+
+    /// Remote peer's Ed25519 public key.
+    peer_public_key: Option<PublicKey>,
+
+    /// Symmetric cipher state: key + tracking of the current nonce for a given packet sequence.
     cipher_state: CipherState,
 }
 
@@ -53,7 +61,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         ed25519::VerifyingKey: for<'a> From<&'a Identity>,
     {
         // Start a handshake process, generating a local ephemeral X25519 public key.
-        let identity_pub_key: PublicKey = ed25519::VerifyingKey::from(identity_key).into();
+        let local_public_key: PublicKey = ed25519::VerifyingKey::from(identity_key).into();
         let (mut initial_state, initial_message) = handshake::InitialState::new();
 
         // Send our ephemeral X25519 public key to the remote peer (unencrypted).
@@ -69,13 +77,14 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
 
         let mut sc = Self {
             io,
-            remote_pubkey: None,
+            local_public_key,
+            peer_public_key: None,
             cipher_state,
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
         sc.write_msg(&proto::p2p::AuthSigMessage {
-            pub_key: Some(identity_pub_key.into()),
+            pub_key: Some(local_public_key.into()),
             sig: sig.to_vec(),
         })?;
 
@@ -87,18 +96,25 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         let remote_pubkey = challenge.got_signature(auth_sig_msg)?;
 
         // All good!
-        sc.remote_pubkey = Some(remote_pubkey);
+        sc.peer_public_key = Some(remote_pubkey);
         Ok(sc)
     }
 }
 
 impl<Io> SecretConnection<Io> {
-    /// Returns the remote pubkey. Panics if there's no key.
+    /// Get the local (i.e. our) [`PublicKey`].
+    pub fn local_public_key(&self) -> &PublicKey {
+        &self.local_public_key
+    }
+
+    /// Returns the remote peer's [`PublicKey`].
     ///
     /// # Panics
-    /// - if the remote pubkey is not initialized.
-    pub fn remote_pubkey(&self) -> PublicKey {
-        self.remote_pubkey.expect("remote_pubkey uninitialized")
+    /// - if the peer's public key is not initialized (library-internal bug)
+    pub fn peer_public_key(&self) -> &PublicKey {
+        self.peer_public_key
+            .as_ref()
+            .expect("remote_pubkey uninitialized")
     }
 }
 

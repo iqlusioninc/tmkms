@@ -24,10 +24,11 @@
 //! let tcp_sock = TcpStream::connect("example.com:26656")?;
 //! let mut conn = SecretConnection::new(tcp_sock, &node_identity)?;
 //!
-//! // Verify remote peer ID
-//! conn.remote_pubkey().peer_id().verify(expected_peer_id)?;
+//! // Verify remote peer ID (optional but highly encouraged)
+//! conn.peer_public_key().peer_id().verify(expected_peer_id)?;
 //!
 //! // Read Protobuf message from the remote peer
+//! // (note: you could also write here if initiating a request, see `WriteMsg`)
 //! let msg: ExampleMessage = conn.read_msg()?;
 //! # Ok(())
 //! # }
