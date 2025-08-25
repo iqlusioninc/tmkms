@@ -4,16 +4,12 @@
 
 use crate::{
     AsyncReadMsg, AsyncWriteMsg, Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
-    encryption::{CipherState, Frame},
+    encryption::{Frame, RecvState, SendState},
     handshake, proto,
 };
 use ed25519_dalek::Signer;
 use prost::Message;
-use std::{io, net::SocketAddr};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpStream,
-};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 
 #[cfg(doc)]
 use crate::IdentitySecret;
@@ -21,17 +17,19 @@ use crate::IdentitySecret;
 /// Encrypted connection between peers in a CometBFT network, implemented using asynchronous I/O
 /// provided by the Tokio async runtime.
 pub struct AsyncSecretConnection<Io> {
-    /// Inner async I/O object this connection type wraps.
-    io: Io,
-
     /// Our identity's Ed25519 public key.
     local_public_key: PublicKey,
 
     /// Remote peer's Ed25519 public key.
-    peer_public_key: Option<PublicKey>,
+    peer_public_key: PublicKey,
 
-    /// Symmetric cipher state: key + tracking of the current nonce for a given packet sequence.
-    cipher_state: CipherState,
+    /// Message reader which holds the read-half of the I/O object and the associated symmetric
+    /// cipher state.
+    reader: AsyncMsgReader<Io>,
+
+    /// Message writer which holds the write-half of the I/O object and the associated symmetric
+    /// cipher state.
+    writer: AsyncMsgWriter<Io>,
 }
 
 impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
@@ -46,7 +44,7 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
     /// - if sharing of the signature fails
     /// - if receiving the signature fails
     /// - if verifying the signature fails
-    pub async fn new<Identity>(mut io: Io, identity_key: &Identity) -> Result<Self>
+    pub async fn new<Identity>(io: Io, identity_key: &Identity) -> Result<Self>
     where
         Identity: Signer<ed25519::Signature>,
         ed25519::VerifyingKey: for<'a> From<&'a Identity>,
@@ -55,42 +53,52 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
         let local_public_key: PublicKey = ed25519::VerifyingKey::from(identity_key).into();
         let (mut initial_state, initial_message) = handshake::InitialState::new();
 
+        let (mut io_read, mut io_write) = io::split(io);
+
         // Send our ephemeral X25519 public key to the remote peer (unencrypted).
         // TODO(tarcieri): do this concurrently with reading the remote peer's key
         let initial_message = initial_message.encode_length_delimited_to_vec();
-        io.write_all(&initial_message).await?;
+        io_write.write_all(&initial_message).await?;
 
-        let remote_initial_message = read_initial_msg(&mut io).await?;
+        let remote_initial_message = read_initial_msg(&mut io_read).await?;
 
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
         let (challenge, cipher_state) = initial_state.got_key(remote_initial_message.pub_key)?;
-        let sig = challenge.sign_challenge(identity_key);
 
-        let mut sc = Self {
-            io,
-            local_public_key,
-            peer_public_key: None,
-            cipher_state,
+        // Create the async message reader and writer objects.
+        let mut reader = AsyncMsgReader {
+            io: io_read,
+            recv_state: cipher_state.recv_state,
+        };
+        let mut writer = AsyncMsgWriter {
+            io: io_write,
+            send_state: cipher_state.send_state,
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
-        sc.write_msg(&proto::p2p::AuthSigMessage {
-            pub_key: Some(local_public_key.into()),
-            sig: sig.to_vec(),
-        })
-        .await?;
+        let sig = challenge.sign_challenge(identity_key);
+        writer
+            .write_msg(&proto::p2p::AuthSigMessage {
+                pub_key: Some(local_public_key.into()),
+                sig: sig.to_vec(),
+            })
+            .await?;
 
         // Read the peer's Ed25519 public key and use it to verify their signature over the
         // handshake transcript.
-        let auth_sig_msg: proto::p2p::AuthSigMessage = sc.read_msg().await?;
+        let auth_sig_msg: proto::p2p::AuthSigMessage = reader.read_msg().await?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
-        let remote_pubkey = challenge.got_signature(auth_sig_msg)?;
+        let peer_public_key = challenge.got_signature(auth_sig_msg)?;
 
         // All good!
-        sc.peer_public_key = Some(remote_pubkey);
-        Ok(sc)
+        Ok(Self {
+            local_public_key,
+            peer_public_key,
+            reader,
+            writer,
+        })
     }
 }
 
@@ -105,28 +113,49 @@ impl<Io> AsyncSecretConnection<Io> {
     /// # Panics
     /// - if the peer's public key is not initialized (library-internal bug)
     pub fn peer_public_key(&self) -> PublicKey {
-        self.peer_public_key.expect("remote_pubkey uninitialized")
+        self.peer_public_key
+    }
+
+    /// Split an [`AsyncSecretConnection`] into an [`AsyncMsgReader`] and [`AsyncMsgWriter`] which
+    /// can be used independently of each other.
+    pub fn split(self) -> (AsyncMsgReader<Io>, AsyncMsgWriter<Io>) {
+        (self.reader, self.writer)
     }
 }
 
-impl AsyncSecretConnection<TcpStream> {
-    /// Returns the socket address of the local side of this TCP connection.
-    pub fn local_addr(&self) -> io::Result<SocketAddr> {
-        self.io.local_addr()
-    }
-
-    /// Returns the socket address of the remote peer of the underlying TCP connection.
-    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
-        self.io.peer_addr()
+impl<M: Message + Default, Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg<M>
+    for AsyncSecretConnection<Io>
+{
+    fn read_msg(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
+        self.reader.read_msg()
     }
 }
 
-impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
+impl<M: Message, Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg<M>
+    for AsyncSecretConnection<Io>
+{
+    fn write_msg(&mut self, msg: &M) -> impl Future<Output = Result<()>> + Send + Sync {
+        self.writer.write_msg(msg)
+    }
+}
+
+/// Async message reader type which wraps the read-half of an underlying I/O object.
+///
+/// This is the read half of an [`AsyncSecretConnection`].
+pub struct AsyncMsgReader<Io> {
+    /// Inner async I/O reader object this connection type wraps.
+    io: ReadHalf<Io>,
+
+    /// Symmetric cipher state including the current nonce.
+    recv_state: RecvState,
+}
+
+impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncMsgReader<Io> {
     /// Read and decrypt a frame from the network.
     #[inline]
     async fn read_frame(&mut self) -> Result<Frame> {
         let mut frame = Frame::async_read(&mut self.io).await?;
-        self.cipher_state.recv_state.decrypt_frame(&mut frame)?;
+        self.recv_state.decrypt_frame(&mut frame)?;
         Ok(frame)
     }
 
@@ -160,19 +189,28 @@ impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
 }
 
 impl<M: Message + Default, Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg<M>
-    for AsyncSecretConnection<Io>
+    for AsyncMsgReader<Io>
 {
     fn read_msg(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
         self._read_msg()
     }
 }
 
-impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
+/// Async message writer type which wraps the write-half of an underlying I/O object.
+pub struct AsyncMsgWriter<Io> {
+    /// Inner async I/O reader object this connection type wraps.
+    io: WriteHalf<Io>,
+
+    /// Symmetric cipher state including the current nonce.
+    send_state: SendState,
+}
+
+impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncMsgWriter<Io> {
     /// Encrypt and write a frame to the network.
     #[inline]
     async fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
         let mut frame = Frame::plaintext(plaintext)?;
-        self.cipher_state.send_state.encrypt_frame(&mut frame)?;
+        self.send_state.encrypt_frame(&mut frame)?;
         Ok(frame.async_write(&mut self.io).await?)
     }
 
@@ -190,9 +228,7 @@ impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
     }
 }
 
-impl<M: Message, Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg<M>
-    for AsyncSecretConnection<Io>
-{
+impl<M: Message, Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg<M> for AsyncMsgWriter<Io> {
     fn write_msg(&mut self, msg: &M) -> impl Future<Output = Result<()>> + Send + Sync {
         self._write_msg(msg)
     }
