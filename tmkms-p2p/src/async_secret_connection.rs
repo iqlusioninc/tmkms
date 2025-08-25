@@ -78,15 +78,14 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
-        let auth_sig_msg = proto::p2p::AuthSigMessage {
+        let write_future = writer.write_msg(proto::p2p::AuthSigMessage {
             pub_key: Some(local_public_key.into()),
             sig: challenge.sign_challenge(identity_key).to_vec(),
-        };
-        let write_future = writer.write_msg(&auth_sig_msg);
+        });
 
         // Read the peer's Ed25519 public key and use it to verify their signature over the
         // handshake transcript.
-        let read_future = AsyncReadMsg::<proto::p2p::AuthSigMessage>::read_msg(&mut reader);
+        let read_future = reader.read_msg::<proto::p2p::AuthSigMessage>();
         let (peer_auth_sig_msg, _) = tokio::try_join!(read_future, write_future)?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
@@ -123,18 +122,16 @@ impl<Io> AsyncSecretConnection<Io> {
     }
 }
 
-impl<M: Message + Default, Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg<M>
-    for AsyncSecretConnection<Io>
-{
-    fn read_msg(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
+impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg for AsyncSecretConnection<Io> {
+    #[inline]
+    fn read_msg<M: Message + Default>(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
         self.reader.read_msg()
     }
 }
 
-impl<M: Message, Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg<M>
-    for AsyncSecretConnection<Io>
-{
-    fn write_msg(&mut self, msg: &M) -> impl Future<Output = Result<()>> + Send + Sync {
+impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg for AsyncSecretConnection<Io> {
+    #[inline]
+    fn write_msg<M: Message>(&mut self, msg: M) -> impl Future<Output = Result<()>> + Send + Sync {
         self.writer.write_msg(msg)
     }
 }
@@ -188,10 +185,9 @@ impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncMsgReader<Io> {
     }
 }
 
-impl<M: Message + Default, Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg<M>
-    for AsyncMsgReader<Io>
-{
-    fn read_msg(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
+impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg for AsyncMsgReader<Io> {
+    #[inline]
+    fn read_msg<M: Message + Default>(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
         self._read_msg()
     }
 }
@@ -217,7 +213,7 @@ impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncMsgWriter<Io> {
     /// Encrypt and write a message `M` to the underlying I/O object.
     ///
     /// Core implementation of the `AsyncWriteMsg` trait, written as an `async fn` for simplicity.
-    async fn _write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
+    async fn _write_msg<M: Message>(&mut self, msg: M) -> Result<()> {
         let bytes = msg.encode_length_delimited_to_vec();
 
         for chunk in bytes.chunks(Frame::MAX_SIZE) {
@@ -228,8 +224,9 @@ impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncMsgWriter<Io> {
     }
 }
 
-impl<M: Message, Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg<M> for AsyncMsgWriter<Io> {
-    fn write_msg(&mut self, msg: &M) -> impl Future<Output = Result<()>> + Send + Sync {
+impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg for AsyncMsgWriter<Io> {
+    #[inline]
+    fn write_msg<M: Message>(&mut self, msg: M) -> impl Future<Output = Result<()>> + Send + Sync {
         self._write_msg(msg)
     }
 }

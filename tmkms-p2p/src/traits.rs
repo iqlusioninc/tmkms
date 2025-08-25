@@ -13,7 +13,7 @@ use std::future::Future;
 /// we only support up to 1 MiB messages (`MAX_MSG_LEN`), which use max 3-byte length prefixes.
 const PREFIX_LEN: usize = 3;
 
-// NOTE: trait definitions below use a generic parameter on the trait rather than the method to
+// NOTE: trait definitions below use a generic `M` parameter on the trait rather than the method to
 // support dyn compatibility / object safety.
 //
 // For example, tmkms has a `ReadMsg + WriteMsg` connection type it stores in a `Box`.
@@ -32,20 +32,27 @@ pub trait WriteMsg<M: Message> {
     fn write_msg(&mut self, msg: &M) -> Result<()>;
 }
 
+// NOTE: async trait definitions below opt to place the `M` parameter on the trait to make it
+// possible to turbofish the result message, which is helpful when dealing with an `impl Future`
+// output where it may be difficult to notate the return type. The use of RPIT means the trait
+// can't be dyn compatible / object safe anyway.
+
 /// Read the given Protobuf message from the underlying I/O object (async).
 #[cfg(feature = "async")]
-pub trait AsyncReadMsg<M: Message + Default> {
+pub trait AsyncReadMsg {
     /// Read from the underlying I/O object, decoding (and if necessary decrypting) the data
     /// to the given Protobuf message.
-    fn read_msg(&mut self) -> impl Future<Output = Result<M>> + Send + Sync;
+    fn read_msg<M: Message + Default>(&mut self) -> impl Future<Output = Result<M>> + Send + Sync;
 }
 
 /// Write the given Protobuf message to the underlying I/O object (async).
 #[cfg(feature = "async")]
-pub trait AsyncWriteMsg<M: Message> {
+pub trait AsyncWriteMsg {
     /// Encode the given Protobuf as bytes and write them to the underlying I/O object
     /// (and encrypting if necessary).
-    fn write_msg(&mut self, msg: &M) -> impl Future<Output = Result<()>> + Send + Sync;
+    ///
+    /// Deliberately takes ownership of the message to send to simplify writing async code.
+    fn write_msg<M: Message>(&mut self, msg: M) -> impl Future<Output = Result<()>> + Send + Sync;
 }
 
 impl<M: Message + Default, Io: Read> ReadMsg<M> for Io {
