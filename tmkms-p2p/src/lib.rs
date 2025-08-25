@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![forbid(unsafe_code)]
 #![warn(
     clippy::all,
@@ -14,12 +15,14 @@
 //!
 //! ```no_run
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! # type ExampleMessage = String; // example that impls `prost::Message`
 //! use std::net::TcpStream;
-//! use tmkms_p2p::{SecretConnection, IdentitySecret, rand_core::OsRng};
+//! use tmkms_p2p::{SecretConnection, IdentitySecret, ReadMsg, rand_core::OsRng};
 //!
 //! let node_identity = IdentitySecret::generate(&mut OsRng);
 //! let tcp_sock = TcpStream::connect("example.com:26656")?;
-//! let conn = SecretConnection::new(tcp_sock, &node_identity)?;
+//! let mut conn = SecretConnection::new(tcp_sock, &node_identity)?;
+//! let msg: ExampleMessage = conn.read_msg()?;
 //! # Ok(())
 //! # }
 //! ```
@@ -27,6 +30,7 @@
 //! The [`SecretConnection`] type (`conn`) impls the [`ReadMsg`] and [`WriteMsg`] traits which can
 //! be used to receive and send Protobuf messages which impl the [`prost::Message`] trait.
 
+mod async_secret_connection;
 mod encryption;
 mod error;
 mod handshake;
@@ -46,6 +50,9 @@ pub use crate::{
     secret_connection::SecretConnection,
 };
 pub use rand_core;
+
+#[cfg(feature = "async")]
+pub use crate::async_secret_connection::AsyncSecretConnection;
 
 /// Secret Connection node identity secret keys.
 ///

@@ -1,44 +1,30 @@
-//! Encrypted connection between peers in a CometBFT network.
+//! Async Secret Connection type.
+
+#![cfg(feature = "async")]
 
 use crate::{
-    Error, MAX_MSG_LEN, PublicKey, Result,
-    ed25519::{self, Signer},
+    Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
     encryption::{CipherState, Frame},
-    handshake,
-    msg_traits::{ReadMsg, WriteMsg},
-    proto,
+    handshake, proto,
 };
+use ed25519_dalek::Signer;
 use prost::Message;
-use std::io::{self, Read, Write};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[cfg(doc)]
 use crate::IdentitySecret;
 
-/// Encrypted connection between peers in a CometBFT network.
-///
-/// ## Sending and receiving messages
-///
-/// The [`SecretConnection`] type implements a message-oriented interface which can send and receive
-/// Protobuf-encoded messages that impl the [`prost::Message`] trait.
-///
-/// The [`ReadMsg`] and [`WriteMsg`] traits can be used for sending/receiving Protobuf messages.
-///
-/// ## Connection integrity and failures
-///
-/// Due to the underlying encryption mechanism (currently [RFC 8439]), when a
-/// read or write failure occurs, it is necessary to disconnect from the remote
-/// peer and attempt to reconnect.
-///
-/// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
-pub struct SecretConnection<Io> {
+/// Encrypted connection between peers in a CometBFT network, implemented using asynchronous I/O
+/// provided by the Tokio async runtime.
+pub struct AsyncSecretConnection<Io> {
     io: Io,
     remote_pubkey: Option<PublicKey>,
     cipher_state: CipherState,
 }
 
-impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
-    /// Performs a handshake and returns a new `SecretConnection`, authenticating ourselves with the
-    /// provided `Identity` (Ed25519 signing key).
+impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
+    /// Performs a handshake and returns a new `AsyncSecretConnection`, authenticating ourselves
+    /// with the provided `Identity` (Ed25519 signing key).
     ///
     /// The [`IdentitySecret`] type can be used as an `identity_key`.
     ///
@@ -48,7 +34,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
     /// - if sharing of the signature fails
     /// - if receiving the signature fails
     /// - if verifying the signature fails
-    pub fn new<Identity>(mut io: Io, identity_key: &Identity) -> Result<Self>
+    pub async fn new<Identity>(mut io: Io, identity_key: &Identity) -> Result<Self>
     where
         Identity: Signer<ed25519::Signature>,
         ed25519::VerifyingKey: for<'a> From<&'a Identity>,
@@ -58,10 +44,11 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         let (mut initial_state, initial_message) = handshake::InitialState::new();
 
         // Send our ephemeral X25519 public key to the remote peer (unencrypted).
-        io.write_msg(&initial_message)?;
+        // TODO(tarcieri): do this concurrently with reading the remote peer's key
+        let initial_message = initial_message.encode_length_delimited_to_vec();
+        io.write_all(&initial_message).await?;
 
-        // Read the remote side's initial message containing their X25519 public key (unencrypted)
-        let remote_initial_message: handshake::InitialMessage = io.read_msg()?;
+        let remote_initial_message = read_initial_msg(&mut io).await?;
 
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
@@ -78,11 +65,12 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         sc.write_msg(&proto::p2p::AuthSigMessage {
             pub_key: Some(identity_pub_key.into()),
             sig: sig.to_vec(),
-        })?;
+        })
+        .await?;
 
         // Read the peer's Ed25519 public key and use it to verify their signature over the
         // handshake transcript.
-        let auth_sig_msg: proto::p2p::AuthSigMessage = sc.read_msg()?;
+        let auth_sig_msg: proto::p2p::AuthSigMessage = sc.read_msg().await?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
         let remote_pubkey = challenge.got_signature(auth_sig_msg)?;
@@ -91,9 +79,7 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         sc.remote_pubkey = Some(remote_pubkey);
         Ok(sc)
     }
-}
 
-impl<Io> SecretConnection<Io> {
     /// Returns the remote pubkey. Panics if there's no key.
     ///
     /// # Panics
@@ -103,34 +89,11 @@ impl<Io> SecretConnection<Io> {
     }
 }
 
-impl<Io: Read> SecretConnection<Io> {
-    /// Read and decrypt a frame from the network.
-    #[inline]
-    fn read_frame(&mut self) -> Result<Frame> {
-        let mut frame = Frame::read(&mut self.io)?;
-        self.cipher_state.recv_state.decrypt_frame(&mut frame)?;
-        Ok(frame)
-    }
-}
-
-impl<Io: Write> SecretConnection<Io> {
-    /// Flush the underlying I/O object's write buffer.
-    pub fn flush(&mut self) -> io::Result<()> {
-        self.io.flush()
-    }
-
-    /// Encrypt and write a frame to the network.
-    #[inline]
-    fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
-        let mut frame = Frame::plaintext(plaintext)?;
-        self.cipher_state.send_state.encrypt_frame(&mut frame)?;
-        Ok(frame.write(&mut self.io)?)
-    }
-}
-
-impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
-    fn read_msg(&mut self) -> Result<M> {
-        let frame = self.read_frame()?;
+impl<Io: AsyncReadExt + Unpin> AsyncSecretConnection<Io> {
+    /// Read from the underlying I/O object, decrypting and decoding the data into the given
+    /// Protobuf message.
+    pub async fn read_msg<M: Message + Default>(&mut self) -> Result<M> {
+        let frame = self.read_frame().await?;
 
         // Decode the length prefix on the proto
         let msg_len = proto::decode_length_delimiter_inclusive(frame.as_bytes())?;
@@ -148,23 +111,53 @@ impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
         msg.extend_from_slice(frame.as_bytes());
 
         while msg.len() < msg_len {
-            msg.extend_from_slice(self.read_frame()?.as_bytes());
+            msg.extend_from_slice(self.read_frame().await?.as_bytes());
         }
 
         Ok(M::decode_length_delimited(msg.as_slice())?)
     }
+
+    /// Read and decrypt a frame from the network.
+    #[inline]
+    async fn read_frame(&mut self) -> Result<Frame> {
+        let mut frame = Frame::async_read(&mut self.io).await?;
+        self.cipher_state.recv_state.decrypt_frame(&mut frame)?;
+        Ok(frame)
+    }
 }
 
-impl<M: Message, Io: Write> WriteMsg<M> for SecretConnection<Io> {
-    fn write_msg(&mut self, msg: &M) -> Result<()> {
+impl<Io: AsyncWriteExt + Unpin> AsyncSecretConnection<Io> {
+    /// Encode the given Protobuf as bytes, encrypt the bytes, and write them to the underlying
+    /// I/O object.
+    pub async fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
         let bytes = msg.encode_length_delimited_to_vec();
 
         for chunk in bytes.chunks(Frame::MAX_SIZE) {
-            self.write_frame(chunk)?;
+            self.write_frame(chunk).await?;
         }
 
         Ok(())
     }
+
+    /// Encrypt and write a frame to the network.
+    #[inline]
+    async fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
+        let mut frame = Frame::plaintext(plaintext)?;
+        self.cipher_state.send_state.encrypt_frame(&mut frame)?;
+        Ok(frame.async_write(&mut self.io).await?)
+    }
 }
 
-// NOTE: tests are in `tests/secret_connection.rs`
+/// Read the `handshake::InitialMessage` from the underlying `Io` object.
+async fn read_initial_msg<Io: AsyncReadExt + Unpin>(
+    io: &mut Io,
+) -> Result<handshake::InitialMessage> {
+    // Read the remote side's initial message containing their X25519 public key
+    let mut buf = [0u8; 1 + handshake::InitialMessage::LENGTH]; // extra byte for length prefix
+    io.read_exact(&mut buf).await?;
+    let remote_initial_message =
+        handshake::InitialMessage::decode_length_delimited(buf.as_slice())?;
+    Ok(remote_initial_message)
+}
+
+// NOTE: tests are in `tests/async_secret_connection.rs`
