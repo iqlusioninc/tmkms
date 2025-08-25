@@ -31,7 +31,7 @@ subtle = { version = "2", default-features = false }
 zeroize = { version = "1", default-features = false }
 
 # optional dependencies
-tokio = { version = "1", optional = true, features = ["io-util", "net"] }
+tokio = { version = "1", optional = true, features = ["io-util", "macros", "net"] }
 
 [features]
 async = ["dep:tokio"]
@@ -39,4 +39,4 @@ async = ["dep:tokio"]
 [dev-dependencies]
 hex-literal = "1"
 proptest = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }
