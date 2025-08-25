@@ -42,7 +42,7 @@ async fn integration_test() {
     for _ in 0..NUM_REQUESTS {
         let example_msg = example_msg();
 
-        conn.write_msg(&PingRequest {
+        conn.write_msg(PingRequest {
             msg: example_msg.clone(),
         })
         .await
