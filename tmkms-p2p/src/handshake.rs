@@ -150,7 +150,7 @@ impl InitialState {
     /// - if Protobuf encoding of `AuthSigMessage` fails.
     pub fn got_key(
         &mut self,
-        remote_ephemeral_pub_key: EphemeralPublic,
+        peer_ephemeral_pub_key: EphemeralPublic,
     ) -> Result<(AwaitingResponse, CipherState)> {
         let ephemeral_sec_key = self
             .ephemeral_sec_key
@@ -160,7 +160,7 @@ impl InitialState {
         let ephemeral_pub_key = EphemeralPublic::mul_base_clamped(ephemeral_sec_key);
 
         // Compute common shared secret.
-        let shared_secret = remote_ephemeral_pub_key.mul_clamped(ephemeral_sec_key);
+        let shared_secret = peer_ephemeral_pub_key.mul_clamped(ephemeral_sec_key);
 
         // All-zero output from X25519 indicates an error (e.g. multiplication by low order point).
         // This should be rejected via the Merlin transcript hash but here for belt-and-suspenders
@@ -178,7 +178,7 @@ impl InitialState {
 
         let mut ephemeral_pub_keys = [
             ephemeral_pub_key.to_bytes(),
-            remote_ephemeral_pub_key.to_bytes(),
+            peer_ephemeral_pub_key.to_bytes(),
         ];
         ephemeral_pub_keys.sort();
 
@@ -220,15 +220,15 @@ impl AwaitingResponse {
     /// - if signature scheme isn't supported
     /// - if signature fails to verify
     pub fn got_signature(&self, auth_sig_msg: proto::p2p::AuthSigMessage) -> Result<PublicKey> {
-        let remote_pubkey: PublicKey = auth_sig_msg
+        let peer_pubkey: PublicKey = auth_sig_msg
             .pub_key
             .ok_or(DecodeError::new("public key missing from `AuthSigMsg`"))?
             .try_into()?;
 
-        remote_pubkey.verify(&self.sc_mac, &auth_sig_msg.sig)?;
+        peer_pubkey.verify(&self.sc_mac, &auth_sig_msg.sig)?;
 
         // We've authenticated the remote peer's signature over the handshake.
-        Ok(remote_pubkey)
+        Ok(peer_pubkey)
     }
 }
 

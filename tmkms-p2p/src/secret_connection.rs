@@ -71,11 +71,11 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         io.write_msg(&initial_message)?;
 
         // Read the remote side's initial message containing their X25519 public key (unencrypted)
-        let remote_initial_message: handshake::InitialMessage = io.read_msg()?;
+        let peer_initial_message: handshake::InitialMessage = io.read_msg()?;
 
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
-        let (challenge, cipher_state) = initial_state.got_key(remote_initial_message.pub_key)?;
+        let (challenge, cipher_state) = initial_state.got_key(peer_initial_message.pub_key)?;
         let sig = challenge.sign_challenge(identity_key);
 
         let mut sc = Self {
@@ -96,10 +96,10 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         let auth_sig_msg: proto::p2p::AuthSigMessage = sc.read_msg()?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
-        let remote_pubkey = challenge.got_signature(auth_sig_msg)?;
+        let peer_pubkey = challenge.got_signature(auth_sig_msg)?;
 
         // All good!
-        sc.peer_public_key = Some(remote_pubkey);
+        sc.peer_public_key = Some(peer_pubkey);
         Ok(sc)
     }
 }
@@ -117,7 +117,7 @@ impl<Io> SecretConnection<Io> {
     pub fn peer_public_key(&self) -> &PublicKey {
         self.peer_public_key
             .as_ref()
-            .expect("remote_pubkey uninitialized")
+            .expect("peer_public_key uninitialized")
     }
 }
 
