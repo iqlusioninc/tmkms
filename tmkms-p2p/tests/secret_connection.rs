@@ -2,13 +2,11 @@
 
 #![cfg(unix)]
 
+mod common;
+
+use common::{PingRequest, PongResponse, TestServer};
 use proptest::{collection, prelude::*};
-use prost::Message;
-use std::{
-    io::{Read, Write},
-    os::unix::net::UnixStream,
-    thread,
-};
+use std::{os::unix::net::UnixStream, thread};
 use tmkms_p2p::{IdentitySecret, ReadMsg, SecretConnection, WriteMsg};
 
 /// Maximum example message length to generate.
@@ -35,7 +33,7 @@ proptest! {
         let bob_pk = bob_sk.verifying_key();
 
         let (sock_a, sock_b) = UnixStream::pair().unwrap();
-        let server_handle = TestServer::run(sock_b, bob_sk);
+        let server_handle = thread::spawn(move || TestServer::run(sock_b, bob_sk, NUM_REQUESTS));
 
         let mut conn = SecretConnection::new(sock_a, &alice_sk).unwrap();
         assert_eq!(conn.remote_pubkey().ed25519().unwrap().as_bytes(), bob_pk.as_bytes());
@@ -49,49 +47,4 @@ proptest! {
 
         server_handle.join().unwrap();
     }
-}
-
-/// Test server used for exercising `SecretConnection`.
-/// Implements basic ping/pong functionality
-struct TestServer<Io> {
-    conn: SecretConnection<Io>,
-}
-
-impl<Io> TestServer<Io>
-where
-    Io: Read + Write + Send + Sync + 'static,
-{
-    fn run(io: Io, sk: IdentitySecret) -> thread::JoinHandle<()> {
-        thread::spawn(move || {
-            let mut server = TestServer {
-                conn: SecretConnection::new(io, &sk).unwrap(),
-            };
-
-            for _ in 0..NUM_REQUESTS {
-                server.handle_request()
-            }
-        })
-    }
-
-    // handle an incoming echo request
-    fn handle_request(&mut self) {
-        let req: PingRequest = self.conn.read_msg().unwrap();
-        self.conn.write_msg(&PongResponse { msg: req.msg }).unwrap();
-    }
-}
-
-/// Example request message to send to the server
-#[derive(Clone, PartialEq, Eq, Message)]
-pub struct PingRequest {
-    /// Message to be echoed back in the response
-    #[prost(bytes, tag = "1")]
-    pub msg: Vec<u8>,
-}
-
-/// Example response message from the server
-#[derive(Clone, PartialEq, Eq, Message)]
-pub struct PongResponse {
-    /// Message from the original request
-    #[prost(bytes, tag = "1")]
-    pub msg: Vec<u8>,
 }

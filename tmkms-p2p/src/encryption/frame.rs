@@ -2,7 +2,11 @@
 
 use super::Tag;
 use crate::CryptoError;
+
+// NOTE: `Frame` manages its own I/O to ensure we never write plaintext to the socket
 use std::io::{self, Read, Write};
+#[cfg(feature = "async")]
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// 4 + 1024 == 1028 total frame size
 const LENGTH_PREFIX_SIZE: usize = 4;
@@ -63,6 +67,16 @@ impl Frame {
         Ok(Self::ciphertext(bytes))
     }
 
+    /// Read a ciphertext frame from the network (async).
+    #[cfg(feature = "async")]
+    pub(crate) async fn async_read<R: AsyncReadExt + Unpin>(
+        reader: &mut R,
+    ) -> Result<Self, io::Error> {
+        let mut bytes = [0u8; TAGGED_FRAME_SIZE];
+        reader.read_exact(&mut bytes).await?;
+        Ok(Self::ciphertext(bytes))
+    }
+
     /// Write a ciphertext frame to the network.
     pub(crate) fn write<W: Write>(&self, writer: &mut W) -> Result<(), io::Error> {
         if !self.encrypted {
@@ -70,6 +84,19 @@ impl Frame {
         }
 
         writer.write_all(&self.bytes)
+    }
+
+    /// Write a ciphertext frame to the network (async).
+    #[cfg(feature = "async")]
+    pub(crate) async fn async_write<W: AsyncWriteExt + Unpin>(
+        &self,
+        writer: &mut W,
+    ) -> Result<(), io::Error> {
+        if !self.encrypted {
+            return Err(io::Error::other("refusing to write plaintext to network"));
+        }
+
+        writer.write_all(&self.bytes).await
     }
 
     /// Length of the frame.

@@ -1,6 +1,6 @@
 //! Helper traits for reading and writing Protobuf messages.
 
-use crate::{Error, MAX_MSG_LEN, Result};
+use crate::{Error, MAX_MSG_LEN, Result, proto};
 use prost::Message;
 use std::io::{Read, Write};
 
@@ -34,7 +34,7 @@ impl<M: Message + Default, Io: Read> ReadMsg<M> for Io {
         let mut prefix = [0u8; PREFIX_LEN];
         self.read_exact(&mut prefix)?;
 
-        let msg_len = decode_length_delimiter_inclusive(&prefix)?;
+        let msg_len = proto::decode_length_delimiter_inclusive(&prefix)?;
 
         // Reject messages that are too small or too large.
         if !(PREFIX_LEN..=MAX_MSG_LEN).contains(&msg_len) {
@@ -55,17 +55,6 @@ impl<M: Message, Io: Write> WriteMsg<M> for Io {
         let bytes = msg.encode_length_delimited_to_vec();
         Ok(self.write_all(&bytes)?)
     }
-}
-
-/// Decode the total length of a length-delimited Protobuf or other LEB128-prefixed message,
-/// including the length of the length prefix itself (which is variable-sized).
-pub(crate) fn decode_length_delimiter_inclusive(frame: &[u8]) -> Result<usize> {
-    // TODO(tarcieri): would this fail on non-canonical LEB128, e.g. with leading zeros?
-    let len = prost::decode_length_delimiter(frame)?;
-    let length_delimiter_len = prost::length_delimiter_len(len);
-    length_delimiter_len
-        .checked_add(len)
-        .ok_or_else(|| prost::DecodeError::new("length overflow").into())
 }
 
 // NOTE: tested indirectly via `SecretConnection`

@@ -36,10 +36,14 @@ type Challenge = [u8; 32];
 #[derive(Debug, Default)]
 pub(crate) struct InitialMessage {
     /// X25519 public key.
-    pub pub_key: EphemeralPublic,
+    pub(crate) pub_key: EphemeralPublic,
 }
 
 impl InitialMessage {
+    /// Length when encoded as a Protobuf (sans outer length delimiter)
+    // 1-byte tag + 1-byte length prefix + 32-byte key
+    pub(crate) const LENGTH: usize = 2 + size_of::<EphemeralPublic>();
+
     /// Field ID of the public key.
     const FIELD_TAG: u8 = 1;
 
@@ -85,8 +89,7 @@ impl Message for InitialMessage {
     }
 
     fn encoded_len(&self) -> usize {
-        // 2-byte tag + length prefix
-        2 + size_of::<EphemeralPublic>()
+        Self::LENGTH
     }
 
     fn clear(&mut self) {
