@@ -3,7 +3,7 @@
 #![cfg(feature = "async")]
 
 use crate::{
-    Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
+    AsyncReadMsg, AsyncWriteMsg, Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
     encryption::{CipherState, Frame},
     handshake, proto,
 };
@@ -89,10 +89,19 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
     }
 }
 
-impl<Io: AsyncReadExt + Unpin> AsyncSecretConnection<Io> {
-    /// Read from the underlying I/O object, decrypting and decoding the data into the given
-    /// Protobuf message.
-    pub async fn read_msg<M: Message + Default>(&mut self) -> Result<M> {
+impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
+    /// Read and decrypt a frame from the network.
+    #[inline]
+    async fn read_frame(&mut self) -> Result<Frame> {
+        let mut frame = Frame::async_read(&mut self.io).await?;
+        self.cipher_state.recv_state.decrypt_frame(&mut frame)?;
+        Ok(frame)
+    }
+
+    /// Read and decrypt a message `M` from the underlying I/O object.
+    ///
+    /// Core implementation of the `AsyncReadMsg` trait, written as an `async fn` for simplicity.
+    async fn _read_msg<M: Message + Default>(&mut self) -> Result<M> {
         let frame = self.read_frame().await?;
 
         // Decode the length prefix on the proto
@@ -116,20 +125,29 @@ impl<Io: AsyncReadExt + Unpin> AsyncSecretConnection<Io> {
 
         Ok(M::decode_length_delimited(msg.as_slice())?)
     }
+}
 
-    /// Read and decrypt a frame from the network.
-    #[inline]
-    async fn read_frame(&mut self) -> Result<Frame> {
-        let mut frame = Frame::async_read(&mut self.io).await?;
-        self.cipher_state.recv_state.decrypt_frame(&mut frame)?;
-        Ok(frame)
+impl<M: Message + Default, Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg<M>
+    for AsyncSecretConnection<Io>
+{
+    fn read_msg(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
+        self._read_msg()
     }
 }
 
-impl<Io: AsyncWriteExt + Unpin> AsyncSecretConnection<Io> {
-    /// Encode the given Protobuf as bytes, encrypt the bytes, and write them to the underlying
-    /// I/O object.
-    pub async fn write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
+impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
+    /// Encrypt and write a frame to the network.
+    #[inline]
+    async fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
+        let mut frame = Frame::plaintext(plaintext)?;
+        self.cipher_state.send_state.encrypt_frame(&mut frame)?;
+        Ok(frame.async_write(&mut self.io).await?)
+    }
+
+    /// Encrypt and write a message `M` to the underlying I/O object.
+    ///
+    /// Core implementation of the `AsyncWriteMsg` trait, written as an `async fn` for simplicity.
+    async fn _write_msg<M: Message>(&mut self, msg: &M) -> Result<()> {
         let bytes = msg.encode_length_delimited_to_vec();
 
         for chunk in bytes.chunks(Frame::MAX_SIZE) {
@@ -138,13 +156,13 @@ impl<Io: AsyncWriteExt + Unpin> AsyncSecretConnection<Io> {
 
         Ok(())
     }
+}
 
-    /// Encrypt and write a frame to the network.
-    #[inline]
-    async fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
-        let mut frame = Frame::plaintext(plaintext)?;
-        self.cipher_state.send_state.encrypt_frame(&mut frame)?;
-        Ok(frame.async_write(&mut self.io).await?)
+impl<M: Message, Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg<M>
+    for AsyncSecretConnection<Io>
+{
+    fn write_msg(&mut self, msg: &M) -> impl Future<Output = Result<()>> + Send + Sync {
+        self._write_msg(msg)
     }
 }
 

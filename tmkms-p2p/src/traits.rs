@@ -4,6 +4,9 @@ use crate::{Error, MAX_MSG_LEN, Result, proto};
 use prost::Message;
 use std::io::{Read, Write};
 
+#[cfg(feature = "async")]
+use std::future::Future;
+
 /// Message prefix length to always consume. This also represents the minimum message size.
 ///
 /// This is picked to ensure that the entire length prefix will always fit in this size, namely
@@ -27,6 +30,22 @@ pub trait WriteMsg<M: Message> {
     /// Encode the given Protobuf as bytes and write them to the underlying I/O object
     /// (and encrypting if necessary).
     fn write_msg(&mut self, msg: &M) -> Result<()>;
+}
+
+/// Read the given Protobuf message from the underlying I/O object (async).
+#[cfg(feature = "async")]
+pub trait AsyncReadMsg<M: Message + Default> {
+    /// Read from the underlying I/O object, decoding (and if necessary decrypting) the data
+    /// to the given Protobuf message.
+    fn read_msg(&mut self) -> impl Future<Output = Result<M>> + Send + Sync;
+}
+
+/// Write the given Protobuf message to the underlying I/O object (async).
+#[cfg(feature = "async")]
+pub trait AsyncWriteMsg<M: Message> {
+    /// Encode the given Protobuf as bytes and write them to the underlying I/O object
+    /// (and encrypting if necessary).
+    fn write_msg(&mut self, msg: &M) -> impl Future<Output = Result<()>> + Send + Sync;
 }
 
 impl<M: Message + Default, Io: Read> ReadMsg<M> for Io {
