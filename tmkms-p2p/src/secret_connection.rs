@@ -8,7 +8,10 @@ use crate::{
     traits::{ReadMsg, WriteMsg},
 };
 use prost::Message;
-use std::io::{self, Read, Write};
+use std::{
+    io::{self, Read, Write},
+    net::{SocketAddr, TcpStream},
+};
 
 #[cfg(doc)]
 use crate::IdentitySecret;
@@ -115,6 +118,18 @@ impl<Io> SecretConnection<Io> {
         self.peer_public_key
             .as_ref()
             .expect("remote_pubkey uninitialized")
+    }
+}
+
+impl SecretConnection<TcpStream> {
+    /// Returns the socket address of the local side of this TCP connection.
+    pub fn local_addr(&self) -> io::Result<SocketAddr> {
+        self.io.local_addr()
+    }
+
+    /// Returns the socket address of the remote peer of the underlying TCP connection.
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.io.peer_addr()
     }
 }
 

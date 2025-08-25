@@ -9,7 +9,11 @@ use crate::{
 };
 use ed25519_dalek::Signer;
 use prost::Message;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use std::{io, net::SocketAddr};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpStream,
+};
 
 #[cfg(doc)]
 use crate::IdentitySecret;
@@ -102,6 +106,18 @@ impl<Io> AsyncSecretConnection<Io> {
     /// - if the peer's public key is not initialized (library-internal bug)
     pub fn peer_public_key(&self) -> PublicKey {
         self.peer_public_key.expect("remote_pubkey uninitialized")
+    }
+}
+
+impl AsyncSecretConnection<TcpStream> {
+    /// Returns the socket address of the local side of this TCP connection.
+    pub fn local_addr(&self) -> io::Result<SocketAddr> {
+        self.io.local_addr()
+    }
+
+    /// Returns the socket address of the remote peer of the underlying TCP connection.
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.io.peer_addr()
     }
 }
 
