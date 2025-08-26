@@ -55,7 +55,3 @@ pub(crate) const ENCRYPTION_KEY1: [u8; 32] =
     hex!("4de5c254243a6a7b52fafd0b0c4db59175975cd435e99b7f758265aaaeeea063");
 pub(crate) const ENCRYPTION_KEY2: [u8; 32] =
     hex!("6083a1a00e5ea92cdc380c55013f3c87d87ade022666fd5aad4ae3a1530d0885");
-
-/// Challenge message derived from the KDF.
-pub(crate) const CHALLENGE: [u8; 32] =
-    hex!("cad18a7a530a6fd6e7f56e372aab9ac9410eb0ab4ca1cee89f5089e58d9e9e3e");

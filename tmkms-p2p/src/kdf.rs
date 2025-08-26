@@ -2,54 +2,59 @@
 
 use hkdf::Hkdf;
 use sha2::Sha256;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 /// "Info" parameter to HKDF we use to personalize the derivation
 const HKDF_INFO: &[u8] = b"TENDERMINT_SECRET_CONNECTION_KEY_AND_CHALLENGE_GEN";
 
+/// Keys managed by the KDF.
+pub(crate) type Key = [u8; 32];
+
 /// Key Derivation Function for `SecretConnection` (HKDF)
 pub(crate) struct Kdf {
     /// Receiver's secret
-    pub recv_secret: [u8; 32],
+    recv_secret: Key,
 
     /// Sender's secret
-    pub send_secret: [u8; 32],
-
-    /// Challenge to be signed by peer
-    pub challenge: [u8; 32],
+    send_secret: Key,
 }
 
 impl Kdf {
     /// Returns recv secret, send secret, challenge as 32 byte arrays
     ///
     /// # Panics
-    /// Panics if the HKDF secret expansion fails
+    /// - if the HKDF secret expansion fails
     #[must_use]
-    pub fn derive_secrets_and_challenge(shared_secret: &[u8; 32], loc_is_lo: bool) -> Self {
-        let mut key_material = [0_u8; 96];
+    pub fn derive_encryption_keys(shared_secret: &Key, loc_is_lo: bool) -> Self {
+        let mut key_material = Zeroizing::new([0u8; size_of::<Key>() * 2]);
 
         Hkdf::<Sha256>::new(None, shared_secret)
-            .expand(HKDF_INFO, &mut key_material)
+            .expand(HKDF_INFO, key_material.as_mut())
             .expect("secret expansion failed");
 
-        let [mut recv_secret, mut send_secret, mut challenge] = [[0_u8; 32]; 3];
+        let (key1, key2) = key_material.split_at(size_of::<Key>());
+        let (mut recv_secret, mut send_secret) = (Key::default(), Key::default());
 
         if loc_is_lo {
-            recv_secret.copy_from_slice(&key_material[0..32]);
-            send_secret.copy_from_slice(&key_material[32..64]);
+            recv_secret.copy_from_slice(key1);
+            send_secret.copy_from_slice(key2);
         } else {
-            send_secret.copy_from_slice(&key_material[0..32]);
-            recv_secret.copy_from_slice(&key_material[32..64]);
+            send_secret.copy_from_slice(key1);
+            recv_secret.copy_from_slice(key2);
         }
-
-        challenge.copy_from_slice(&key_material[64..96]);
-        key_material.as_mut().zeroize();
 
         Self {
             recv_secret,
             send_secret,
-            challenge,
         }
+    }
+
+    pub(crate) fn recv_secret(&self) -> &Key {
+        &self.recv_secret
+    }
+
+    pub(crate) fn send_secret(&self) -> &Key {
+        &self.send_secret
     }
 }
 
@@ -57,27 +62,22 @@ impl Drop for Kdf {
     fn drop(&mut self) {
         self.recv_secret.zeroize();
         self.send_secret.zeroize();
-        self.challenge.zeroize();
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Kdf;
-    use crate::test_vectors::{
-        CHALLENGE, ENCRYPTION_KEY1, ENCRYPTION_KEY2, HANDSHAKE_SHARED_SECRET,
-    };
+    use crate::test_vectors::{ENCRYPTION_KEY1, ENCRYPTION_KEY2, HANDSHAKE_SHARED_SECRET};
 
     #[test]
     fn kdf() {
-        let kdf1 = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, false);
+        let kdf1 = Kdf::derive_encryption_keys(&HANDSHAKE_SHARED_SECRET, false);
         assert_eq!(kdf1.recv_secret, ENCRYPTION_KEY1);
         assert_eq!(kdf1.send_secret, ENCRYPTION_KEY2);
-        assert_eq!(kdf1.challenge, CHALLENGE);
 
-        let kdf2 = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, true);
+        let kdf2 = Kdf::derive_encryption_keys(&HANDSHAKE_SHARED_SECRET, true);
         assert_eq!(kdf2.recv_secret, ENCRYPTION_KEY2);
         assert_eq!(kdf2.send_secret, ENCRYPTION_KEY1);
-        assert_eq!(kdf2.challenge, CHALLENGE);
     }
 }
