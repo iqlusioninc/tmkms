@@ -150,7 +150,10 @@ impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncSecretReader<Io> {
     /// Read and decrypt a frame from the network.
     #[inline]
     async fn read_frame(&mut self) -> Result<Frame> {
-        let mut frame = Frame::async_read(&mut self.io).await?;
+        let mut bytes = [0u8; Frame::ENCRYPTED_SIZE];
+        self.io.read_exact(&mut bytes).await?;
+
+        let mut frame = Frame::from_ciphertext(bytes);
         self.recv_state.decrypt_frame(&mut frame)?;
         Ok(frame)
     }
@@ -160,24 +163,25 @@ impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncSecretReader<Io> {
     /// Core implementation of the `AsyncReadMsg` trait, written as an `async fn` for simplicity.
     async fn _read_msg<M: Message + Default>(&mut self) -> Result<M> {
         let frame = self.read_frame().await?;
+        let frame_plaintext = frame.plaintext()?;
 
         // Decode the length prefix on the proto
-        let msg_len = proto::decode_length_delimiter_inclusive(frame.as_bytes())?;
+        let msg_len = proto::decode_length_delimiter_inclusive(frame_plaintext)?;
 
         if msg_len > MAX_MSG_LEN {
             return Err(Error::MessageSize { size: msg_len });
         }
 
         // Skip the heap if the proto fits in a single message frame
-        if frame.as_bytes().len() == msg_len {
-            return Ok(M::decode_length_delimited(frame.as_bytes())?);
+        if frame_plaintext.len() == msg_len {
+            return Ok(M::decode_length_delimited(frame_plaintext)?);
         }
 
         let mut msg = Vec::with_capacity(msg_len);
-        msg.extend_from_slice(frame.as_bytes());
+        msg.extend_from_slice(frame_plaintext);
 
         while msg.len() < msg_len {
-            msg.extend_from_slice(self.read_frame().await?.as_bytes());
+            msg.extend_from_slice(self.read_frame().await?.plaintext()?);
         }
 
         Ok(M::decode_length_delimited(msg.as_slice())?)
@@ -204,9 +208,9 @@ impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncSecretWriter<Io> {
     /// Encrypt and write a frame to the network.
     #[inline]
     async fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
-        let mut frame = Frame::plaintext(plaintext)?;
+        let mut frame = Frame::from_plaintext(plaintext)?;
         self.send_state.encrypt_frame(&mut frame)?;
-        Ok(frame.async_write(&mut self.io).await?)
+        Ok(self.io.write_all(frame.ciphertext()?).await?)
     }
 
     /// Encrypt and write a message `M` to the underlying I/O object.
@@ -215,7 +219,7 @@ impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncSecretWriter<Io> {
     async fn _write_msg<M: Message>(&mut self, msg: M) -> Result<()> {
         let bytes = msg.encode_length_delimited_to_vec();
 
-        for chunk in bytes.chunks(Frame::MAX_SIZE) {
+        for chunk in bytes.chunks(Frame::MAX_PLAINTEXT_SIZE) {
             self.write_frame(chunk).await?;
         }
 
