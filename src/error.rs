@@ -200,8 +200,8 @@ impl From<tendermint::Error> for Error {
     }
 }
 
-impl From<tmkms_p2p::Error> for Error {
-    fn from(other: tmkms_p2p::Error) -> Self {
+impl From<cometbft_p2p::Error> for Error {
+    fn from(other: cometbft_p2p::Error) -> Self {
         ErrorKind::ConnectionError.context(other).into()
     }
 }

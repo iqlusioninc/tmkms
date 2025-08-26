@@ -30,15 +30,15 @@ impl From<VerifyingKey> for tendermint::PublicKey {
     }
 }
 
-impl From<VerifyingKey> for tmkms_p2p::PublicKey {
+impl From<VerifyingKey> for cometbft_p2p::PublicKey {
     #[inline]
-    fn from(verifying_key: VerifyingKey) -> tmkms_p2p::PublicKey {
+    fn from(verifying_key: VerifyingKey) -> cometbft_p2p::PublicKey {
         Self::from(&verifying_key)
     }
 }
 
-impl From<&VerifyingKey> for tmkms_p2p::PublicKey {
-    fn from(verifying_key: &VerifyingKey) -> tmkms_p2p::PublicKey {
+impl From<&VerifyingKey> for cometbft_p2p::PublicKey {
+    fn from(verifying_key: &VerifyingKey) -> cometbft_p2p::PublicKey {
         verifying_key.0.into()
     }
 }

@@ -1,6 +1,7 @@
 //! KMS integration test
 
 use chrono::{DateTime, Utc};
+use cometbft_p2p::{self as p2p, IdentitySecret, PublicKey, ReadMsg, SecretConnection, WriteMsg};
 use rand::Rng;
 use signature::Verifier;
 use std::{
@@ -19,7 +20,6 @@ use tmkms::{
     keyring::ed25519,
     privval::{SignableMsg, SignedMsgType},
 };
-use tmkms_p2p::{self as p2p, IdentitySecret, PublicKey, ReadMsg, SecretConnection, WriteMsg};
 
 /// Integration tests for the KMS command-line interface
 mod cli;

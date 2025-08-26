@@ -2,9 +2,9 @@
 
 use std::{net::TcpStream, path::PathBuf, time::Duration};
 
+use cometbft_p2p::{IdentitySecret, PublicKey, SecretConnection};
 use subtle::ConstantTimeEq;
 use tendermint::node;
-use tmkms_p2p::{IdentitySecret, PublicKey, SecretConnection};
 
 use crate::{
     error::{Error, ErrorKind::*},
