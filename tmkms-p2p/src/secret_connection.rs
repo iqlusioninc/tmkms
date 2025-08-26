@@ -3,15 +3,12 @@
 use crate::{
     Error, MAX_MSG_LEN, PublicKey, Result,
     ed25519::{self, Signer},
-    encryption::{CipherState, Frame},
+    encryption::{Frame, RecvState, SendState},
     handshake, proto,
-    traits::{ReadMsg, WriteMsg},
+    traits::{ReadMsg, TryCloneIo, WriteMsg},
 };
 use prost::Message;
-use std::{
-    io::{self, Read, Write},
-    net::{SocketAddr, TcpStream},
-};
+use std::io::{self, Read, Write};
 
 #[cfg(doc)]
 use crate::IdentitySecret;
@@ -33,20 +30,22 @@ use crate::IdentitySecret;
 ///
 /// [RFC 8439]: https://www.rfc-editor.org/rfc/rfc8439.html
 pub struct SecretConnection<Io> {
-    /// Inner I/O object this connection type wraps.
-    io: Io,
+    /// Message reader which holds the read-half of the I/O object and the associated symmetric
+    /// cipher state.
+    reader: SecretReader<Io>,
+
+    /// Message writer which holds the write-half of the I/O object and the associated symmetric
+    /// cipher state.
+    writer: SecretWriter<Io>,
 
     /// Our identity's Ed25519 public key.
     local_public_key: PublicKey,
 
     /// Remote peer's Ed25519 public key.
-    peer_public_key: Option<PublicKey>,
-
-    /// Symmetric cipher state: key + tracking of the current nonce for a given packet sequence.
-    cipher_state: CipherState,
+    peer_public_key: PublicKey,
 }
 
-impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
+impl<Io: Read + Write + Send + Sync + TryCloneIo> SecretConnection<Io> {
     /// Performs a handshake and returns a new `SecretConnection`, authenticating ourselves with the
     /// provided `Identity` (Ed25519 signing key).
     ///
@@ -76,31 +75,57 @@ impl<Io: Read + Write + Send + Sync> SecretConnection<Io> {
         // Compute signature over the handshake transcript and initialize symmetric cipher state
         // using shared secret computed using X25519.
         let (challenge, cipher_state) = initial_state.got_key(peer_initial_message.pub_key)?;
-        let sig = challenge.sign_challenge(identity_key);
 
-        let mut sc = Self {
+        // Create the async message reader and writer objects.
+        let io2 = io.try_clone()?;
+        let mut reader = SecretReader {
             io,
-            local_public_key,
-            peer_public_key: None,
-            cipher_state,
+            recv_state: cipher_state.recv_state,
+        };
+        let mut writer = SecretWriter {
+            io: io2,
+            send_state: cipher_state.send_state,
         };
 
         // Send our identity's Ed25519 public key and signature over the transcript to the peer.
-        sc.write_msg(&proto::p2p::AuthSigMessage {
+        writer.write_msg(&proto::p2p::AuthSigMessage {
             pub_key: Some(local_public_key.into()),
-            sig: sig.to_vec(),
+            sig: challenge.sign_challenge(identity_key).to_vec(),
         })?;
 
         // Read the peer's Ed25519 public key and use it to verify their signature over the
         // handshake transcript.
-        let auth_sig_msg: proto::p2p::AuthSigMessage = sc.read_msg()?;
+        let auth_sig_msg: proto::p2p::AuthSigMessage = reader.read_msg()?;
 
         // Verify the key and signature validate for our computed Merlin transcript hash
-        let peer_pubkey = challenge.got_signature(auth_sig_msg)?;
+        let peer_public_key = challenge.got_signature(auth_sig_msg)?;
 
         // All good!
-        sc.peer_public_key = Some(peer_pubkey);
-        Ok(sc)
+        Ok(Self {
+            reader,
+            writer,
+            local_public_key,
+            peer_public_key,
+        })
+    }
+}
+
+impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
+    fn read_msg(&mut self) -> Result<M> {
+        self.reader.read_msg()
+    }
+}
+
+impl<M: Message, Io: Write> WriteMsg<M> for SecretConnection<Io> {
+    fn write_msg(&mut self, msg: &M) -> Result<()> {
+        self.writer.write_msg(msg)
+    }
+}
+
+impl<Io: Write> SecretConnection<Io> {
+    /// Flush the underlying I/O object's write buffer.
+    pub fn flush(&mut self) -> io::Result<()> {
+        self.writer.flush()
     }
 }
 
@@ -115,50 +140,36 @@ impl<Io> SecretConnection<Io> {
     /// # Panics
     /// - if the peer's public key is not initialized (library-internal bug)
     pub fn peer_public_key(&self) -> &PublicKey {
-        self.peer_public_key
-            .as_ref()
-            .expect("peer_public_key uninitialized")
+        &self.peer_public_key
+    }
+
+    /// Split this [`SecretConnection`] into a [`SecretReader`] and [`SecretWriter`] which can be used
+    /// independently of each other.
+    pub fn split(self) -> (SecretReader<Io>, SecretWriter<Io>) {
+        (self.reader, self.writer)
     }
 }
 
-impl SecretConnection<TcpStream> {
-    /// Returns the socket address of the local side of this TCP connection.
-    pub fn local_addr(&self) -> io::Result<SocketAddr> {
-        self.io.local_addr()
-    }
+/// Encrypted message reader type which wraps the read-half of an underlying I/O object.
+pub struct SecretReader<Io> {
+    /// Inner I/O reader object this connection type wraps.
+    io: Io,
 
-    /// Returns the socket address of the remote peer of the underlying TCP connection.
-    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
-        self.io.peer_addr()
-    }
+    /// Symmetric cipher state including the current nonce.
+    recv_state: RecvState,
 }
 
-impl<Io: Read> SecretConnection<Io> {
+impl<Io: Read> SecretReader<Io> {
     /// Read and decrypt a frame from the network.
     #[inline]
     fn read_frame(&mut self) -> Result<Frame> {
         let mut frame = Frame::read(&mut self.io)?;
-        self.cipher_state.recv_state.decrypt_frame(&mut frame)?;
+        self.recv_state.decrypt_frame(&mut frame)?;
         Ok(frame)
     }
 }
 
-impl<Io: Write> SecretConnection<Io> {
-    /// Flush the underlying I/O object's write buffer.
-    pub fn flush(&mut self) -> io::Result<()> {
-        self.io.flush()
-    }
-
-    /// Encrypt and write a frame to the network.
-    #[inline]
-    fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
-        let mut frame = Frame::plaintext(plaintext)?;
-        self.cipher_state.send_state.encrypt_frame(&mut frame)?;
-        Ok(frame.write(&mut self.io)?)
-    }
-}
-
-impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
+impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretReader<Io> {
     fn read_msg(&mut self) -> Result<M> {
         let frame = self.read_frame()?;
 
@@ -185,7 +196,31 @@ impl<M: Message + Default, Io: Read> ReadMsg<M> for SecretConnection<Io> {
     }
 }
 
-impl<M: Message, Io: Write> WriteMsg<M> for SecretConnection<Io> {
+/// Encrypted message writer type which wraps the write-half of an underlying I/O object.
+pub struct SecretWriter<Io> {
+    /// Inner I/O writer object this connection type wraps.
+    io: Io,
+
+    /// Symmetric cipher state including the current nonce.
+    send_state: SendState,
+}
+
+impl<Io: Write> SecretWriter<Io> {
+    /// Flush the underlying I/O object's write buffer.
+    pub fn flush(&mut self) -> io::Result<()> {
+        self.io.flush()
+    }
+
+    /// Encrypt and write a frame to the network.
+    #[inline]
+    fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
+        let mut frame = Frame::plaintext(plaintext)?;
+        self.send_state.encrypt_frame(&mut frame)?;
+        Ok(frame.write(&mut self.io)?)
+    }
+}
+
+impl<M: Message, Io: Write> WriteMsg<M> for SecretWriter<Io> {
     fn write_msg(&mut self, msg: &M) -> Result<()> {
         let bytes = msg.encode_length_delimited_to_vec();
 

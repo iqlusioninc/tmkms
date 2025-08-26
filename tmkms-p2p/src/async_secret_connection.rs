@@ -3,9 +3,10 @@
 #![cfg(feature = "async")]
 
 use crate::{
-    AsyncReadMsg, AsyncWriteMsg, Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
+    Error, MAX_MSG_LEN, PublicKey, Result, ed25519,
     encryption::{Frame, RecvState, SendState},
     handshake, proto,
+    traits::{AsyncReadMsg, AsyncWriteMsg},
 };
 use ed25519_dalek::Signer;
 use prost::Message;
@@ -17,19 +18,19 @@ use crate::IdentitySecret;
 /// Encrypted connection between peers in a CometBFT network, implemented using asynchronous I/O
 /// provided by the Tokio async runtime.
 pub struct AsyncSecretConnection<Io> {
+    /// Message reader which holds the read-half of the I/O object and the associated symmetric
+    /// cipher state.
+    reader: AsyncSecretReader<Io>,
+
+    /// Message writer which holds the write-half of the I/O object and the associated symmetric
+    /// cipher state.
+    writer: AsyncSecretWriter<Io>,
+
     /// Our identity's Ed25519 public key.
     local_public_key: PublicKey,
 
     /// Remote peer's Ed25519 public key.
     peer_public_key: PublicKey,
-
-    /// Message reader which holds the read-half of the I/O object and the associated symmetric
-    /// cipher state.
-    reader: AsyncMsgReader<Io>,
-
-    /// Message writer which holds the write-half of the I/O object and the associated symmetric
-    /// cipher state.
-    writer: AsyncMsgWriter<Io>,
 }
 
 impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnection<Io> {
@@ -68,11 +69,11 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
         let (challenge, cipher_state) = initial_state.got_key(peer_initial_msg.pub_key)?;
 
         // Create the async message reader and writer objects.
-        let mut reader = AsyncMsgReader {
+        let mut reader = AsyncSecretReader {
             io: io_read,
             recv_state: cipher_state.recv_state,
         };
-        let mut writer = AsyncMsgWriter {
+        let mut writer = AsyncSecretWriter {
             io: io_write,
             send_state: cipher_state.send_state,
         };
@@ -93,10 +94,10 @@ impl<Io: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncSecretConnecti
 
         // All good!
         Ok(Self {
-            local_public_key,
-            peer_public_key,
             reader,
             writer,
+            local_public_key,
+            peer_public_key,
         })
     }
 }
@@ -115,9 +116,9 @@ impl<Io> AsyncSecretConnection<Io> {
         self.peer_public_key
     }
 
-    /// Split an [`AsyncSecretConnection`] into an [`AsyncMsgReader`] and [`AsyncMsgWriter`] which
+    /// Split this [`AsyncSecretConnection`] into an [`AsyncSecretReader`] and [`AsyncSecretWriter`] which
     /// can be used independently of each other.
-    pub fn split(self) -> (AsyncMsgReader<Io>, AsyncMsgWriter<Io>) {
+    pub fn split(self) -> (AsyncSecretReader<Io>, AsyncSecretWriter<Io>) {
         (self.reader, self.writer)
     }
 }
@@ -136,10 +137,8 @@ impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg for AsyncSecretConne
     }
 }
 
-/// Async message reader type which wraps the read-half of an underlying I/O object.
-///
-/// This is the read half of an [`AsyncSecretConnection`].
-pub struct AsyncMsgReader<Io> {
+/// Async encrypted message reader type which wraps the read-half of an underlying I/O object.
+pub struct AsyncSecretReader<Io> {
     /// Inner async I/O reader object this connection type wraps.
     io: ReadHalf<Io>,
 
@@ -147,7 +146,7 @@ pub struct AsyncMsgReader<Io> {
     recv_state: RecvState,
 }
 
-impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncMsgReader<Io> {
+impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncSecretReader<Io> {
     /// Read and decrypt a frame from the network.
     #[inline]
     async fn read_frame(&mut self) -> Result<Frame> {
@@ -185,23 +184,23 @@ impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncMsgReader<Io> {
     }
 }
 
-impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg for AsyncMsgReader<Io> {
+impl<Io: AsyncReadExt + Send + Sync + Unpin> AsyncReadMsg for AsyncSecretReader<Io> {
     #[inline]
     fn read_msg<M: Message + Default>(&mut self) -> impl Future<Output = Result<M>> + Send + Sync {
         self._read_msg()
     }
 }
 
-/// Async message writer type which wraps the write-half of an underlying I/O object.
-pub struct AsyncMsgWriter<Io> {
-    /// Inner async I/O reader object this connection type wraps.
+/// Async encrypted message writer type which wraps the write-half of an underlying I/O object.
+pub struct AsyncSecretWriter<Io> {
+    /// Inner async I/O writer object this connection type wraps.
     io: WriteHalf<Io>,
 
     /// Symmetric cipher state including the current nonce.
     send_state: SendState,
 }
 
-impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncMsgWriter<Io> {
+impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncSecretWriter<Io> {
     /// Encrypt and write a frame to the network.
     #[inline]
     async fn write_frame(&mut self, plaintext: &[u8]) -> Result<()> {
@@ -224,7 +223,7 @@ impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncMsgWriter<Io> {
     }
 }
 
-impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg for AsyncMsgWriter<Io> {
+impl<Io: AsyncWriteExt + Send + Sync + Unpin> AsyncWriteMsg for AsyncSecretWriter<Io> {
     #[inline]
     fn write_msg<M: Message>(&mut self, msg: M) -> impl Future<Output = Result<()>> + Send + Sync {
         self._write_msg(msg)

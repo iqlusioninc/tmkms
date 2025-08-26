@@ -53,14 +53,14 @@ pub use crate::{
     error::{CryptoError, Error, Result, VerifyPeerError},
     peer_id::PeerId,
     public_key::PublicKey,
-    secret_connection::SecretConnection,
-    traits::{ReadMsg, WriteMsg},
+    secret_connection::{SecretConnection, SecretReader, SecretWriter},
+    traits::{ReadMsg, TryCloneIo, WriteMsg},
 };
 pub use rand_core;
 
 #[cfg(feature = "async")]
 pub use crate::{
-    async_secret_connection::{AsyncMsgReader, AsyncMsgWriter, AsyncSecretConnection},
+    async_secret_connection::{AsyncSecretConnection, AsyncSecretReader, AsyncSecretWriter},
     traits::{AsyncReadMsg, AsyncWriteMsg},
 };
 
