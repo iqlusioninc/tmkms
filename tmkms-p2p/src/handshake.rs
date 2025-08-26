@@ -21,7 +21,7 @@ use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
 use rand_core::{OsRng, RngCore};
 use subtle::ConstantTimeEq;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 /// Random scalar (before clamping).
 pub(crate) type EphemeralSecret = [u8; 32];
@@ -76,7 +76,7 @@ impl Message for InitialMessage {
     where
         Self: Sized,
     {
-        if wire_type == Self::WIRE_TYPE && tag == Self::FIELD_TAG as u32 {
+        if tag == Self::FIELD_TAG as u32 && wire_type == Self::WIRE_TYPE {
             let len = buf.get_u8();
             if len as usize == size_of::<EphemeralPublic>() {
                 buf.copy_to_slice(&mut self.pub_key.0);
@@ -160,7 +160,7 @@ impl InitialState {
         let ephemeral_pub_key = EphemeralPublic::mul_base_clamped(ephemeral_sec_key);
 
         // Compute common shared secret.
-        let shared_secret = peer_ephemeral_pub_key.mul_clamped(ephemeral_sec_key);
+        let shared_secret = Zeroizing::new(peer_ephemeral_pub_key.mul_clamped(ephemeral_sec_key));
 
         // All-zero output from X25519 indicates an error (e.g. multiplication by low order point).
         // This should be rejected via the Merlin transcript hash but here for belt-and-suspenders
@@ -189,7 +189,7 @@ impl InitialState {
         // Check if the local ephemeral public key was the least, lexicographically sorted.
         let loc_is_least = ephemeral_pub_key.as_bytes() == &ephemeral_pub_keys[0];
 
-        let kdf = Kdf::derive_secrets_and_challenge(shared_secret.as_bytes(), loc_is_least);
+        let kdf = Kdf::derive_encryption_keys(shared_secret.as_bytes(), loc_is_least);
         let cipher_state = CipherState::new(kdf);
 
         let mut sc_mac = Challenge::default();

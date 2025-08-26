@@ -21,15 +21,15 @@ impl CipherState {
     /// Initialize [`CipherState`] from the given KDF.
     pub(crate) fn new(kdf: Kdf) -> Self {
         Self {
-            recv_state: RecvState::new(&kdf.recv_secret.into()),
-            send_state: SendState::new(&kdf.send_secret.into()),
+            recv_state: RecvState::new(kdf.recv_secret().into()),
+            send_state: SendState::new(kdf.send_secret().into()),
         }
     }
 }
 
 /// Sending state for a `SecretConnection`.
 pub(crate) struct SendState {
-    cipher: ChaCha20Poly1305,
+    cipher: Box<ChaCha20Poly1305>, // avoid making copies of cipher state on stack when moved
     nonce: Nonce,
     failed: bool,
 }
@@ -38,7 +38,7 @@ impl SendState {
     /// Initialize a new `SendState` with the given cipher instance.
     pub(crate) fn new(key: &Key) -> Self {
         Self {
-            cipher: ChaCha20Poly1305::new(key),
+            cipher: Box::new(ChaCha20Poly1305::new(key)),
             nonce: Nonce::initial(),
             failed: false,
         }
@@ -76,7 +76,7 @@ impl SendState {
 
 /// Receiving state for a `SecretConnection`.
 pub(crate) struct RecvState {
-    cipher: ChaCha20Poly1305,
+    cipher: Box<ChaCha20Poly1305>, // avoid making copies of cipher state on stack when moved
     nonce: Nonce,
     failed: bool,
 }
@@ -85,7 +85,7 @@ impl RecvState {
     /// Initialize a new `ReceiveState` with the given cipher instance.
     pub(crate) fn new(key: &Key) -> Self {
         Self {
-            cipher: ChaCha20Poly1305::new(key),
+            cipher: Box::new(ChaCha20Poly1305::new(key)),
             nonce: Nonce::initial(),
             failed: false,
         }
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn encrypt() {
-        let kdf = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, false);
+        let kdf = Kdf::derive_encryption_keys(&HANDSHAKE_SHARED_SECRET, false);
         let mut send_state = CipherState::new(kdf).send_state;
 
         let mut frame1 = Frame::from_plaintext(MSG1_PT).unwrap();
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn decrypt() {
-        let kdf = Kdf::derive_secrets_and_challenge(&HANDSHAKE_SHARED_SECRET, true);
+        let kdf = Kdf::derive_encryption_keys(&HANDSHAKE_SHARED_SECRET, true);
         let mut recv_state = CipherState::new(kdf).recv_state;
 
         let mut frame1 = Frame::from_ciphertext(MSG1_CT);
