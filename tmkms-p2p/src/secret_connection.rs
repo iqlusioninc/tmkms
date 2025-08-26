@@ -136,15 +136,12 @@ impl<Io> SecretConnection<Io> {
     }
 
     /// Returns the remote peer's [`PublicKey`].
-    ///
-    /// # Panics
-    /// - if the peer's public key is not initialized (library-internal bug)
     pub fn peer_public_key(&self) -> &PublicKey {
         &self.peer_public_key
     }
 
-    /// Split this [`SecretConnection`] into a [`SecretReader`] and [`SecretWriter`] which can be used
-    /// independently of each other.
+    /// Split this [`SecretConnection`] into a [`SecretReader`] and [`SecretWriter`] which can be
+    /// used independently of each other.
     pub fn split(self) -> (SecretReader<Io>, SecretWriter<Io>) {
         (self.reader, self.writer)
     }
