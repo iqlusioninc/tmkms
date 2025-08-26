@@ -2,7 +2,7 @@
 
 use prost::Message;
 use std::io::{Read, Write};
-use tmkms_p2p::{IdentitySecret, ReadMsg, SecretConnection, WriteMsg};
+use tmkms_p2p::{IdentitySecret, ReadMsg, SecretConnection, TryCloneIo, WriteMsg};
 
 /// Test server used for exercising `SecretConnection`.
 /// Implements basic ping/pong functionality
@@ -12,7 +12,7 @@ pub struct TestServer<Io> {
 
 impl<Io> TestServer<Io>
 where
-    Io: Read + Write + Send + Sync + 'static,
+    Io: Read + Write + Send + Sync + TryCloneIo + 'static,
 {
     pub fn run(io: Io, sk: IdentitySecret, num_requests: usize) {
         let mut server = TestServer {
