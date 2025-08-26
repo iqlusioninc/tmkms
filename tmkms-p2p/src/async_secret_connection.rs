@@ -116,8 +116,8 @@ impl<Io> AsyncSecretConnection<Io> {
         self.peer_public_key
     }
 
-    /// Split this [`AsyncSecretConnection`] into an [`AsyncSecretReader`] and [`AsyncSecretWriter`] which
-    /// can be used independently of each other.
+    /// Split this [`AsyncSecretConnection`] into an [`AsyncSecretReader`] and [`AsyncSecretWriter`]
+    /// which can be used independently of each other.
     pub fn split(self) -> (AsyncSecretReader<Io>, AsyncSecretWriter<Io>) {
         (self.reader, self.writer)
     }

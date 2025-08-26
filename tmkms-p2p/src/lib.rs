@@ -36,6 +36,43 @@
 //!
 //! The [`SecretConnection`] type (`conn`) impls the [`ReadMsg`] and [`WriteMsg`] traits which can
 //! be used to receive and send Protobuf messages which impl the [`prost::Message`] trait.
+//!
+//! ## Async usage
+//!
+//! Enable the `async` crate feature to take advantage of the async support in this crate, which is
+//! implemented using the Tokio async runtime.
+//!
+#![cfg_attr(feature = "async", doc = "```no_run")]
+#![cfg_attr(not(feature = "async"), doc = "```ignore")]
+//! # tokio_test::block_on(async {
+//! # type ExampleMessage = String; // example that impls `prost::Message`
+//! # let expected_peer_id = tmkms_p2p::PeerId(Default::default());
+//! use tokio::net::TcpStream;
+//! use tmkms_p2p::{AsyncSecretConnection, IdentitySecret, AsyncReadMsg, rand_core::OsRng};
+//!
+//! let node_identity = IdentitySecret::generate(&mut OsRng);
+//! let tcp_sock = TcpStream::connect("example.com:26656").await?;
+//! let mut conn = AsyncSecretConnection::new(tcp_sock, &node_identity).await?;
+//!
+//! // Verify remote peer ID (optional but highly encouraged)
+//! conn.peer_public_key().peer_id().verify(expected_peer_id)?;
+//!
+//! // Read Protobuf message from the remote peer
+//! // (note: you could also write here if initiating a request, see `WriteMsg`)
+//! let msg: ExampleMessage = conn.read_msg().await?;
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! # });
+//! ```
+//!
+//! The [`AsyncSecretConnection`] type (`conn`) impls the [`AsyncReadMsg`] and [`AsyncWriteMsg`]
+//! traits which can be used to asynchronously receive and send Protobuf messages which impl the
+//! [`prost::Message`] trait.
+//!
+//! ## Splitting connections
+//!
+//! The [`SecretConnection::split`] and [`AsyncSecretConnection::split`] methods can be used to
+//! split a connection into separate read and write halves. This is particularly useful with async
+//! to be able to simultaneously read and write to a connection.
 
 mod async_secret_connection;
 mod encryption;
