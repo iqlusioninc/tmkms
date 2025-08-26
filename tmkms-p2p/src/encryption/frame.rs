@@ -3,17 +3,9 @@
 use super::Tag;
 use crate::CryptoError;
 
-// NOTE: `Frame` manages its own I/O to ensure we never write plaintext to the socket
-use std::io::{self, Read, Write};
-#[cfg(feature = "async")]
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
 /// 4 + 1024 == 1028 total frame size
 const LENGTH_PREFIX_SIZE: usize = 4;
-pub(super) const TOTAL_FRAME_SIZE: usize = Frame::MAX_SIZE + LENGTH_PREFIX_SIZE;
-
-/// Total size of frame including ChaCha20Poly1305 tag.
-pub(super) const TAGGED_FRAME_SIZE: usize = TOTAL_FRAME_SIZE + size_of::<Tag>();
+pub(super) const TOTAL_FRAME_SIZE: usize = Frame::MAX_PLAINTEXT_SIZE + LENGTH_PREFIX_SIZE;
 
 /// Frames are the fundamental "packets" of Secret Connection.
 ///
@@ -23,7 +15,7 @@ pub(super) const TAGGED_FRAME_SIZE: usize = TOTAL_FRAME_SIZE + size_of::<Tag>();
 pub(crate) struct Frame {
     /// We always represent frames as being of fixed length. When frames are plaintext the length
     /// of the message is encoded in the leading 4 bytes.
-    pub(super) bytes: [u8; TAGGED_FRAME_SIZE],
+    pub(super) bytes: [u8; Frame::ENCRYPTED_SIZE],
 
     /// Flag to indicate whether the frame is plaintext or encrypted.
     pub(super) encrypted: bool,
@@ -31,16 +23,32 @@ pub(crate) struct Frame {
 
 impl Frame {
     /// Maximum size of a plaintext message frame.
-    pub(crate) const MAX_SIZE: usize = 1024;
+    pub(crate) const MAX_PLAINTEXT_SIZE: usize = 1024;
+
+    /// Total size of an encrypted frame including the ChaCha20Poly1305 tag.
+    pub(crate) const ENCRYPTED_SIZE: usize = TOTAL_FRAME_SIZE + size_of::<Tag>();
+
+    /// Create a ciphertext frame from the given buffer.
+    #[inline]
+    pub(crate) fn from_ciphertext(bytes: [u8; Frame::ENCRYPTED_SIZE]) -> Self {
+        Self {
+            bytes,
+            encrypted: true,
+        }
+    }
 
     /// Create a new plaintext frame from the given bytes.
-    pub(crate) fn plaintext(slice: &[u8]) -> Result<Self, CryptoError> {
+    ///
+    /// # Returns
+    /// - `Ok` if `slice` is smaller or the same as `Frame::MAX_SIZE`
+    /// - `Err` if `slice` is too big
+    pub(crate) fn from_plaintext(slice: &[u8]) -> Result<Self, CryptoError> {
         let len: u32 = match slice.len().try_into() {
-            Ok(len) if slice.len() <= Frame::MAX_SIZE => len,
+            Ok(len) if slice.len() <= Frame::MAX_PLAINTEXT_SIZE => len,
             _ => return Err(CryptoError::ENCRYPTION),
         };
 
-        let mut bytes = [0u8; TAGGED_FRAME_SIZE];
+        let mut bytes = [0u8; Frame::ENCRYPTED_SIZE];
         let (length_prefix, pt) = bytes.split_at_mut(LENGTH_PREFIX_SIZE);
         length_prefix.copy_from_slice(&len.to_le_bytes());
         pt[..slice.len()].copy_from_slice(slice);
@@ -51,96 +59,76 @@ impl Frame {
         })
     }
 
-    /// Create a ciphertext frame from the given buffer.
-    #[inline]
-    pub(crate) fn ciphertext(bytes: [u8; TAGGED_FRAME_SIZE]) -> Self {
-        Self {
-            bytes,
-            encrypted: true,
-        }
-    }
-
-    /// Read a ciphertext frame from the network.
-    pub(crate) fn read<R: Read>(reader: &mut R) -> Result<Self, io::Error> {
-        let mut bytes = [0u8; TAGGED_FRAME_SIZE];
-        reader.read_exact(&mut bytes)?;
-        Ok(Self::ciphertext(bytes))
-    }
-
-    /// Read a ciphertext frame from the network (async).
-    #[cfg(feature = "async")]
-    pub(crate) async fn async_read<R: AsyncReadExt + Unpin>(
-        reader: &mut R,
-    ) -> Result<Self, io::Error> {
-        let mut bytes = [0u8; TAGGED_FRAME_SIZE];
-        reader.read_exact(&mut bytes).await?;
-        Ok(Self::ciphertext(bytes))
-    }
-
-    /// Write a ciphertext frame to the network.
-    pub(crate) fn write<W: Write>(&self, writer: &mut W) -> Result<(), io::Error> {
-        if !self.encrypted {
-            return Err(io::Error::other("refusing to write plaintext to network"));
-        }
-
-        writer.write_all(&self.bytes)
-    }
-
-    /// Write a ciphertext frame to the network (async).
-    #[cfg(feature = "async")]
-    pub(crate) async fn async_write<W: AsyncWriteExt + Unpin>(
-        &self,
-        writer: &mut W,
-    ) -> Result<(), io::Error> {
-        if !self.encrypted {
-            return Err(io::Error::other("refusing to write plaintext to network"));
-        }
-
-        writer.write_all(&self.bytes).await
-    }
-
-    /// Length of the frame.
+    /// Get a ciphertext frame's encrypted contents as a byte slice.
     ///
-    /// # Panics
-    /// - if called on a ciphertext frame
-    pub(crate) fn len(&self) -> usize {
-        debug_assert!(!self.encrypted, "should only be called on plaintext frames");
-
-        let n = self.length_prefix();
-        debug_assert!(
-            n <= Frame::MAX_SIZE,
-            "constructor failed to ensure frame size"
-        );
-        n
+    /// # Returns
+    /// - `Ok` if the frame is plaintext
+    /// - `Err` if the frame is ciphertext
+    pub(crate) fn ciphertext(&self) -> Result<&[u8], CryptoError> {
+        if self.encrypted {
+            Ok(&self.bytes)
+        } else {
+            Err(CryptoError::ENCRYPTION)
+        }
     }
 
-    /// Get the frame's contents as a byte slice.
+    /// Get the length of a plaintext frame.
     ///
-    /// # Panics
-    /// - if called on a ciphertext frame
-    pub(crate) fn as_bytes(&self) -> &[u8] {
-        debug_assert!(!self.encrypted, "should only be called on plaintext frames");
-        &self.bytes[LENGTH_PREFIX_SIZE..(LENGTH_PREFIX_SIZE + self.len())]
+    /// # Returns
+    /// - `Some` if the frame is plaintext
+    /// - `None` if the frame is ciphertext
+    pub(crate) fn plaintext_len(&self) -> Option<usize> {
+        if self.encrypted {
+            None
+        } else {
+            let n = self.length_prefix()?;
+            debug_assert!(
+                n <= Frame::MAX_PLAINTEXT_SIZE,
+                "constructor failed to ensure frame size"
+            );
+            Some(n)
+        }
+    }
+
+    /// Get a plaintext frame's contents as a byte slice.
+    ///
+    /// # Returns
+    /// - `Ok` if the frame is plaintext
+    /// - `Err` if the frame is ciphertext
+    pub(crate) fn plaintext(&self) -> Result<&[u8], CryptoError> {
+        self.plaintext_len()
+            .and_then(|len| {
+                self.bytes
+                    .get(LENGTH_PREFIX_SIZE..)
+                    .and_then(|pt| pt.get(..len))
+            })
+            .ok_or(CryptoError::ENCRYPTION)
     }
 
     /// Parse the tag of the frame.
-    pub(super) fn tag(&self) -> Tag {
-        debug_assert!(self.encrypted, "should only be called on ciphertext frames");
-        Tag::clone_from_slice(&self.bytes[TOTAL_FRAME_SIZE..])
+    ///
+    /// # Returns
+    /// - `Some` if the frame is plaintext
+    /// - `None` if the frame is ciphertext
+    pub(super) fn tag(&self) -> Option<Tag> {
+        if self.encrypted {
+            Some(Tag::clone_from_slice(&self.bytes[TOTAL_FRAME_SIZE..]))
+        } else {
+            None
+        }
     }
 
     /// Parse the length prefix. Doesn't ensure length is less than `Frame::MAX_SIZE`.
-    pub(super) fn length_prefix(&self) -> usize {
-        let prefix = self.bytes[..LENGTH_PREFIX_SIZE]
-            .try_into()
-            .expect("length prefix should exist");
-        let len = u32::from_le_bytes(prefix);
-        len.try_into().expect("length should be valid usize")
-    }
-}
-
-impl AsRef<[u8]> for Frame {
-    fn as_ref(&self) -> &[u8] {
-        self.as_bytes()
+    ///
+    /// # Returns
+    /// - `Some` if the frame is plaintext
+    /// - `None` if the frame is ciphertext
+    pub(super) fn length_prefix(&self) -> Option<usize> {
+        if self.encrypted {
+            None
+        } else {
+            let prefix = self.bytes[..LENGTH_PREFIX_SIZE].try_into().ok()?;
+            u32::from_le_bytes(prefix).try_into().ok()
+        }
     }
 }
