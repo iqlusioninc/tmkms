@@ -13,6 +13,10 @@
 
 //! # Usage
 //!
+//! The following example illustrates how to use the [`SecretConnection`] type as a TCP client which
+//! receives a hypothetical `ExampleMessage` type which is expected to impl the [`prost::Message`]
+//! trait:
+//!
 //! ```no_run
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # type ExampleMessage = String; // example that impls `prost::Message`
@@ -40,7 +44,7 @@
 //! ## Async usage
 //!
 //! Enable the `async` crate feature to take advantage of the async support in this crate, which is
-//! implemented using the Tokio async runtime.
+//! implemented using the Tokio async runtime:
 //!
 #![cfg_attr(feature = "async", doc = "```no_run")]
 #![cfg_attr(not(feature = "async"), doc = "```ignore")]
@@ -58,7 +62,7 @@
 //! conn.peer_public_key().peer_id().verify(expected_peer_id)?;
 //!
 //! // Read Protobuf message from the remote peer
-//! // (note: you could also write here if initiating a request, see `WriteMsg`)
+//! // (note: you could also write here if initiating a request, see `AsyncWriteMsg`)
 //! let msg: ExampleMessage = conn.read_msg().await?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! # });
