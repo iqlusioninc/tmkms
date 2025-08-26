@@ -36,8 +36,8 @@ impl From<SigningKey> for ed25519_dalek::SigningKey {
     }
 }
 
-impl From<&SigningKey> for tmkms_p2p::PublicKey {
-    fn from(signing_key: &SigningKey) -> tmkms_p2p::PublicKey {
+impl From<&SigningKey> for cometbft_p2p::PublicKey {
+    fn from(signing_key: &SigningKey) -> cometbft_p2p::PublicKey {
         Self::from(&signing_key.0)
     }
 }
