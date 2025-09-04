@@ -122,7 +122,7 @@ impl KmsProcess {
     /// Create a config file for a TCP KMS and return its path
     fn create_tcp_config(port: u16, key_type: &KeyType) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
-        let pub_key = test_ed25519_keypair().verifying_key();
+        let pub_key = test_ed25519_signing_keypair().verifying_key();
         let peer_id = PublicKey::from(pub_key).peer_id();
 
         writeln!(
@@ -184,7 +184,7 @@ impl KmsProcess {
         match self.socket {
             KmsSocket::TCP(ref sock) => {
                 // we use the same key for both sides:
-                let identity_key = IdentitySecret::from(test_ed25519_keypair());
+                let identity_key = IdentitySecret::from(test_ed25519_identity_keypair());
 
                 // Here we reply to the kms with a "remote" ephemeral key, auth signature etc:
                 let socket_cp = sock.try_clone().unwrap();
@@ -262,8 +262,13 @@ impl WriteMsg<proto::privval::Message> for ProtocolTester {
 }
 
 /// Get the Ed25519 signing keypair used by the tests
-fn test_ed25519_keypair() -> ed25519::SigningKey {
-    tmkms::key_utils::load_base64_ed25519_key(signing_key_path(&KeyType::Consensus)).unwrap()
+fn test_ed25519_signing_keypair() -> ed25519::SigningKey {
+    tmkms::key_utils::load_signing_key(signing_key_path(&KeyType::Consensus)).unwrap()
+}
+
+/// Get the Ed25519 identity keypair used by the tests
+fn test_ed25519_identity_keypair() -> ed25519_dalek::SigningKey {
+    tmkms::key_utils::load_identity_key(signing_key_path(&KeyType::Consensus)).unwrap()
 }
 
 /// Get the Secp256k1 signing keypair used by the tests
@@ -353,7 +358,7 @@ fn handle_and_sign_proposal(key_type: KeyType) {
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(prop.signature.as_slice()).unwrap();
-                test_ed25519_keypair()
+                test_ed25519_signing_keypair()
                     .verifying_key()
                     .verify(&signable_bytes, &signature)
             }
@@ -438,7 +443,7 @@ fn handle_and_sign_vote(key_type: KeyType) {
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
-                test_ed25519_keypair()
+                test_ed25519_signing_keypair()
                     .verifying_key()
                     .verify(&signable_bytes, &signature)
             }
@@ -525,7 +530,7 @@ fn exceed_max_height(key_type: KeyType) {
             }
             KeyType::Consensus => {
                 let signature = ed25519::Signature::try_from(sig.as_slice()).unwrap();
-                test_ed25519_keypair()
+                test_ed25519_signing_keypair()
                     .verifying_key()
                     .verify(&signable_bytes, &signature)
             }

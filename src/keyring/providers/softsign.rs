@@ -81,7 +81,7 @@ fn load_ed25519_key(config: &SoftsignConfig) -> Result<ed25519::SigningKey, Erro
     let key_format = config.key_format.as_ref().cloned().unwrap_or_default();
 
     match key_format {
-        KeyFormat::Base64 => key_utils::load_base64_ed25519_key(&config.path),
+        KeyFormat::Base64 => key_utils::load_signing_key(&config.path),
         KeyFormat::Json => {
             let private_key = PrivValidatorKey::load_json_file(&config.path)
                 .map_err(|e| {
