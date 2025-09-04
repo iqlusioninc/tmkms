@@ -1,7 +1,7 @@
 //! Import keys either from encrypted backups or existing plaintext keys
 
 use super::{DEFAULT_DOMAINS, DEFAULT_WRAP_KEY};
-use crate::{keyring::ed25519, prelude::*};
+use crate::prelude::*;
 use abscissa_core::Command;
 use clap::Parser;
 use std::{fs, path::PathBuf, process};
@@ -216,10 +216,20 @@ impl ImportCommand {
                 process::exit(1);
             }));
 
-        let secret = ed25519::SigningKey::try_from(key_bytes.as_ref()).unwrap_or_else(|e| {
-            status_err!("invalid Ed25519 key: {}", e);
+        if key_bytes.len() != 32 {
+            status_err!(
+                "Ed25519 key must be exactly 32 bytes, got {}",
+                key_bytes.len()
+            );
+            process::exit(1);
+        }
+
+        let key_array: [u8; 32] = key_bytes[..32].try_into().unwrap_or_else(|e| {
+            status_err!("failed to convert key to 32-byte array: {}", e);
             process::exit(1);
         });
+
+        let secret = ed25519_dalek::SigningKey::from(key_array);
 
         let label = object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
 
