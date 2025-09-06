@@ -7,11 +7,11 @@ val_prefix = "terravaloper"
 
 #
 # Oracle vote transactions
-# <https://docs.terra.money/dev/spec-oracle.html>
+# <https://classic-docs.terra.money/docs/develop/module-specifications/spec-oracle.html>
 #
 
 # MsgExchangeRatePrevote
-# <https://docs.terra.money/dev/spec-oracle.html#msgexchangerateprevote>
+# <https://classic-docs.terra.money/docs/develop/module-specifications/spec-oracle.html#msgexchangerateprevote>
 [[definition]]
 type_name = "oracle/MsgExchangeRatePrevote"
 fields = [
@@ -22,7 +22,7 @@ fields = [
 ]
 
 # MsgExchangeRateVote
-# <https://docs.terra.money/dev/spec-oracle.html#msgexchangeratevote>
+# <https://classic-docs.terra.money/docs/develop/module-specifications/spec-oracle.html#msgexchangeratevote>
 [[definition]]
 type_name = "oracle/MsgExchangeRateVote"
 fields = [
