@@ -1,12 +1,12 @@
 //! Chain-specific key configuration
 
 use cosmrs::crypto::PublicKey;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use subtle_encoding::bech32;
 use tendermint::TendermintKey;
 
 /// Options for how keys for this chain are represented
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum Format {
     /// Use the Bech32 serialization format with the given key prefixes

@@ -4,11 +4,11 @@ mod hook;
 
 pub use self::hook::HookConfig;
 use crate::{chain, keyring};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Chain configuration
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct ChainConfig {
     /// Chain ID of this Tendermint network/chain

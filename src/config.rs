@@ -7,7 +7,9 @@ pub mod validator;
 pub use self::validator::*;
 
 use self::{chain::ChainConfig, provider::ProviderConfig};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+use crate::http_server::HttpServerConfig;
 
 /// Environment variable containing path to config file
 pub const CONFIG_ENV_VAR: &str = "TMKMS_CONFIG_FILE";
@@ -16,7 +18,7 @@ pub const CONFIG_ENV_VAR: &str = "TMKMS_CONFIG_FILE";
 pub const CONFIG_FILE_NAME: &str = "tmkms.toml";
 
 /// KMS configuration (i.e. TOML file parsed with serde)
-#[derive(Default, Deserialize, Debug)]
+#[derive(Default, Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct KmsConfig {
     /// Chains the KMS is providing key management service for
@@ -29,4 +31,8 @@ pub struct KmsConfig {
     /// Addresses of validator nodes
     #[serde(default)]
     pub validator: Vec<ValidatorConfig>,
+
+    /// HTTP server configuration for dynamic management
+    #[serde(default)]
+    pub http_server: Option<HttpServerConfig>,
 }

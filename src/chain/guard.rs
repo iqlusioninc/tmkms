@@ -16,4 +16,9 @@ impl Guard<'_> {
     pub fn get_chain(&self, chain_id: &Id) -> Option<&Chain> {
         self.0.get_chain(chain_id)
     }
+    
+    /// Get all registered chain IDs
+    pub fn get_all_chain_ids(&self) -> Vec<Id> {
+        self.0.get_all_chain_ids()
+    }
 }

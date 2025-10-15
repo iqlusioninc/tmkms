@@ -1,0 +1,20 @@
+# Example configuration with HTTP server enabled
+
+[[chain]]
+id = "cosmoshub-3"
+key_format = { type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }
+sign_extensions = false
+
+[[validator]]
+addr = "tcp://f88883b673fc69d7869cab098de3bafc2ff76eb8@example1.example.com:26658"
+chain_id = "cosmoshub-3"
+reconnect = true
+
+[[providers.softsign]]
+chain_ids = ["cosmoshub-3"]
+key_type = "consensus"
+path = "path/to/consensus-ed25519.key"
+
+[http_server]
+bind_address = "127.0.0.1"
+port = 8080

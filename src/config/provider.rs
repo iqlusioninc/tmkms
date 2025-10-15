@@ -18,11 +18,11 @@ use self::softsign::SoftsignConfig;
 #[cfg(feature = "yubihsm")]
 use self::yubihsm::YubihsmConfig;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Provider configuration
-#[derive(Default, Deserialize, Debug)]
+#[derive(Clone, Default, Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct ProviderConfig {
     /// Software-backed signer
@@ -48,7 +48,7 @@ pub struct ProviderConfig {
 
 /// Types of cryptographic keys
 // TODO(tarcieri): move this into a provider-agnostic module
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum KeyType {
     /// Account keys
     #[serde(rename = "account")]
