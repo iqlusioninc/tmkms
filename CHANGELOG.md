@@ -379,7 +379,7 @@ The validator state files use an incompatible syntax from Tendermint KMS v0.5.
 It has been changed to match the conventions used by the rest of Tendermint,
 where integer values are stored in strings rather than JSON integers.
 
-When upgrading, you will need to either *delete existing state files*
+When upgrading, you will need to either *delete existing state files* 
 (they will be recreated automatically), or ensure the integer `height` and
 `round` fields contained within these files are quoted in strings, e.g.
 `{"height":"123456","round":"0",...}`.
@@ -476,7 +476,7 @@ section in the Tendermint KMS YubiHSM docs:
 ## 0.3.0 (2019-01-23)
 
 - Add ability to terminate on SIGTERM or SIGINT
-- Remove `PoisonPillMsg`
+- Remove `PoisonPillMsg` 
 
 
 ## 0.2.4 (2019-01-18)

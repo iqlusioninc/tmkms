@@ -5,7 +5,7 @@ use signature::Verifier;
 
 /// Ed25519 verification key.
 #[derive(Clone, Debug)]
-pub struct VerifyingKey(pub(super) ed25519_consensus::VerificationKey);
+pub struct VerifyingKey(pub(super) ed25519_dalek::VerifyingKey);
 
 impl VerifyingKey {
     /// Size of an encoded Ed25519 verifying key in bytes.
@@ -30,25 +30,22 @@ impl From<VerifyingKey> for cometbft::PublicKey {
     }
 }
 
-impl From<VerifyingKey> for tendermint_p2p::secret_connection::PublicKey {
+impl From<VerifyingKey> for cometbft_p2p::PublicKey {
     #[inline]
-    fn from(verifying_key: VerifyingKey) -> tendermint_p2p::secret_connection::PublicKey {
+    fn from(verifying_key: VerifyingKey) -> cometbft_p2p::PublicKey {
         Self::from(&verifying_key)
     }
 }
 
-impl From<&VerifyingKey> for tendermint_p2p::secret_connection::PublicKey {
-    fn from(verifying_key: &VerifyingKey) -> tendermint_p2p::secret_connection::PublicKey {
+impl From<&VerifyingKey> for cometbft_p2p::PublicKey {
+    fn from(verifying_key: &VerifyingKey) -> cometbft_p2p::PublicKey {
         verifying_key.0.into()
     }
 }
 
 impl Verifier<Signature> for VerifyingKey {
     fn verify(&self, msg: &[u8], sig: &Signature) -> signature::Result<()> {
-        let sig = ed25519_consensus::Signature::from(sig.to_bytes());
-        self.0
-            .verify(&sig, msg)
-            .map_err(|_| signature::Error::new())
+        self.0.verify(msg, sig)
     }
 }
 

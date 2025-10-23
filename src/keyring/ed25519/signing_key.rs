@@ -7,7 +7,7 @@ type SigningKeyBytes = [u8; SigningKey::BYTE_SIZE];
 
 /// Ed25519 signing key.
 #[derive(Clone, Debug)]
-pub struct SigningKey(ed25519_consensus::SigningKey);
+pub struct SigningKey(ed25519_dalek::SigningKey);
 
 impl SigningKey {
     /// Size of an encoded Ed25519 signing key in bytes.
@@ -20,7 +20,7 @@ impl SigningKey {
 
     /// Get the verifying key for this signing key.
     pub fn verifying_key(&self) -> VerifyingKey {
-        VerifyingKey(self.0.verification_key())
+        VerifyingKey(self.0.verifying_key())
     }
 }
 
@@ -30,20 +30,20 @@ impl From<SigningKeyBytes> for SigningKey {
     }
 }
 
-impl From<SigningKey> for ed25519_consensus::SigningKey {
-    fn from(signing_key: SigningKey) -> ed25519_consensus::SigningKey {
+impl From<SigningKey> for ed25519_dalek::SigningKey {
+    fn from(signing_key: SigningKey) -> ed25519_dalek::SigningKey {
         signing_key.0
     }
 }
 
-impl From<&SigningKey> for tendermint_p2p::secret_connection::PublicKey {
-    fn from(signing_key: &SigningKey) -> tendermint_p2p::secret_connection::PublicKey {
+impl From<&SigningKey> for cometbft_p2p::PublicKey {
+    fn from(signing_key: &SigningKey) -> cometbft_p2p::PublicKey {
         Self::from(&signing_key.0)
     }
 }
 
-impl From<ed25519_consensus::SigningKey> for SigningKey {
-    fn from(signing_key: ed25519_consensus::SigningKey) -> SigningKey {
+impl From<ed25519_dalek::SigningKey> for SigningKey {
+    fn from(signing_key: ed25519_dalek::SigningKey) -> SigningKey {
         SigningKey(signing_key)
     }
 }

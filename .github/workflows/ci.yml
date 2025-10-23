@@ -1,51 +1,25 @@
 name: CI
 
 on:
-  pull_request: {}
+  pull_request: { }
   push:
     branches: main
 
 env:
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: "-Dwarnings"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
   check:
-    name: Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('Cargo.lock') }}
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install libudev-dev
-
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all-features
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install libudev-dev
+      - run: cargo check --all-features
 
   build:
-    name: Build
     strategy:
       matrix:
         toolchain:
@@ -53,36 +27,11 @@ jobs:
           - 1.85.0 # MSRV
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo build
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-rust-${{ matrix.toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
-          override: true
-
-      - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install libudev-dev
-
+      - run: sudo apt-get update && sudo apt-get install libudev-dev
       - run: cargo build --no-default-features --features softsign --release
       - run: cargo build --features=yubihsm --release
       - run: cargo build --features=yubihsm-server --release
@@ -90,7 +39,6 @@ jobs:
       - run: cargo build --features=yubihsm-server,ledger,softsign --release
 
   test:
-    name: Test Suite
     strategy:
       matrix:
         toolchain:
@@ -98,141 +46,28 @@ jobs:
           - 1.85.0 # MSRV
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo build
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-rust-${{ matrix.toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
-          override: true
+      - run: sudo apt-get update && sudo apt-get install libudev-dev
+      - run: cargo test --all-features -- --test-threads 1
 
-      - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install libudev-dev
-
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features -- --test-threads 1
-
-  validate:
-    name: Validate against test harness
+  rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo build
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-rust-${{ matrix.toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Run cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --features=softsign --release
-
-      # TODO(tarcieri): install test harness components. See build failure here:
-      # <https://github.com/iqlusioninc/tmkms/pull/9/checks?check_run_id=481126544>
-      #  - name: Run test harness
-      #    env:
-      #      TMKMS_BIN: ./target/debug/tmkms
-      #    run: sh tests/support/run-harness-tests.sh
-
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install rustfmt
-        run: rustup component add rustfmt
-
-      - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all -- --check
 
   clippy:
-    name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('Cargo.lock') }}
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.85.0 # MSRV
-          override: true
-
-      - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install libudev-dev
-
-      - name: Install clippy
-        run: rustup component add clippy
-
-      - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-features
+          toolchain: 1.89 # pinned to prevent breakages when clippy updates
+      - run: sudo apt-get update && sudo apt-get install libudev-dev
+      - run: rustup component add clippy
+      - run: cargo clippy --all-features

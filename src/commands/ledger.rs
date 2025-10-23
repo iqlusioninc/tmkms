@@ -3,7 +3,7 @@
 use crate::{
     chain,
     prelude::*,
-    privval::{SignableMsg, SignedMsgType},
+    privval::{ConsensusMsg, ConsensusMsgType},
 };
 use abscissa_core::{Command, Runnable};
 use clap::{Parser, Subcommand};
@@ -58,11 +58,11 @@ impl Runnable for InitCommand {
         let vote = proto::types::v1::Vote {
             height: self.height.unwrap(),
             round: self.round.unwrap() as i32,
-            r#type: SignedMsgType::Proposal.into(),
+            r#type: ConsensusMsgType::Proposal.into(),
             ..Default::default()
         };
         println!("{vote:?}");
-        let sign_vote_req = SignableMsg::from(Vote::try_from(vote).unwrap());
+        let sign_vote_req = ConsensusMsg::from(Vote::try_from(vote).unwrap());
         let to_sign = sign_vote_req
             .canonical_bytes(config.validator[0].chain_id.clone())
             .unwrap();

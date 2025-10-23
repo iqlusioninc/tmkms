@@ -1,6 +1,6 @@
 //! ECDSA keys
 
-pub use k256::{ecdsa::Signature, EncodedPoint as PublicKey};
+pub use k256::{EncodedPoint as PublicKey, ecdsa::Signature};
 
 use crate::{
     error::{Error, ErrorKind::*},

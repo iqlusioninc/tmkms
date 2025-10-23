@@ -2,18 +2,18 @@
 
 use crate::{
     chain,
-    config::provider::fortanixdsm::{FortanixDsmConfig, KeyDescriptor, SigningKeyConfig},
     config::provider::KeyType,
+    config::provider::fortanixdsm::{FortanixDsmConfig, KeyDescriptor, SigningKeyConfig},
     error::{Error, ErrorKind::*},
-    keyring::{self, ed25519, SigningProvider},
+    keyring::{self, SigningProvider, ed25519},
     prelude::*,
 };
 use cometbft::public_key::{Ed25519, Secp256k1};
 use cometbft::{CometbftKey, PublicKey};
-use elliptic_curve::pkcs8::{
-    spki::Error as SpkiError, DecodePublicKey, ObjectIdentifier, SubjectPublicKeyInfoRef,
+use elliptic_curve::{
+    PublicKey as EcPublicKey,
+    pkcs8::{DecodePublicKey, ObjectIdentifier, SubjectPublicKeyInfoRef, spki::Error as SpkiError},
 };
-use elliptic_curve::PublicKey as EcPublicKey;
 use k256::ecdsa::{Error as SignError, Signature as EcdsaSignature};
 use sdkms::api_model::{
     DigestAlgorithm, EllipticCurve, ObjectType, SignRequest, SignResponse, SobjectDescriptor,

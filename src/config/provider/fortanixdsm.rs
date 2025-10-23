@@ -10,7 +10,7 @@ use uuid::Uuid;
 #[derive(Clone, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct FortanixDsmConfig {
-    /// Fortanix DSM API endpoint, e.g. https://amer.smartkey.io
+    /// Fortanix DSM API endpoint, e.g. <https://amer.smartkey.io>
     pub api_endpoint: String,
 
     /// API key for authenticating to DSM

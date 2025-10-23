@@ -1,11 +1,12 @@
- # Tendermint KMS 🔐
+# Tendermint KMS 🔐
 
-![Crate][crate-image]
-![Build Status][build-image]
-![Apache 2.0 Licensed][license-image]
+[![Crate][crate-image]][crate-link]
+[![Build Status][build-image]][build-link]
+[![Apache 2.0 Licensed][license-image]][license-link]
 ![MSRV][rustc-image]
 
-Key Management System for [Tendermint] applications such as [Cosmos Validators].
+Key Management System for [CometBFT] (formerly [Tendermint]) applications such
+as [Cosmos Validators].
 
 Provides isolated, optionally HSM-backed signing key management for Tendermint
 applications including validators, oracles, IBC relayers, and other transaction
@@ -21,14 +22,11 @@ which provides the following:
 - **Double-signing** prevention even in the event the validator process is compromised
 - **Hardware security module** storage for validator keys which can survive host compromise
 
-## Status
-
-Tendermint KMS is currently *beta quality*. It has undergone one security audit
-with only one low-severity finding.
-
 ### Double Signing / High Availability
 
-Tendermint KMS implements *beta quality* double signing detection.
+Tendermint KMS implements double signing detection, providing an additional
+layer of protection for validators to avoid being slashed.
+
 It has undergone some testing, however we do not (yet) recommend using the KMS
 in conjunction with multiple simultaneously active validators on the same
 network for prolonged periods of time.
@@ -46,9 +44,9 @@ instructions on how to build Tendermint KMS).
 The following signing backend providers are presently supported:
 
 #### Hardware Security Modules (recommended)
-
-- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature. See [README.fortanixdsm.md](./README.fortanixdsm.md)
-- [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2] for more info)
+- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature.
+  See [README.fortanixdsm.md](./README.fortanixdsm.md)
+- [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2])
 - [Ledger] (gated under the `ledger` cargo feature)
 
 #### Software-Only (not recommended)
@@ -87,13 +85,13 @@ prerequisites for support.
 
 You will need the following prerequisites:
 
-- **Rust** (stable; **1.72+**): https://rustup.rs/
+- **Rust** (stable; **1.85+**): https://rustup.rs/
 - **C compiler**: e.g. gcc, clang
 - **pkg-config**
 - **libusb** (1.0+). Install instructions for common platforms:
-  - Debian/Ubuntu: `apt install libusb-1.0-0-dev`
-  - RedHat/CentOS: `yum install libusb1-devel`
-  - macOS (Homebrew): `brew install libusb`
+    - Debian/Ubuntu: `apt install libusb-1.0-0-dev`
+    - RedHat/CentOS: `yum install libusb1-devel`
+    - macOS (Homebrew): `brew install libusb`
 
 NOTE (x86_64 only): Configure `RUSTFLAGS` environment variable:
 `export RUSTFLAGS=-Ctarget-feature=+aes,+ssse3`
@@ -121,7 +119,7 @@ If successful, this will produce a `tmkms` executable located at
 
 ### Installing with the `cargo install` command
 
-With Rust (1.56+) installed, you can install tmkms with the following:
+With Rust (1.85+) installed, you can install tmkms with the following:
 
 ```
 cargo install tmkms --features=yubihsm
@@ -230,15 +228,16 @@ limitations under the License.
 
 [crate-image]: https://img.shields.io/crates/v/tmkms.svg
 [crate-link]: https://crates.io/crates/tmkms
-[build-image]: https://github.com/iqlusioninc/tmkms/workflows/CI/badge.svg?branch=main&event=push
-[build-link]: https://github.com/iqlusioninc/tmkms/actions
+[build-image]: https://github.com/iqlusioninc/tmkms/actions/workflows/ci.yml/badge.svg
+[build-link]: https://github.com/iqlusioninc/tmkms/actions/workflows/ci.yml
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/iqlusioninc/tmkms/blob/main/LICENSE
-[rustc-image]: https://img.shields.io/badge/rustc-1.74+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 
-[//]: # (general links)
+[//]: # (links)
 
-[Tendermint]: https://tendermint.com
+[CometBFT]: https://cometbft.com/
+[Tendermint]: https://tendermint.com/
 [Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq
 [YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
 [Ledger]: https://www.ledger.com/

@@ -10,8 +10,8 @@ use crate::{
     config::provider::ledgertm::LedgerTendermintConfig,
     error::{Error, ErrorKind::*},
     keyring::{
-        ed25519::{self, Signer},
         SigningProvider,
+        ed25519::{self, Signer},
     },
     prelude::*,
 };

@@ -2,9 +2,10 @@
 
 use crate::{commands::KmsCommand, config::KmsConfig};
 use abscissa_core::{
+    Application, FrameworkError, StandardPaths,
     application::{self, AppCell},
     config::{self, CfgCell},
-    trace, Application, FrameworkError, StandardPaths,
+    trace,
 };
 
 /// Application state

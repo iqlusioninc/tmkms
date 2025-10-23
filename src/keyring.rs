@@ -8,13 +8,12 @@ pub mod signature;
 
 pub use self::{format::Format, providers::SigningProvider, signature::Signature};
 use crate::{
-    chain,
+    Map, chain,
     config::provider::ProviderConfig,
     error::{Error, ErrorKind::*},
     prelude::*,
-    Map,
 };
-use cometbft::{account, CometbftKey};
+use cometbft::{CometbftKey, account};
 
 /// File encoding for software-backed secret keys
 pub type SecretKeyEncoding = subtle_encoding::Base64;

@@ -5,7 +5,7 @@ use abscissa_core::Command;
 use chrono::{SecondsFormat, Utc};
 use clap::Parser;
 use getrandom::getrandom;
-use hkd32::{mnemonic, KeyMaterial};
+use hkd32::{KeyMaterial, mnemonic};
 use hkdf::Hkdf;
 use sha2::Sha512;
 use std::{
@@ -16,9 +16,9 @@ use std::{
 };
 use subtle_encoding::{bech32::Bech32, hex};
 use yubihsm::{
-    authentication, object,
+    AuditOption, Capability, Connector, Credentials, Domain, authentication, object,
     setup::{Profile, Role},
-    wrap, AuditOption, Capability, Connector, Credentials, Domain,
+    wrap,
 };
 use zeroize::{Zeroize, Zeroizing};
 
@@ -507,8 +507,7 @@ mod tests {
     ];
 
     /// BIP39 mnemonic::Phrase phrase corresponding to the `TEST_KEY`
-    const TEST_BIP39_PHRASE: &str =
-        "abandon amount liar amount expire adjust cage candy arch gather drum bullet \
+    const TEST_BIP39_PHRASE: &str = "abandon amount liar amount expire adjust cage candy arch gather drum bullet \
          absurd math era live bid rhythm alien crouch range attend journey unaware";
 
     /// Test vector `mnemonic::Phrase`

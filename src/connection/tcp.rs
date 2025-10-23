@@ -3,9 +3,8 @@
 use std::{net::TcpStream, path::PathBuf, time::Duration};
 
 use cometbft::node;
+use cometbft_p2p::{IdentitySecret, PublicKey, SecretConnection};
 use subtle::ConstantTimeEq;
-use tendermint_p2p::error::ErrorDetail as TmError;
-use tendermint_p2p::secret_connection::{self, PublicKey, SecretConnection};
 
 use crate::{
     error::{Error, ErrorKind::*},
@@ -23,7 +22,6 @@ pub fn open_secret_connection(
     identity_key_path: &Option<PathBuf>,
     peer_id: &Option<node::Id>,
     timeout: Option<u16>,
-    protocol_version: secret_connection::Version,
 ) -> Result<SecretConnection<TcpStream>, Error> {
     let identity_key_path = identity_key_path.as_ref().ok_or_else(|| {
         format_err!(
@@ -34,7 +32,7 @@ pub fn open_secret_connection(
         )
     })?;
 
-    let identity_key = key_utils::load_base64_ed25519_key(identity_key_path)?;
+    let identity_key = IdentitySecret::from(key_utils::load_base64_ed25519_key(identity_key_path)?);
     info!("KMS node ID: {}", PublicKey::from(&identity_key));
 
     let socket = TcpStream::connect(format!("{host}:{port}"))?;
@@ -42,16 +40,11 @@ pub fn open_secret_connection(
     socket.set_read_timeout(Some(timeout))?;
     socket.set_write_timeout(Some(timeout))?;
 
-    let connection = match SecretConnection::new(socket, identity_key.into(), protocol_version) {
+    let connection = match SecretConnection::new(socket, &identity_key) {
         Ok(conn) => conn,
-        Err(error) => match error.detail() {
-            TmError::Crypto(_) => fail!(CryptoError, format!("{error}")),
-            TmError::Protocol(_) => fail!(ProtocolError, format!("{error}")),
-            TmError::InvalidKey(_) => fail!(InvalidKey, format!("{error}")),
-            _ => fail!(ProtocolError, format!("{error}")),
-        },
+        Err(error) => fail!(ProtocolError, format!("{error}")),
     };
-    let actual_peer_id = connection.remote_pubkey().peer_id();
+    let actual_peer_id = connection.peer_public_key().peer_id();
 
     // TODO(tarcieri): move this into `SecretConnection::new`
     if let Some(expected_peer_id) = peer_id {
