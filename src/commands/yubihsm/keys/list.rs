@@ -3,9 +3,11 @@
 use crate::{Map, chain, keyring, prelude::*};
 use abscissa_core::Command;
 use clap::Parser;
-use k256::elliptic_curve::generic_array::GenericArray;
 use std::{path::PathBuf, process};
 use tendermint::{PublicKey, TendermintKey};
+
+#[allow(deprecated)]
+use k256::elliptic_curve::generic_array::GenericArray;
 
 /// The `yubihsm keys list` subcommand
 #[derive(Command, Debug, Default, Parser)]
@@ -123,12 +125,12 @@ fn display_key_info(
 
     let tendermint_key = match public_key.algorithm {
         yubihsm::asymmetric::Algorithm::EcK256 => {
+            #[allow(deprecated)]
+            let pk = GenericArray::from_slice(public_key.as_ref());
+
             // The YubiHSM2 returns the uncompressed public key, so for
             // compatibility with Tendermint, we have to compress it first
-            let compressed_pubkey = k256::EncodedPoint::from_untagged_bytes(
-                GenericArray::from_slice(public_key.as_ref()),
-            )
-            .compress();
+            let compressed_pubkey = k256::EncodedPoint::from_untagged_bytes(pk).compress();
 
             TendermintKey::AccountKey(
                 PublicKey::from_raw_secp256k1(compressed_pubkey.as_ref()).unwrap(),
