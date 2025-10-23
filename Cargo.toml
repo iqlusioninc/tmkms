@@ -24,7 +24,6 @@ cometbft = { git = "https://github.com/cometbft/cometbft-rs.git", rev = "71af716
 cometbft-config = { git = "https://github.com/cometbft/cometbft-rs.git", rev = "71af716216216cfdc150cacef5ceae3610a5824b" }
 cometbft-proto = { git = "https://github.com/cometbft/cometbft-rs.git", rev = "71af716216216cfdc150cacef5ceae3610a5824b" }
 cometbft-p2p = "0.2"
-cosmrs = "0.22"
 ed25519 = "2"
 ed25519-dalek = "2"
 elliptic-curve = { version = "0.13", features = ["pkcs8"], optional = true }
@@ -70,7 +69,3 @@ overflow-checks = true
 
 [package.metadata.docs.rs]
 all-features = true
-
-[patch.crates-io.tendermint-proto]
-git = "https://github.com/rach-id/tendermint-rs.git"
-branch = "rachid/generate-latest-v38-protos"
