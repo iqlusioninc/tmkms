@@ -2,15 +2,15 @@
 
 use self::unix::UnixConnection;
 use cometbft_p2p::{ReadMsg, SecretConnection, WriteMsg};
+use cometbft_proto as proto;
 use std::io;
-use tendermint_proto as proto;
 
 pub mod tcp;
 pub mod unix;
 
 /// Connections to a validator
 pub trait Connection:
-    ReadMsg<proto::privval::Message> + WriteMsg<proto::privval::Message> + Sync + Send
+    ReadMsg<proto::privval::v1::Message> + WriteMsg<proto::privval::v1::Message> + Sync + Send
 {
 }
 

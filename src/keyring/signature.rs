@@ -2,7 +2,7 @@
 
 pub use super::ed25519;
 pub use k256::ecdsa;
-use tendermint_proto as proto;
+// use cometbft_proto as proto;
 
 /// Cryptographic signature used for block signing
 pub enum Signature {
@@ -35,17 +35,18 @@ impl From<ed25519::Signature> for Signature {
     }
 }
 
-impl From<Signature> for tendermint::Signature {
-    fn from(sig: Signature) -> tendermint::Signature {
+impl From<Signature> for cometbft::Signature {
+    fn from(sig: Signature) -> cometbft::Signature {
         sig.to_vec().try_into().expect("signature should be valid")
     }
 }
 
-impl From<Signature> for proto::privval::SignedRawBytesResponse {
-    fn from(sig: Signature) -> Self {
-        proto::privval::SignedRawBytesResponse {
-            signature: sig.to_vec(),
-            error: None,
-        }
-    }
-}
+// TODO(tarcieri): vendor the `SignedRawBytes*` protos
+// impl From<Signature> for proto::privval::v1::SignedRawBytesResponse {
+//     fn from(sig: Signature) -> Self {
+//         proto::privval::v1::SignedRawBytesResponse {
+//             signature: sig.to_vec(),
+//             error: None,
+//         }
+//     }
+// }

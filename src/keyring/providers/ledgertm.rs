@@ -15,7 +15,7 @@ use crate::{
     },
     prelude::*,
 };
-use tendermint::{PublicKey, TendermintKey};
+use cometbft::{CometbftKey, PublicKey};
 
 /// Create Ledger Tendermint signer object from the given configuration
 pub fn init(
@@ -41,7 +41,7 @@ pub fn init(
 
     let signer = Signer::new(
         SigningProvider::LedgerTm,
-        TendermintKey::ConsensusKey(public_key),
+        CometbftKey::ConsensusKey(public_key),
         Box::new(provider),
     );
 

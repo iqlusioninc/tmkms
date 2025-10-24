@@ -88,4 +88,3 @@ USER root
 # Ensure the /harness folder has the right owner
 RUN chown -R developer /harness
 USER developer
-

@@ -98,6 +98,10 @@ pub enum ErrorKind {
     #[cfg(feature = "yubihsm")]
     #[error("YubiHSM error")]
     YubihsmError,
+
+    /// Protobuf encoding error
+    #[error("protobuf error")]
+    ProtobufError,
 }
 
 impl ErrorKind {
@@ -194,8 +198,8 @@ impl From<signature::Error> for Error {
     }
 }
 
-impl From<tendermint::Error> for Error {
-    fn from(other: tendermint::error::Error) -> Self {
+impl From<cometbft::Error> for Error {
+    fn from(other: cometbft::error::Error) -> Self {
         ErrorKind::TendermintError.context(other).into()
     }
 }
@@ -203,6 +207,12 @@ impl From<tendermint::Error> for Error {
 impl From<cometbft_p2p::Error> for Error {
     fn from(other: cometbft_p2p::Error) -> Self {
         ErrorKind::ConnectionError.context(other).into()
+    }
+}
+
+impl From<cometbft_proto::Error> for Error {
+    fn from(other: cometbft_proto::Error) -> Self {
+        ErrorKind::ProtobufError.context(other).into()
     }
 }
 

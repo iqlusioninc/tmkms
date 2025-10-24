@@ -1,9 +1,9 @@
 //! Validator private key operations: signing consensus votes and proposals.
 
 use bytes::{Bytes, BytesMut};
+use cometbft::{Error, Proposal, Vote, block, chain, consensus, vote};
+use cometbft_proto as proto;
 use prost::{EncodeError, Message as _};
-use tendermint::{Error, Proposal, Vote, block, chain, consensus, vote};
-use tendermint_proto as proto;
 
 /// Message codes.
 pub type SignedMsgCode = i32;
@@ -54,7 +54,7 @@ impl ConsensusMsg {
 
         match self {
             Self::Proposal(proposal) => {
-                let canonical = proto::types::CanonicalProposal {
+                let canonical = proto::types::v1::CanonicalProposal {
                     chain_id: chain_id.to_string(),
                     r#type: ConsensusMsgType::Proposal.into(),
                     height: proposal.height.into(),
@@ -70,7 +70,7 @@ impl ConsensusMsg {
                 canonical.encode_length_delimited(&mut bytes)?;
             }
             Self::Vote(vote) => {
-                let canonical = proto::types::CanonicalVote {
+                let canonical = proto::types::v1::CanonicalVote {
                     r#type: vote.vote_type.into(),
                     height: vote.height.into(),
                     round: vote.round.value().into(),
@@ -94,7 +94,7 @@ impl ConsensusMsg {
                     // Only sign extension if it's a precommit for a non-nil block.
                     // Note that extension can be empty.
                     (vote::Type::Precommit, Some(_)) => {
-                        let canonical = proto::types::CanonicalVoteExtension {
+                        let canonical = proto::types::v1::CanonicalVoteExtension {
                             extension: v.extension.clone(),
                             height: v.height.into(),
                             round: v.round.value().into(),
@@ -133,7 +133,7 @@ impl ConsensusMsg {
     }
 
     /// Add a consensus signature to this message.
-    pub fn add_consensus_signature(&mut self, signature: impl Into<tendermint::Signature>) {
+    pub fn add_consensus_signature(&mut self, signature: impl Into<cometbft::Signature>) {
         match self {
             ConsensusMsg::Proposal(proposal) => {
                 proposal.signature = Some(signature.into());
@@ -147,7 +147,7 @@ impl ConsensusMsg {
     /// Add an extension signature to this message.
     pub fn add_extension_signature(
         &mut self,
-        signature: impl Into<tendermint::Signature>,
+        signature: impl Into<cometbft::Signature>,
     ) -> Result<(), Error> {
         match self {
             ConsensusMsg::Vote(vote) => {
@@ -171,18 +171,18 @@ impl From<Vote> for ConsensusMsg {
     }
 }
 
-impl TryFrom<proto::types::Proposal> for ConsensusMsg {
+impl TryFrom<proto::types::v1::Proposal> for ConsensusMsg {
     type Error = Error;
 
-    fn try_from(proposal: proto::types::Proposal) -> Result<Self, Self::Error> {
+    fn try_from(proposal: proto::types::v1::Proposal) -> Result<Self, Self::Error> {
         Proposal::try_from(proposal).map(Self::Proposal)
     }
 }
 
-impl TryFrom<proto::types::Vote> for ConsensusMsg {
+impl TryFrom<proto::types::v1::Vote> for ConsensusMsg {
     type Error = Error;
 
-    fn try_from(vote: proto::types::Vote) -> Result<Self, Self::Error> {
+    fn try_from(vote: proto::types::v1::Vote) -> Result<Self, Self::Error> {
         Vote::try_from(vote).map(Self::Vote)
     }
 }
@@ -190,7 +190,7 @@ impl TryFrom<proto::types::Vote> for ConsensusMsg {
 /// [`ConsensusMsgType`] is a type of signed message in the consensus.
 ///
 /// Adapted from:
-/// <https://github.com/cometbft/cometbft/blob/27d2a18/proto/tendermint/types/types.proto#L13>
+/// <https://github.com/cometbft/cometbft/blob/27d2a18/proto/cometbft/types/types.proto#L13>
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(i32)]
 pub enum ConsensusMsgType {
@@ -225,24 +225,24 @@ impl From<ConsensusMsgType> for SignedMsgCode {
     }
 }
 
-impl From<ConsensusMsgType> for proto::types::SignedMsgType {
-    fn from(msg_type: ConsensusMsgType) -> proto::types::SignedMsgType {
+impl From<ConsensusMsgType> for proto::types::v1::SignedMsgType {
+    fn from(msg_type: ConsensusMsgType) -> proto::types::v1::SignedMsgType {
         match msg_type {
-            ConsensusMsgType::Unknown => proto::types::SignedMsgType::Unknown,
-            ConsensusMsgType::Prevote => proto::types::SignedMsgType::Prevote,
-            ConsensusMsgType::Precommit => proto::types::SignedMsgType::Precommit,
-            ConsensusMsgType::Proposal => proto::types::SignedMsgType::Proposal,
+            ConsensusMsgType::Unknown => proto::types::v1::SignedMsgType::Unknown,
+            ConsensusMsgType::Prevote => proto::types::v1::SignedMsgType::Prevote,
+            ConsensusMsgType::Precommit => proto::types::v1::SignedMsgType::Precommit,
+            ConsensusMsgType::Proposal => proto::types::v1::SignedMsgType::Proposal,
         }
     }
 }
 
-impl From<proto::types::SignedMsgType> for ConsensusMsgType {
-    fn from(proto: proto::types::SignedMsgType) -> ConsensusMsgType {
+impl From<proto::types::v1::SignedMsgType> for ConsensusMsgType {
+    fn from(proto: proto::types::v1::SignedMsgType) -> ConsensusMsgType {
         match proto {
-            proto::types::SignedMsgType::Unknown => Self::Unknown,
-            proto::types::SignedMsgType::Prevote => Self::Prevote,
-            proto::types::SignedMsgType::Precommit => Self::Precommit,
-            proto::types::SignedMsgType::Proposal => Self::Proposal,
+            proto::types::v1::SignedMsgType::Unknown => Self::Unknown,
+            proto::types::v1::SignedMsgType::Prevote => Self::Prevote,
+            proto::types::v1::SignedMsgType::Precommit => Self::Precommit,
+            proto::types::v1::SignedMsgType::Proposal => Self::Proposal,
         }
     }
 }
@@ -260,7 +260,7 @@ impl TryFrom<SignedMsgCode> for ConsensusMsgType {
     type Error = Error;
 
     fn try_from(code: SignedMsgCode) -> Result<Self, Self::Error> {
-        proto::types::SignedMsgType::try_from(code)
+        proto::types::v1::SignedMsgType::try_from(code)
             .map(Into::into)
             .map_err(|e| Error::parse(e.to_string()))
     }
@@ -269,7 +269,7 @@ impl TryFrom<SignedMsgCode> for ConsensusMsgType {
 #[cfg(test)]
 mod tests {
     use super::{ConsensusMsg, ConsensusMsgType, chain, proto};
-    use tendermint::{Proposal, Time, Vote};
+    use cometbft::{Proposal, Time, Vote};
 
     fn example_chain_id() -> chain::Id {
         chain::Id::try_from("test_chain_id").unwrap()
@@ -285,7 +285,7 @@ mod tests {
     }
 
     fn example_proposal() -> Proposal {
-        proto::types::Proposal {
+        proto::types::v1::Proposal {
             r#type: ConsensusMsgType::Proposal.into(),
             height: 12345,
             round: 1,
@@ -299,14 +299,14 @@ mod tests {
     }
 
     fn example_vote() -> Vote {
-        proto::types::Vote {
+        proto::types::v1::Vote {
             r#type: 0x01,
             height: 500001,
             round: 2,
             timestamp: Some(example_timestamp()),
-            block_id: Some(proto::types::BlockId {
+            block_id: Some(proto::types::v1::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                part_set_header: Some(proto::types::PartSetHeader {
+                part_set_header: Some(proto::types::v1::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),

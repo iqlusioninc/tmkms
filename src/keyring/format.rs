@@ -1,8 +1,8 @@
 //! Chain-specific key configuration
 
+use cometbft::CometbftKey;
 use serde::{Deserialize, Serialize};
 use subtle_encoding::{base64, bech32};
-use tendermint::TendermintKey;
 
 /// Protobuf [`Any`] type URL for Ed25519 public keys
 const ED25519_TYPE_URL: &str = "/cosmos.crypto.ed25519.PubKey";
@@ -34,28 +34,28 @@ pub enum Format {
 }
 
 impl Format {
-    /// Serialize a `TendermintKey` according to chain-specific rules
-    pub fn serialize(&self, public_key: TendermintKey) -> String {
+    /// Serialize a `CometbftKey` according to chain-specific rules
+    pub fn serialize(&self, public_key: CometbftKey) -> String {
         match self {
             Format::Bech32 {
                 account_key_prefix,
                 consensus_key_prefix,
             } => match public_key {
-                TendermintKey::AccountKey(pk) => {
-                    bech32::encode(account_key_prefix, tendermint::account::Id::from(pk))
+                CometbftKey::AccountKey(pk) => {
+                    bech32::encode(account_key_prefix, cometbft::account::Id::from(pk))
                 }
-                TendermintKey::ConsensusKey(pk) => pk.to_bech32(consensus_key_prefix),
+                CometbftKey::ConsensusKey(pk) => pk.to_bech32(consensus_key_prefix),
             },
             Format::CosmosJson => {
                 let pk = match public_key {
-                    TendermintKey::AccountKey(pk) => PublicKeyJson::from(&pk),
-                    TendermintKey::ConsensusKey(pk) => PublicKeyJson::from(&pk),
+                    CometbftKey::AccountKey(pk) => PublicKeyJson::from(&pk),
+                    CometbftKey::ConsensusKey(pk) => PublicKeyJson::from(&pk),
                 };
                 serde_json::to_string(&pk).expect("JSON serialization error")
             }
             Format::Hex => match public_key {
-                TendermintKey::AccountKey(pk) => pk.to_hex(),
-                TendermintKey::ConsensusKey(pk) => pk.to_hex(),
+                CometbftKey::AccountKey(pk) => pk.to_hex(),
+                CometbftKey::ConsensusKey(pk) => pk.to_hex(),
             },
         }
     }
@@ -74,12 +74,12 @@ struct PublicKeyJson {
     key: String,
 }
 
-impl From<&tendermint::PublicKey> for PublicKeyJson {
-    fn from(public_key: &tendermint::PublicKey) -> PublicKeyJson {
+impl From<&cometbft::PublicKey> for PublicKeyJson {
+    fn from(public_key: &cometbft::PublicKey) -> PublicKeyJson {
         let type_url = match public_key {
-            tendermint::PublicKey::Ed25519(_) => ED25519_TYPE_URL,
-            tendermint::PublicKey::Secp256k1(_) => SECP256K1_TYPE_URL,
-            // `tendermint::PublicKey` is `non_exhaustive`
+            cometbft::PublicKey::Ed25519(_) => ED25519_TYPE_URL,
+            cometbft::PublicKey::Secp256k1(_) => SECP256K1_TYPE_URL,
+            // `cometbft::PublicKey` is `non_exhaustive`
             _ => unreachable!("unknown pubic key type"),
         }
         .to_owned();
