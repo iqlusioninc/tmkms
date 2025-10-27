@@ -48,8 +48,8 @@ impl From<ed25519_dalek::SigningKey> for SigningKey {
     }
 }
 
-impl From<tendermint::private_key::Ed25519> for SigningKey {
-    fn from(signing_key: tendermint::private_key::Ed25519) -> SigningKey {
+impl From<cometbft::private_key::Ed25519> for SigningKey {
+    fn from(signing_key: cometbft::private_key::Ed25519) -> SigningKey {
         signing_key
             .as_bytes()
             .try_into()

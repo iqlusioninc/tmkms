@@ -7,9 +7,9 @@ use crate::{
 };
 use abscissa_core::{Command, Runnable};
 use clap::{Parser, Subcommand};
+use cometbft::Vote;
+use cometbft_proto as proto;
 use std::{path::PathBuf, process};
-use tendermint::Vote;
-use tendermint_proto as proto;
 
 /// `ledger` subcommand
 #[derive(Command, Debug, Runnable, Subcommand)]
@@ -55,7 +55,7 @@ impl Runnable for InitCommand {
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&chain_id).unwrap();
 
-        let vote = proto::types::Vote {
+        let vote = proto::types::v1::Vote {
             height: self.height.unwrap(),
             round: self.round.unwrap() as i32,
             r#type: ConsensusMsgType::Proposal.into(),

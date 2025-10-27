@@ -1,9 +1,9 @@
 //! Validator configuration
 
+use cometbft::chain;
+use cometbft_config::net;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tendermint::chain;
-use tendermint_config::net;
 
 /// Validator configuration
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -26,7 +26,7 @@ pub struct ValidatorConfig {
     pub secret_key: Option<PathBuf>,
 
     /// Height at which to stop signing
-    pub max_height: Option<tendermint::block::Height>,
+    pub max_height: Option<cometbft::block::Height>,
 
     /// Deprecated: legacy protocol version number. Must be v0.34 if present.
     // TODO(tarcieri): remove this completely? Here for backwards compatibility.

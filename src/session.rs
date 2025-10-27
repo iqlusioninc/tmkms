@@ -9,11 +9,11 @@ use crate::{
     privval::ConsensusMsg,
     rpc::{Request, Response},
 };
-use prost::Message;
+use cometbft::{CometbftKey, consensus};
+use cometbft_config::net;
+use cometbft_proto as proto;
+// use prost::Message;
 use std::{os::unix::net::UnixStream, time::Instant};
-use tendermint::{TendermintKey, consensus};
-use tendermint_config::net;
-use tendermint_proto as proto;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -113,10 +113,11 @@ impl Session {
             Request::SignProposal(_) | Request::SignVote(_) => {
                 self.sign_consensus_msg(request.into_consensus_msg()?)?
             }
-            Request::SignRawBytes(req) => self.sign_raw(req)?,
+            // TODO(tarcieri): vendor protos
+            // Request::SignRawBytes(req) => self.sign_raw(req)?,
 
             // non-signable requests:
-            Request::PingRequest => Response::Ping(proto::privval::PingResponse {}),
+            Request::PingRequest => Response::Ping(proto::privval::v1::PingResponse {}),
             Request::ShowPublicKey => self.get_public_key()?,
         };
 
@@ -176,47 +177,51 @@ impl Session {
         Ok(msg.into())
     }
 
-    /// Sign a raw (non-consensus) message.
-    fn sign_raw(&mut self, req: proto::privval::SignRawBytesRequest) -> Result<Response, Error> {
-        /// Domain separation prefix to prevent confusion with consensus message signatures.
-        const PREFIX: &[u8] = b"COMET::RAW_BYTES::SIGN";
-
-        ensure!(
-            req.chain_id == self.config.chain_id.as_str(),
-            ChainIdError,
-            "got unexpected chain ID: {} (expecting: {})",
-            &req.chain_id,
-            &self.config.chain_id,
-        );
-
-        assert_eq!(self.config.chain_id.as_str(), &req.chain_id);
-
-        let registry = chain::REGISTRY.get();
-
-        let chain = registry
-            .get_chain(&self.config.chain_id)
-            .unwrap_or_else(|| {
-                panic!("chain '{}' missing from registry!", &self.config.chain_id);
-            });
-
-        let mut signable_bytes = Vec::from(PREFIX);
-        req.encode_length_delimited(&mut signable_bytes)?;
-
-        // TODO(tarcieri): support for non-default public keys
-        let public_key = None;
-        let started_at = Instant::now();
-        let sig = chain.keyring.sign(public_key, &signable_bytes)?;
-
-        info!(
-            "[{}@{}] signed raw bytes: {} ({} ms)",
-            &self.config.chain_id,
-            &self.config.addr,
-            &req.unique_id,
-            started_at.elapsed().as_millis(),
-        );
-
-        Ok(Response::SignedRawBytes(sig.into()))
-    }
+    // TODO(tarcieri): vendor protos
+    // /// Sign a raw (non-consensus) message.
+    // fn sign_raw(
+    //     &mut self,
+    //     req: proto::privval::v1::SignRawBytesRequest,
+    // ) -> Result<Response, Error> {
+    //     /// Domain separation prefix to prevent confusion with consensus message signatures.
+    //     const PREFIX: &[u8] = b"COMET::RAW_BYTES::SIGN";
+    //
+    //     ensure!(
+    //         req.chain_id == self.config.chain_id.as_str(),
+    //         ChainIdError,
+    //         "got unexpected chain ID: {} (expecting: {})",
+    //         &req.chain_id,
+    //         &self.config.chain_id,
+    //     );
+    //
+    //     assert_eq!(self.config.chain_id.as_str(), &req.chain_id);
+    //
+    //     let registry = chain::REGISTRY.get();
+    //
+    //     let chain = registry
+    //         .get_chain(&self.config.chain_id)
+    //         .unwrap_or_else(|| {
+    //             panic!("chain '{}' missing from registry!", &self.config.chain_id);
+    //         });
+    //
+    //     let mut signable_bytes = Vec::from(PREFIX);
+    //     req.encode_length_delimited(&mut signable_bytes)?;
+    //
+    //     // TODO(tarcieri): support for non-default public keys
+    //     let public_key = None;
+    //     let started_at = Instant::now();
+    //     let sig = chain.keyring.sign(public_key, &signable_bytes)?;
+    //
+    //     info!(
+    //         "[{}@{}] signed raw bytes: {} ({} ms)",
+    //         &self.config.chain_id,
+    //         &self.config.addr,
+    //         &req.unique_id,
+    //         started_at.elapsed().as_millis(),
+    //     );
+    //
+    //     Ok(Response::SignedRawBytes(sig.into()))
+    // }
 
     /// If a max block height is configured, ensure the block we're signing
     /// doesn't exceed it
@@ -243,7 +248,7 @@ impl Session {
         &mut self,
         chain: &Chain,
         signable_msg: &ConsensusMsg,
-    ) -> Result<Option<proto::privval::RemoteSignerError>, Error> {
+    ) -> Result<Option<proto::privval::v1::RemoteSignerError>, Error> {
         let msg_type = signable_msg.msg_type();
         let request_state = signable_msg.consensus_state();
         let mut chain_state = chain.state.lock().unwrap();
@@ -282,12 +287,13 @@ impl Session {
             });
 
         let pub_key = match chain.keyring.default_pubkey()? {
-            TendermintKey::AccountKey(pk) => pk,
-            TendermintKey::ConsensusKey(pk) => pk,
+            CometbftKey::AccountKey(pk) => pk,
+            CometbftKey::ConsensusKey(pk) => pk,
         };
 
-        Ok(Response::PublicKey(proto::privval::PubKeyResponse {
-            pub_key: Some(pub_key.into()),
+        Ok(Response::PublicKey(proto::privval::v1::PubKeyResponse {
+            pub_key_bytes: pub_key.to_bytes(),
+            pub_key_type: pub_key.type_str().to_owned(),
             error: None,
         }))
     }
@@ -316,11 +322,11 @@ impl Session {
 }
 
 /// Double signing handler.
-fn double_sign(consensus_state: consensus::State) -> proto::privval::RemoteSignerError {
+fn double_sign(consensus_state: consensus::State) -> proto::privval::v1::RemoteSignerError {
     /// Double signing error code.
     const DOUBLE_SIGN_ERROR: i32 = 2;
 
-    proto::privval::RemoteSignerError {
+    proto::privval::v1::RemoteSignerError {
         code: DOUBLE_SIGN_ERROR,
         description: format!(
             "double signing requested at height: {}",

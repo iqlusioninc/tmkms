@@ -13,7 +13,7 @@ use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
 };
-use tendermint::{TendermintKey, account};
+use cometbft::{CometbftKey, account};
 
 /// File encoding for software-backed secret keys
 pub type SecretKeyEncoding = subtle_encoding::Base64;
@@ -21,10 +21,10 @@ pub type SecretKeyEncoding = subtle_encoding::Base64;
 /// Signing keyring
 pub struct KeyRing {
     /// ECDSA keys in the keyring
-    ecdsa_keys: Map<TendermintKey, ecdsa::Signer>,
+    ecdsa_keys: Map<CometbftKey, ecdsa::Signer>,
 
     /// Ed25519 keys in the keyring
-    ed25519_keys: Map<TendermintKey, ed25519::Signer>,
+    ed25519_keys: Map<CometbftKey, ed25519::Signer>,
 
     /// Formatting configuration when displaying keys (e.g. bech32)
     format: Format,
@@ -47,8 +47,8 @@ impl KeyRing {
         let public_key = signer.public_key();
         let public_key_serialized = self.format.serialize(public_key);
         let key_type = match public_key {
-            TendermintKey::AccountKey(_) => "account",
-            TendermintKey::ConsensusKey(_) => unimplemented!(
+            CometbftKey::AccountKey(_) => "account",
+            CometbftKey::ConsensusKey(_) => unimplemented!(
                 "ECDSA consensus keys unsupported: {:?}",
                 public_key_serialized
             ),
@@ -79,11 +79,11 @@ impl KeyRing {
         let public_key = signer.public_key();
         let public_key_serialized = self.format.serialize(public_key);
         let key_type = match public_key {
-            TendermintKey::AccountKey(_) => unimplemented!(
+            CometbftKey::AccountKey(_) => unimplemented!(
                 "Ed25519 account keys unsupported: {:?}",
                 public_key_serialized
             ),
-            TendermintKey::ConsensusKey(_) => "consensus",
+            CometbftKey::ConsensusKey(_) => "consensus",
         };
 
         info!(
@@ -105,7 +105,7 @@ impl KeyRing {
     }
 
     /// Get the default Ed25519 (i.e. consensus) public key for this keyring
-    pub fn default_pubkey(&self) -> Result<TendermintKey, Error> {
+    pub fn default_pubkey(&self) -> Result<CometbftKey, Error> {
         if !self.ed25519_keys.is_empty() {
             let mut keys = self.ed25519_keys.keys();
 
@@ -128,9 +128,9 @@ impl KeyRing {
     }
 
     /// Get ECDSA public key bytes for a given account ID
-    pub fn get_account_pubkey(&self, account_id: account::Id) -> Option<tendermint::PublicKey> {
+    pub fn get_account_pubkey(&self, account_id: account::Id) -> Option<cometbft::PublicKey> {
         for key in self.ecdsa_keys.keys() {
-            if let TendermintKey::AccountKey(pk) = key {
+            if let CometbftKey::AccountKey(pk) = key {
                 if account_id == account::Id::from(*pk) {
                     return Some(*pk);
                 }
@@ -147,7 +147,7 @@ impl KeyRing {
         msg: &[u8],
     ) -> Result<ecdsa::Signature, Error> {
         for (key, signer) in &self.ecdsa_keys {
-            if let TendermintKey::AccountKey(pk) = key {
+            if let CometbftKey::AccountKey(pk) = key {
                 if account_id == account::Id::from(*pk) {
                     return signer.sign(msg);
                 }
@@ -163,7 +163,7 @@ impl KeyRing {
 
     /// Sign a message using the secret key associated with the given public key
     /// (if it is in our keyring)
-    pub fn sign(&self, public_key: Option<&TendermintKey>, msg: &[u8]) -> Result<Signature, Error> {
+    pub fn sign(&self, public_key: Option<&CometbftKey>, msg: &[u8]) -> Result<Signature, Error> {
         if self.ed25519_keys.len() > 1 || self.ecdsa_keys.len() > 1 {
             fail!(SigningError, "expected only one key in keyring");
         }
@@ -175,8 +175,8 @@ impl KeyRing {
                         InvalidKey,
                         "not in keyring: {}",
                         match public_key {
-                            TendermintKey::AccountKey(pk) => pk.to_bech32(""),
-                            TendermintKey::ConsensusKey(pk) => pk.to_bech32(""),
+                            CometbftKey::AccountKey(pk) => pk.to_bech32(""),
+                            CometbftKey::ConsensusKey(pk) => pk.to_bech32(""),
                         }
                     )
                 }),
@@ -195,8 +195,8 @@ impl KeyRing {
                         InvalidKey,
                         "not in keyring: {}",
                         match public_key {
-                            TendermintKey::AccountKey(pk) => pk.to_bech32(""),
-                            TendermintKey::ConsensusKey(pk) => pk.to_bech32(""),
+                            CometbftKey::AccountKey(pk) => pk.to_bech32(""),
+                            CometbftKey::ConsensusKey(pk) => pk.to_bech32(""),
                         }
                     )
                 }),

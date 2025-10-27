@@ -8,9 +8,11 @@ use crate::{
     keyring::{self, SigningProvider, ed25519},
     prelude::*,
 };
-use elliptic_curve::PublicKey as EcPublicKey;
-use elliptic_curve::pkcs8::{
-    DecodePublicKey, ObjectIdentifier, SubjectPublicKeyInfoRef, spki::Error as SpkiError,
+use cometbft::public_key::{Ed25519, Secp256k1};
+use cometbft::{CometbftKey, PublicKey};
+use elliptic_curve::{
+    PublicKey as EcPublicKey,
+    pkcs8::{DecodePublicKey, ObjectIdentifier, SubjectPublicKeyInfoRef, spki::Error as SpkiError},
 };
 use k256::ecdsa::{Error as SignError, Signature as EcdsaSignature};
 use sdkms::api_model::{
@@ -19,8 +21,6 @@ use sdkms::api_model::{
 use sdkms::{Error as SdkmsError, SdkmsClient};
 use signature::Signer;
 use std::sync::Arc;
-use tendermint::public_key::{Ed25519, Secp256k1};
-use tendermint::{PublicKey, TendermintKey};
 use url::Url;
 
 /// Create Fortanix DSM backed signer objects from the given configuration
@@ -80,7 +80,7 @@ impl SigningKey {
         client: Arc<SdkmsClient>,
         descriptor: KeyDescriptor,
         key_type: KeyType,
-    ) -> Result<(Self, TendermintKey), Error> {
+    ) -> Result<(Self, CometbftKey), Error> {
         let descriptor: SobjectDescriptor = descriptor.into();
         let key = client
             .get_sobject(None, &descriptor)
@@ -121,7 +121,7 @@ impl SigningKey {
                         )
                     })?
                     .into();
-                TendermintKey::AccountKey(PublicKey::from(pub_key))
+                CometbftKey::AccountKey(PublicKey::from(pub_key))
             }
             KeyType::Consensus => {
                 let pub_key = Ed25519PublicKey::from_public_key_der(&public_key).map_err(|e| {
@@ -131,7 +131,7 @@ impl SigningKey {
                         e
                     )
                 })?;
-                TendermintKey::ConsensusKey(PublicKey::from(pub_key.0))
+                CometbftKey::ConsensusKey(PublicKey::from(pub_key.0))
             }
         };
 

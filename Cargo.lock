@@ -442,6 +442,48 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
+name = "cometbft"
+version = "0.1.0-alpha.2"
+source = "git+https://github.com/cometbft/cometbft-rs.git?rev=71af716216216cfdc150cacef5ceae3610a5824b#71af716216216cfdc150cacef5ceae3610a5824b"
+dependencies = [
+ "bytes",
+ "cometbft-proto",
+ "digest 0.10.7",
+ "ed25519",
+ "ed25519-consensus",
+ "flex-error",
+ "futures",
+ "k256",
+ "num-traits",
+ "once_cell",
+ "prost",
+ "ripemd",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "serde_repr",
+ "sha2 0.10.9",
+ "signature",
+ "subtle",
+ "subtle-encoding",
+ "time",
+ "zeroize",
+]
+
+[[package]]
+name = "cometbft-config"
+version = "0.1.0-alpha.2"
+source = "git+https://github.com/cometbft/cometbft-rs.git?rev=71af716216216cfdc150cacef5ceae3610a5824b#71af716216216cfdc150cacef5ceae3610a5824b"
+dependencies = [
+ "cometbft",
+ "flex-error",
+ "serde",
+ "serde_json",
+ "toml",
+ "url 2.5.7",
+]
+
+[[package]]
 name = "cometbft-p2p"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -459,6 +501,20 @@ dependencies = [
  "sha2 0.10.9",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "cometbft-proto"
+version = "0.1.0-alpha.2"
+source = "git+https://github.com/cometbft/cometbft-rs.git?rev=71af716216216cfdc150cacef5ceae3610a5824b#71af716216216cfdc150cacef5ceae3610a5824b"
+dependencies = [
+ "bytes",
+ "flex-error",
+ "prost",
+ "serde",
+ "serde_bytes",
+ "subtle-encoding",
+ "time",
 ]
 
 [[package]]
@@ -2289,64 +2345,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tendermint"
-version = "0.40.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc997743ecfd4864bbca8170d68d9b2bee24653b034210752c2d883ef4b838b1"
-dependencies = [
- "bytes",
- "digest 0.10.7",
- "ed25519",
- "ed25519-consensus",
- "flex-error",
- "futures",
- "k256",
- "num-traits",
- "once_cell",
- "prost",
- "ripemd",
- "serde",
- "serde_bytes",
- "serde_json",
- "serde_repr",
- "sha2 0.10.9",
- "signature",
- "subtle",
- "subtle-encoding",
- "tendermint-proto",
- "time",
- "zeroize",
-]
-
-[[package]]
-name = "tendermint-config"
-version = "0.40.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "069d1791f9b02a596abcd26eb72003b2e9906c6169a60fa82ffc080dd3a43fda"
-dependencies = [
- "flex-error",
- "serde",
- "serde_json",
- "tendermint",
- "toml",
- "url 2.5.7",
-]
-
-[[package]]
-name = "tendermint-proto"
-version = "0.40.4"
-source = "git+https://github.com/rach-id/tendermint-rs.git?branch=rachid%2Fgenerate-latest-v38-protos#d7ce755d56826e8c5fbe1d059fb5ab1e2cab7c5b"
-dependencies = [
- "bytes",
- "flex-error",
- "prost",
- "serde",
- "serde_bytes",
- "subtle-encoding",
- "time",
-]
-
-[[package]]
 name = "termcolor"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2461,7 +2459,10 @@ dependencies = [
  "bytes",
  "chrono",
  "clap",
+ "cometbft",
+ "cometbft-config",
  "cometbft-p2p",
+ "cometbft-proto",
  "ed25519",
  "ed25519-dalek",
  "elliptic-curve",
@@ -2473,7 +2474,6 @@ dependencies = [
  "ledger",
  "once_cell",
  "prost",
- "prost-derive",
  "rand",
  "rand_core",
  "rpassword",
@@ -2485,9 +2485,6 @@ dependencies = [
  "subtle",
  "subtle-encoding",
  "tempfile",
- "tendermint",
- "tendermint-config",
- "tendermint-proto",
  "thiserror",
  "url 2.5.7",
  "uuid",
