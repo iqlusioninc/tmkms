@@ -20,9 +20,9 @@ abscissa_core = "0.8"
 bytes = "1"
 chrono = "0.4"
 clap = "4"
-cometbft = { git = "https://github.com/cometbft/cometbft-rs.git", rev = "71af716216216cfdc150cacef5ceae3610a5824b", features = ["secp256k1"] }
-cometbft-config = { git = "https://github.com/cometbft/cometbft-rs.git", rev = "71af716216216cfdc150cacef5ceae3610a5824b" }
-cometbft-proto = { git = "https://github.com/cometbft/cometbft-rs.git", rev = "71af716216216cfdc150cacef5ceae3610a5824b" }
+cometbft = { package = "iq-cometbft", version = "=0.1.0-pre.1", features = ["secp256k1"] }
+cometbft-config = { package = "iq-cometbft-config", version = "=0.1.0-pre.1" }
+cometbft-proto = { package = "iq-cometbft-proto", version = "=0.1.0-pre.0" }
 cometbft-p2p = "0.2"
 ed25519 = "2"
 ed25519-dalek = "2"
