@@ -54,7 +54,7 @@ impl ConsensusMsg {
 
         match self {
             Self::Proposal(proposal) => {
-                let canonical = proto::types::v1::CanonicalProposal {
+                let canonical = proto::types::v1beta1::CanonicalProposal {
                     chain_id: chain_id.to_string(),
                     r#type: ConsensusMsgType::Proposal.into(),
                     height: proposal.height.into(),
@@ -70,7 +70,7 @@ impl ConsensusMsg {
                 canonical.encode_length_delimited(&mut bytes)?;
             }
             Self::Vote(vote) => {
-                let canonical = proto::types::v1::CanonicalVote {
+                let canonical = proto::types::v1beta1::CanonicalVote {
                     r#type: vote.vote_type.into(),
                     height: vote.height.into(),
                     round: vote.round.value().into(),
@@ -94,7 +94,7 @@ impl ConsensusMsg {
                     // Only sign extension if it's a precommit for a non-nil block.
                     // Note that extension can be empty.
                     (vote::Type::Precommit, Some(_)) => {
-                        let canonical = proto::types::v1::CanonicalVoteExtension {
+                        let canonical = proto::v0_38::types::CanonicalVoteExtension {
                             extension: v.extension.clone(),
                             height: v.height.into(),
                             round: v.round.value().into(),
@@ -171,18 +171,18 @@ impl From<Vote> for ConsensusMsg {
     }
 }
 
-impl TryFrom<proto::types::v1::Proposal> for ConsensusMsg {
+impl TryFrom<proto::types::v1beta1::Proposal> for ConsensusMsg {
     type Error = Error;
 
-    fn try_from(proposal: proto::types::v1::Proposal) -> Result<Self, Self::Error> {
+    fn try_from(proposal: proto::types::v1beta1::Proposal) -> Result<Self, Self::Error> {
         Proposal::try_from(proposal).map(Self::Proposal)
     }
 }
 
-impl TryFrom<proto::types::v1::Vote> for ConsensusMsg {
+impl TryFrom<proto::types::v1beta1::Vote> for ConsensusMsg {
     type Error = Error;
 
-    fn try_from(vote: proto::types::v1::Vote) -> Result<Self, Self::Error> {
+    fn try_from(vote: proto::types::v1beta1::Vote) -> Result<Self, Self::Error> {
         Vote::try_from(vote).map(Self::Vote)
     }
 }
@@ -225,24 +225,24 @@ impl From<ConsensusMsgType> for SignedMsgCode {
     }
 }
 
-impl From<ConsensusMsgType> for proto::types::v1::SignedMsgType {
-    fn from(msg_type: ConsensusMsgType) -> proto::types::v1::SignedMsgType {
+impl From<ConsensusMsgType> for proto::types::v1beta1::SignedMsgType {
+    fn from(msg_type: ConsensusMsgType) -> proto::types::v1beta1::SignedMsgType {
         match msg_type {
-            ConsensusMsgType::Unknown => proto::types::v1::SignedMsgType::Unknown,
-            ConsensusMsgType::Prevote => proto::types::v1::SignedMsgType::Prevote,
-            ConsensusMsgType::Precommit => proto::types::v1::SignedMsgType::Precommit,
-            ConsensusMsgType::Proposal => proto::types::v1::SignedMsgType::Proposal,
+            ConsensusMsgType::Unknown => proto::types::v1beta1::SignedMsgType::Unknown,
+            ConsensusMsgType::Prevote => proto::types::v1beta1::SignedMsgType::Prevote,
+            ConsensusMsgType::Precommit => proto::types::v1beta1::SignedMsgType::Precommit,
+            ConsensusMsgType::Proposal => proto::types::v1beta1::SignedMsgType::Proposal,
         }
     }
 }
 
-impl From<proto::types::v1::SignedMsgType> for ConsensusMsgType {
-    fn from(proto: proto::types::v1::SignedMsgType) -> ConsensusMsgType {
+impl From<proto::types::v1beta1::SignedMsgType> for ConsensusMsgType {
+    fn from(proto: proto::types::v1beta1::SignedMsgType) -> ConsensusMsgType {
         match proto {
-            proto::types::v1::SignedMsgType::Unknown => Self::Unknown,
-            proto::types::v1::SignedMsgType::Prevote => Self::Prevote,
-            proto::types::v1::SignedMsgType::Precommit => Self::Precommit,
-            proto::types::v1::SignedMsgType::Proposal => Self::Proposal,
+            proto::types::v1beta1::SignedMsgType::Unknown => Self::Unknown,
+            proto::types::v1beta1::SignedMsgType::Prevote => Self::Prevote,
+            proto::types::v1beta1::SignedMsgType::Precommit => Self::Precommit,
+            proto::types::v1beta1::SignedMsgType::Proposal => Self::Proposal,
         }
     }
 }
@@ -260,7 +260,7 @@ impl TryFrom<SignedMsgCode> for ConsensusMsgType {
     type Error = Error;
 
     fn try_from(code: SignedMsgCode) -> Result<Self, Self::Error> {
-        proto::types::v1::SignedMsgType::try_from(code)
+        proto::types::v1beta1::SignedMsgType::try_from(code)
             .map(Into::into)
             .map_err(|e| Error::parse(e.to_string()))
     }
@@ -285,7 +285,7 @@ mod tests {
     }
 
     fn example_proposal() -> Proposal {
-        proto::types::v1::Proposal {
+        proto::types::v1beta1::Proposal {
             r#type: ConsensusMsgType::Proposal.into(),
             height: 12345,
             round: 1,
@@ -299,14 +299,14 @@ mod tests {
     }
 
     fn example_vote() -> Vote {
-        proto::types::v1::Vote {
+        proto::types::v1beta1::Vote {
             r#type: 0x01,
             height: 500001,
             round: 2,
             timestamp: Some(example_timestamp()),
-            block_id: Some(proto::types::v1::BlockId {
+            block_id: Some(proto::types::v1beta1::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                part_set_header: Some(proto::types::v1::PartSetHeader {
+                part_set_header: Some(proto::types::v1beta1::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),
@@ -317,8 +317,8 @@ mod tests {
             ],
             validator_index: 56789,
             signature: vec![],
-            extension: vec![],
-            extension_signature: vec![],
+            //extension: vec![],
+            //extension_signature: vec![],
         }
         .try_into()
         .unwrap()

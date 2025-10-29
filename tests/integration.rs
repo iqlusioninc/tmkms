@@ -49,8 +49,8 @@ enum KmsConnection {
 
 impl Connection for KmsConnection {}
 
-impl ReadMsg<proto::privval::v1::Message> for KmsConnection {
-    fn read_msg(&mut self) -> p2p::Result<proto::privval::v1::Message> {
+impl ReadMsg<proto::privval::v1beta1::Message> for KmsConnection {
+    fn read_msg(&mut self) -> p2p::Result<proto::privval::v1beta1::Message> {
         match self {
             KmsConnection::Tcp(conn) => conn.read_msg(),
             KmsConnection::Unix(conn) => conn.read_msg(),
@@ -58,8 +58,8 @@ impl ReadMsg<proto::privval::v1::Message> for KmsConnection {
     }
 }
 
-impl WriteMsg<proto::privval::v1::Message> for KmsConnection {
-    fn write_msg(&mut self, msg: &proto::privval::v1::Message) -> p2p::Result<()> {
+impl WriteMsg<proto::privval::v1beta1::Message> for KmsConnection {
+    fn write_msg(&mut self, msg: &proto::privval::v1beta1::Message) -> p2p::Result<()> {
         match self {
             KmsConnection::Tcp(conn) => conn.write_msg(msg),
             KmsConnection::Unix(conn) => conn.write_msg(msg),
@@ -244,8 +244,8 @@ impl Drop for ProtocolTester {
 
 impl Connection for ProtocolTester {}
 
-impl ReadMsg<proto::privval::v1::Message> for ProtocolTester {
-    fn read_msg(&mut self) -> p2p::Result<proto::privval::v1::Message> {
+impl ReadMsg<proto::privval::v1beta1::Message> for ProtocolTester {
+    fn read_msg(&mut self) -> p2p::Result<proto::privval::v1beta1::Message> {
         let tcp_msg = self.tcp_connection.read_msg()?;
         let unix_msg = self.unix_connection.read_msg()?;
         assert_eq!(tcp_msg, unix_msg);
@@ -253,8 +253,8 @@ impl ReadMsg<proto::privval::v1::Message> for ProtocolTester {
     }
 }
 
-impl WriteMsg<proto::privval::v1::Message> for ProtocolTester {
-    fn write_msg(&mut self, msg: &proto::privval::v1::Message) -> p2p::Result<()> {
+impl WriteMsg<proto::privval::v1beta1::Message> for ProtocolTester {
+    fn write_msg(&mut self, msg: &proto::privval::v1beta1::Message) -> p2p::Result<()> {
         self.tcp_connection.write_msg(&msg)?;
         self.unix_connection.write_msg(&msg)?;
         Ok(())
@@ -308,7 +308,7 @@ fn handle_and_sign_proposal(key_type: KeyType) {
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let proposal = proto::types::v1::Proposal {
+        let proposal = proto::types::v1beta1::Proposal {
             r#type: ConsensusMsgType::Proposal.into(),
             height: 12345,
             round: 1,
@@ -320,18 +320,18 @@ fn handle_and_sign_proposal(key_type: KeyType) {
 
         let signable_msg = ConsensusMsg::try_from(proposal.clone()).unwrap();
 
-        let request = proto::privval::v1::SignProposalRequest {
+        let request = proto::privval::v1beta1::SignProposalRequest {
             proposal: Some(proposal),
             chain_id: chain_id.into(),
         };
 
         send_request(
-            proto::privval::v1::message::Sum::SignProposalRequest(request),
+            proto::privval::v1beta1::message::Sum::SignProposalRequest(request),
             &mut pt,
         );
 
         let response = match read_response(&mut pt) {
-            proto::privval::v1::message::Sum::SignedProposalResponse(resp) => resp,
+            proto::privval::v1beta1::message::Sum::SignedProposalResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
@@ -382,14 +382,14 @@ fn handle_and_sign_vote(key_type: KeyType) {
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let vote_msg = proto::types::v1::Vote {
+        let vote_msg = proto::types::v1beta1::Vote {
             r#type: 0x01,
             height: 12345,
             round: 2,
             timestamp: Some(t),
-            block_id: Some(proto::types::v1::BlockId {
+            block_id: Some(proto::types::v1beta1::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                part_set_header: Some(proto::types::v1::PartSetHeader {
+                part_set_header: Some(proto::types::v1beta1::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),
@@ -400,25 +400,25 @@ fn handle_and_sign_vote(key_type: KeyType) {
             ],
             validator_index: 56789,
             signature: vec![],
-            extension: vec![],
-            extension_signature: vec![],
+            // extension: vec![],
+            // extension_signature: vec![],
         };
 
         let signable_msg = ConsensusMsg::try_from(vote_msg.clone()).unwrap();
 
-        let vote = proto::privval::v1::SignVoteRequest {
+        let vote = proto::privval::v1beta1::SignVoteRequest {
             vote: Some(vote_msg),
             chain_id: chain_id.into(),
-            skip_extension_signing: false,
+            // skip_extension_signing: false,
         };
 
         send_request(
-            proto::privval::v1::message::Sum::SignVoteRequest(vote),
+            proto::privval::v1beta1::message::Sum::SignVoteRequest(vote),
             &mut pt,
         );
 
         let request = match read_response(&mut pt) {
-            proto::privval::v1::message::Sum::SignedVoteResponse(resp) => resp,
+            proto::privval::v1beta1::message::Sum::SignedVoteResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
@@ -426,7 +426,7 @@ fn handle_and_sign_vote(key_type: KeyType) {
             .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
-        let vote_msg: proto::types::v1::Vote = request
+        let vote_msg: proto::types::v1beta1::Vote = request
             .vote
             .expect("vote should be embedded int the response but none was found");
 
@@ -473,14 +473,14 @@ fn exceed_max_height(key_type: KeyType) {
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let vote_msg = proto::types::v1::Vote {
+        let vote_msg = proto::types::v1beta1::Vote {
             r#type: 0x01,
             height: 500001,
             round: 2,
             timestamp: Some(t),
-            block_id: Some(proto::types::v1::BlockId {
+            block_id: Some(proto::types::v1beta1::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                part_set_header: Some(proto::types::v1::PartSetHeader {
+                part_set_header: Some(proto::types::v1beta1::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),
@@ -491,25 +491,25 @@ fn exceed_max_height(key_type: KeyType) {
             ],
             validator_index: 56789,
             signature: vec![],
-            extension: vec![],
-            extension_signature: vec![],
+            // extension: vec![],
+            // extension_signature: vec![],
         };
 
         let signable_msg = ConsensusMsg::try_from(vote_msg.clone()).unwrap();
 
-        let vote = proto::privval::v1::SignVoteRequest {
+        let vote = proto::privval::v1beta1::SignVoteRequest {
             vote: Some(vote_msg),
             chain_id: chain_id.into(),
-            skip_extension_signing: false,
+            // skip_extension_signing: false,
         };
 
         send_request(
-            proto::privval::v1::message::Sum::SignVoteRequest(vote),
+            proto::privval::v1beta1::message::Sum::SignVoteRequest(vote),
             &mut pt,
         );
 
         let response = match read_response(&mut pt) {
-            proto::privval::v1::message::Sum::SignedVoteResponse(resp) => resp,
+            proto::privval::v1beta1::message::Sum::SignedVoteResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
@@ -556,23 +556,32 @@ fn handle_and_sign_get_publickey(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let request = proto::privval::v1::PubKeyRequest {
+        let request = proto::privval::v1beta1::PubKeyRequest {
             chain_id: chain_id.into(),
         };
 
         send_request(
-            proto::privval::v1::message::Sum::PubKeyRequest(request),
+            proto::privval::v1beta1::message::Sum::PubKeyRequest(request),
             &mut pt,
         );
 
         let response = match read_response(&mut pt) {
-            proto::privval::v1::message::Sum::PubKeyResponse(resp) => resp,
+            proto::privval::v1beta1::message::Sum::PubKeyResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
-        assert_ne!(response.pub_key_type.len(), 0);
-        // TODO: assert specific pub_key_type
-        assert_ne!(response.pub_key_bytes.len(), 0);
+        let pub_key = response
+            .pub_key
+            .and_then(|pk| pk.sum)
+            .expect("missing public key");
+
+        let pk_bytes = match pub_key {
+            proto::crypto::v1::public_key::Sum::Ed25519(bytes) => bytes,
+            proto::crypto::v1::public_key::Sum::Secp256k1(bytes) => bytes,
+            other => panic!("unexpected public key type in response: {other:?}"),
+        };
+
+        assert_ne!(pk_bytes.len(), 0);
     });
 }
 
@@ -581,9 +590,9 @@ fn test_handle_and_sign_ping_pong() {
     let key_type = KeyType::Consensus;
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let request = proto::privval::v1::PingRequest {};
+        let request = proto::privval::v1beta1::PingRequest {};
         send_request(
-            proto::privval::v1::message::Sum::PingRequest(request),
+            proto::privval::v1beta1::message::Sum::PingRequest(request),
             &mut pt,
         );
         read_response(&mut pt);
@@ -591,12 +600,12 @@ fn test_handle_and_sign_ping_pong() {
 }
 
 /// Encode request as a Protobuf message
-fn send_request(request: proto::privval::v1::message::Sum, pt: &mut ProtocolTester) {
-    let request = proto::privval::v1::Message { sum: Some(request) };
+fn send_request(request: proto::privval::v1beta1::message::Sum, pt: &mut ProtocolTester) {
+    let request = proto::privval::v1beta1::Message { sum: Some(request) };
     pt.write_msg(&request).unwrap();
 }
 
 /// Read the response as a Protobuf message
-fn read_response(pt: &mut ProtocolTester) -> proto::privval::v1::message::Sum {
+fn read_response(pt: &mut ProtocolTester) -> proto::privval::v1beta1::message::Sum {
     pt.read_msg().unwrap().sum.expect("no sum field in message")
 }
