@@ -117,7 +117,7 @@ impl Session {
             // Request::SignRawBytes(req) => self.sign_raw(req)?,
 
             // non-signable requests:
-            Request::PingRequest => Response::Ping(proto::privval::v1::PingResponse {}),
+            Request::PingRequest => Response::Ping(proto::privval::v1beta1::PingResponse {}),
             Request::ShowPublicKey => self.get_public_key()?,
         };
 
@@ -181,7 +181,7 @@ impl Session {
     // /// Sign a raw (non-consensus) message.
     // fn sign_raw(
     //     &mut self,
-    //     req: proto::privval::v1::SignRawBytesRequest,
+    //     req: proto::privval::v1beta1::SignRawBytesRequest,
     // ) -> Result<Response, Error> {
     //     /// Domain separation prefix to prevent confusion with consensus message signatures.
     //     const PREFIX: &[u8] = b"COMET::RAW_BYTES::SIGN";
@@ -248,7 +248,7 @@ impl Session {
         &mut self,
         chain: &Chain,
         signable_msg: &ConsensusMsg,
-    ) -> Result<Option<proto::privval::v1::RemoteSignerError>, Error> {
+    ) -> Result<Option<proto::privval::v1beta1::RemoteSignerError>, Error> {
         let msg_type = signable_msg.msg_type();
         let request_state = signable_msg.consensus_state();
         let mut chain_state = chain.state.lock().unwrap();
@@ -291,11 +291,12 @@ impl Session {
             CometbftKey::ConsensusKey(pk) => pk,
         };
 
-        Ok(Response::PublicKey(proto::privval::v1::PubKeyResponse {
-            pub_key_bytes: pub_key.to_bytes(),
-            pub_key_type: pub_key.type_str().to_owned(),
-            error: None,
-        }))
+        Ok(Response::PublicKey(
+            proto::privval::v1beta1::PubKeyResponse {
+                pub_key: Some(pub_key.into()),
+                error: None,
+            },
+        ))
     }
 
     /// Write an INFO logline about a signing request
@@ -322,11 +323,11 @@ impl Session {
 }
 
 /// Double signing handler.
-fn double_sign(consensus_state: consensus::State) -> proto::privval::v1::RemoteSignerError {
+fn double_sign(consensus_state: consensus::State) -> proto::privval::v1beta1::RemoteSignerError {
     /// Double signing error code.
     const DOUBLE_SIGN_ERROR: i32 = 2;
 
-    proto::privval::v1::RemoteSignerError {
+    proto::privval::v1beta1::RemoteSignerError {
         code: DOUBLE_SIGN_ERROR,
         description: format!(
             "double signing requested at height: {}",

@@ -55,7 +55,7 @@ impl Runnable for InitCommand {
         let registry = chain::REGISTRY.get();
         let chain = registry.get_chain(&chain_id).unwrap();
 
-        let vote = proto::types::v1::Vote {
+        let vote = proto::types::v1beta1::Vote {
             height: self.height.unwrap(),
             round: self.round.unwrap() as i32,
             r#type: ConsensusMsgType::Proposal.into(),

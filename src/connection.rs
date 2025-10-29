@@ -10,7 +10,7 @@ pub mod unix;
 
 /// Connections to a validator
 pub trait Connection:
-    ReadMsg<proto::privval::v1::Message> + WriteMsg<proto::privval::v1::Message> + Sync + Send
+    ReadMsg<proto::privval::v1beta1::Message> + WriteMsg<proto::privval::v1beta1::Message> + Sync + Send
 {
 }
 

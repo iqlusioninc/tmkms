@@ -42,9 +42,9 @@ impl From<Signature> for cometbft::Signature {
 }
 
 // TODO(tarcieri): vendor the `SignedRawBytes*` protos
-// impl From<Signature> for proto::privval::v1::SignedRawBytesResponse {
+// impl From<Signature> for proto::privval::v1beta1::SignedRawBytesResponse {
 //     fn from(sig: Signature) -> Self {
-//         proto::privval::v1::SignedRawBytesResponse {
+//         proto::privval::v1beta1::SignedRawBytesResponse {
 //             signature: sig.to_vec(),
 //             error: None,
 //         }
