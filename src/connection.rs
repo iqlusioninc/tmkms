@@ -1,8 +1,8 @@
 //! Connections to a validator (TCP or Unix socket)
 
 use self::unix::UnixConnection;
+use crate::proto;
 use cometbft_p2p::{ReadMsg, SecretConnection, WriteMsg};
-use cometbft_proto as proto;
 use std::io;
 
 pub mod tcp;
@@ -10,7 +10,7 @@ pub mod unix;
 
 /// Connections to a validator
 pub trait Connection:
-    ReadMsg<proto::privval::v1beta1::Message> + WriteMsg<proto::privval::v1beta1::Message> + Sync + Send
+    ReadMsg<proto::privval::Message> + WriteMsg<proto::privval::Message> + Sync + Send
 {
 }
 

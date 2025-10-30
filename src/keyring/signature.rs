@@ -1,8 +1,8 @@
 //! Signing signature
 
 pub use super::ed25519;
+use crate::proto;
 pub use k256::ecdsa;
-// use cometbft_proto as proto;
 
 /// Cryptographic signature used for block signing
 pub enum Signature {
@@ -41,12 +41,11 @@ impl From<Signature> for cometbft::Signature {
     }
 }
 
-// TODO(tarcieri): vendor the `SignedRawBytes*` protos
-// impl From<Signature> for proto::privval::v1beta1::SignedRawBytesResponse {
-//     fn from(sig: Signature) -> Self {
-//         proto::privval::v1beta1::SignedRawBytesResponse {
-//             signature: sig.to_vec(),
-//             error: None,
-//         }
-//     }
-// }
+impl From<Signature> for proto::privval::celestia::SignedRawBytesResponse {
+    fn from(sig: Signature) -> Self {
+        proto::privval::celestia::SignedRawBytesResponse {
+            signature: sig.to_vec(),
+            error: None,
+        }
+    }
+}
