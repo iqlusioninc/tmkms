@@ -1,6 +1,6 @@
 //! `tmkms softsign keygen` subcommand
 
-use crate::{key_utils, keyring::ed25519, prelude::*};
+use crate::{key_utils, prelude::*};
 use abscissa_core::Command;
 use clap::Parser;
 use k256::ecdsa;
@@ -70,7 +70,7 @@ fn generate_secp256k1_key(output_path: &Path) {
 fn generate_ed25519_key(output_path: &Path) {
     let mut sk_bytes = [0u8; 32];
     OsRng.fill_bytes(&mut sk_bytes);
-    let sk = ed25519::SigningKey::from(sk_bytes);
+    let sk = ed25519_dalek::SigningKey::from(sk_bytes);
 
     key_utils::write_base64_secret(output_path, sk.as_bytes()).unwrap_or_else(|e| {
         status_err!("{}", e);

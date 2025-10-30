@@ -32,7 +32,7 @@ pub fn open_secret_connection(
         )
     })?;
 
-    let identity_key = IdentitySecret::from(key_utils::load_base64_ed25519_key(identity_key_path)?);
+    let identity_key = IdentitySecret::from(key_utils::load_identity_key(identity_key_path)?);
     info!("KMS node ID: {}", PublicKey::from(&identity_key));
 
     let socket = TcpStream::connect(format!("{host}:{port}"))?;
