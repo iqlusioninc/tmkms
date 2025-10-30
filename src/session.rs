@@ -7,12 +7,12 @@ use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
     privval::ConsensusMsg,
+    proto,
     rpc::{Request, Response},
 };
 use cometbft::{CometbftKey, consensus};
 use cometbft_config::net;
-use cometbft_proto as proto;
-// use prost::Message;
+use prost::Message;
 use std::{os::unix::net::UnixStream, time::Instant};
 
 /// Encrypted session with a validator node
@@ -113,8 +113,7 @@ impl Session {
             Request::SignProposal(_) | Request::SignVote(_) => {
                 self.sign_consensus_msg(request.into_consensus_msg()?)?
             }
-            // TODO(tarcieri): vendor protos
-            // Request::SignRawBytes(req) => self.sign_raw(req)?,
+            Request::SignRawBytes(req) => self.sign_raw(req)?,
 
             // non-signable requests:
             Request::PingRequest => Response::Ping(proto::privval::v1beta1::PingResponse {}),
@@ -177,51 +176,50 @@ impl Session {
         Ok(msg.into())
     }
 
-    // TODO(tarcieri): vendor protos
-    // /// Sign a raw (non-consensus) message.
-    // fn sign_raw(
-    //     &mut self,
-    //     req: proto::privval::v1beta1::SignRawBytesRequest,
-    // ) -> Result<Response, Error> {
-    //     /// Domain separation prefix to prevent confusion with consensus message signatures.
-    //     const PREFIX: &[u8] = b"COMET::RAW_BYTES::SIGN";
-    //
-    //     ensure!(
-    //         req.chain_id == self.config.chain_id.as_str(),
-    //         ChainIdError,
-    //         "got unexpected chain ID: {} (expecting: {})",
-    //         &req.chain_id,
-    //         &self.config.chain_id,
-    //     );
-    //
-    //     assert_eq!(self.config.chain_id.as_str(), &req.chain_id);
-    //
-    //     let registry = chain::REGISTRY.get();
-    //
-    //     let chain = registry
-    //         .get_chain(&self.config.chain_id)
-    //         .unwrap_or_else(|| {
-    //             panic!("chain '{}' missing from registry!", &self.config.chain_id);
-    //         });
-    //
-    //     let mut signable_bytes = Vec::from(PREFIX);
-    //     req.encode_length_delimited(&mut signable_bytes)?;
-    //
-    //     // TODO(tarcieri): support for non-default public keys
-    //     let public_key = None;
-    //     let started_at = Instant::now();
-    //     let sig = chain.keyring.sign(public_key, &signable_bytes)?;
-    //
-    //     info!(
-    //         "[{}@{}] signed raw bytes: {} ({} ms)",
-    //         &self.config.chain_id,
-    //         &self.config.addr,
-    //         &req.unique_id,
-    //         started_at.elapsed().as_millis(),
-    //     );
-    //
-    //     Ok(Response::SignedRawBytes(sig.into()))
-    // }
+    /// Sign a raw (non-consensus) message.
+    fn sign_raw(
+        &mut self,
+        req: proto::privval::celestia::SignRawBytesRequest,
+    ) -> Result<Response, Error> {
+        /// Domain separation prefix to prevent confusion with consensus message signatures.
+        const PREFIX: &[u8] = b"COMET::RAW_BYTES::SIGN";
+
+        ensure!(
+            req.chain_id == self.config.chain_id.as_str(),
+            ChainIdError,
+            "got unexpected chain ID: {} (expecting: {})",
+            &req.chain_id,
+            &self.config.chain_id,
+        );
+
+        assert_eq!(self.config.chain_id.as_str(), &req.chain_id);
+
+        let registry = chain::REGISTRY.get();
+
+        let chain = registry
+            .get_chain(&self.config.chain_id)
+            .unwrap_or_else(|| {
+                panic!("chain '{}' missing from registry!", &self.config.chain_id);
+            });
+
+        let mut signable_bytes = Vec::from(PREFIX);
+        req.encode_length_delimited(&mut signable_bytes)?;
+
+        // TODO(tarcieri): support for non-default public keys
+        let public_key = None;
+        let started_at = Instant::now();
+        let sig = chain.keyring.sign(public_key, &signable_bytes)?;
+
+        info!(
+            "[{}@{}] signed raw bytes: {} ({} ms)",
+            &self.config.chain_id,
+            &self.config.addr,
+            &req.unique_id,
+            started_at.elapsed().as_millis(),
+        );
+
+        Ok(Response::SignedRawBytes(sig.into()))
+    }
 
     /// If a max block height is configured, ensure the block we're signing
     /// doesn't exceed it

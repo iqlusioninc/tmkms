@@ -1,8 +1,8 @@
 //! Validator private key operations: signing consensus votes and proposals.
 
+use crate::proto;
 use bytes::{Bytes, BytesMut};
 use cometbft::{Error, Proposal, Vote, block, chain, consensus, vote};
-use cometbft_proto as proto;
 use prost::{EncodeError, Message as _};
 
 /// Message codes.

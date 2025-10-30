@@ -2,7 +2,6 @@
 
 use chrono::{DateTime, Utc};
 use cometbft_p2p::{self as p2p, IdentitySecret, PublicKey, ReadMsg, SecretConnection, WriteMsg};
-use cometbft_proto as proto;
 use rand::Rng;
 use signature::Verifier;
 use std::{
@@ -19,6 +18,7 @@ use tmkms::{
     connection::unix::UnixConnection,
     keyring::ed25519,
     privval::{ConsensusMsg, ConsensusMsgType},
+    proto,
 };
 
 /// Integration tests for the KMS command-line interface
@@ -49,8 +49,8 @@ enum KmsConnection {
 
 impl Connection for KmsConnection {}
 
-impl ReadMsg<proto::privval::v1beta1::Message> for KmsConnection {
-    fn read_msg(&mut self) -> p2p::Result<proto::privval::v1beta1::Message> {
+impl ReadMsg<proto::privval::Message> for KmsConnection {
+    fn read_msg(&mut self) -> p2p::Result<proto::privval::Message> {
         match self {
             KmsConnection::Tcp(conn) => conn.read_msg(),
             KmsConnection::Unix(conn) => conn.read_msg(),
@@ -58,8 +58,8 @@ impl ReadMsg<proto::privval::v1beta1::Message> for KmsConnection {
     }
 }
 
-impl WriteMsg<proto::privval::v1beta1::Message> for KmsConnection {
-    fn write_msg(&mut self, msg: &proto::privval::v1beta1::Message) -> p2p::Result<()> {
+impl WriteMsg<proto::privval::Message> for KmsConnection {
+    fn write_msg(&mut self, msg: &proto::privval::Message) -> p2p::Result<()> {
         match self {
             KmsConnection::Tcp(conn) => conn.write_msg(msg),
             KmsConnection::Unix(conn) => conn.write_msg(msg),
@@ -244,8 +244,8 @@ impl Drop for ProtocolTester {
 
 impl Connection for ProtocolTester {}
 
-impl ReadMsg<proto::privval::v1beta1::Message> for ProtocolTester {
-    fn read_msg(&mut self) -> p2p::Result<proto::privval::v1beta1::Message> {
+impl ReadMsg<proto::privval::Message> for ProtocolTester {
+    fn read_msg(&mut self) -> p2p::Result<proto::privval::Message> {
         let tcp_msg = self.tcp_connection.read_msg()?;
         let unix_msg = self.unix_connection.read_msg()?;
         assert_eq!(tcp_msg, unix_msg);
@@ -253,8 +253,8 @@ impl ReadMsg<proto::privval::v1beta1::Message> for ProtocolTester {
     }
 }
 
-impl WriteMsg<proto::privval::v1beta1::Message> for ProtocolTester {
-    fn write_msg(&mut self, msg: &proto::privval::v1beta1::Message) -> p2p::Result<()> {
+impl WriteMsg<proto::privval::Message> for ProtocolTester {
+    fn write_msg(&mut self, msg: &proto::privval::Message) -> p2p::Result<()> {
         self.tcp_connection.write_msg(&msg)?;
         self.unix_connection.write_msg(&msg)?;
         Ok(())
@@ -326,12 +326,12 @@ fn handle_and_sign_proposal(key_type: KeyType) {
         };
 
         send_request(
-            proto::privval::v1beta1::message::Sum::SignProposalRequest(request),
+            proto::privval::message::Sum::SignProposalRequest(request),
             &mut pt,
         );
 
         let response = match read_response(&mut pt) {
-            proto::privval::v1beta1::message::Sum::SignedProposalResponse(resp) => resp,
+            proto::privval::message::Sum::SignedProposalResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
@@ -412,13 +412,10 @@ fn handle_and_sign_vote(key_type: KeyType) {
             // skip_extension_signing: false,
         };
 
-        send_request(
-            proto::privval::v1beta1::message::Sum::SignVoteRequest(vote),
-            &mut pt,
-        );
+        send_request(proto::privval::message::Sum::SignVoteRequest(vote), &mut pt);
 
         let request = match read_response(&mut pt) {
-            proto::privval::v1beta1::message::Sum::SignedVoteResponse(resp) => resp,
+            proto::privval::message::Sum::SignedVoteResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
@@ -503,13 +500,10 @@ fn exceed_max_height(key_type: KeyType) {
             // skip_extension_signing: false,
         };
 
-        send_request(
-            proto::privval::v1beta1::message::Sum::SignVoteRequest(vote),
-            &mut pt,
-        );
+        send_request(proto::privval::message::Sum::SignVoteRequest(vote), &mut pt);
 
         let response = match read_response(&mut pt) {
-            proto::privval::v1beta1::message::Sum::SignedVoteResponse(resp) => resp,
+            proto::privval::message::Sum::SignedVoteResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
@@ -561,12 +555,12 @@ fn handle_and_sign_get_publickey(key_type: KeyType) {
         };
 
         send_request(
-            proto::privval::v1beta1::message::Sum::PubKeyRequest(request),
+            proto::privval::message::Sum::PubKeyRequest(request),
             &mut pt,
         );
 
         let response = match read_response(&mut pt) {
-            proto::privval::v1beta1::message::Sum::PubKeyResponse(resp) => resp,
+            proto::privval::message::Sum::PubKeyResponse(resp) => resp,
             other => panic!("unexpected message type in response: {other:?}"),
         };
 
@@ -591,21 +585,18 @@ fn test_handle_and_sign_ping_pong() {
 
     ProtocolTester::apply(&key_type, |mut pt| {
         let request = proto::privval::v1beta1::PingRequest {};
-        send_request(
-            proto::privval::v1beta1::message::Sum::PingRequest(request),
-            &mut pt,
-        );
+        send_request(proto::privval::message::Sum::PingRequest(request), &mut pt);
         read_response(&mut pt);
     });
 }
 
 /// Encode request as a Protobuf message
-fn send_request(request: proto::privval::v1beta1::message::Sum, pt: &mut ProtocolTester) {
-    let request = proto::privval::v1beta1::Message { sum: Some(request) };
+fn send_request(request: proto::privval::message::Sum, pt: &mut ProtocolTester) {
+    let request = proto::privval::Message { sum: Some(request) };
     pt.write_msg(&request).unwrap();
 }
 
 /// Read the response as a Protobuf message
-fn read_response(pt: &mut ProtocolTester) -> proto::privval::v1beta1::message::Sum {
+fn read_response(pt: &mut ProtocolTester) -> proto::privval::message::Sum {
     pt.read_msg().unwrap().sum.expect("no sum field in message")
 }

@@ -4,11 +4,11 @@ use crate::{
     chain,
     prelude::*,
     privval::{ConsensusMsg, ConsensusMsgType},
+    proto,
 };
 use abscissa_core::{Command, Runnable};
 use clap::{Parser, Subcommand};
 use cometbft::Vote;
-use cometbft_proto as proto;
 use std::{path::PathBuf, process};
 
 /// `ledger` subcommand
