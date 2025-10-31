@@ -434,9 +434,9 @@ checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
 name = "cometbft-p2p"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f054015f871fe3a7208a20564624580703f21445106668c2731082bdc254be8e"
+checksum = "d5edde31b80c6111efdf482bff6279a99c252dfe31cc724e0431f127a9f38595"
 dependencies = [
  "aead",
  "base16ct",
@@ -1240,9 +1240,9 @@ dependencies = [
 
 [[package]]
 name = "iq-cometbft"
-version = "0.1.0-pre.1"
+version = "0.1.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "653e45fc95283936c315f2cbc6ed72dad55f8f5ca457cbcaf61b757a314df030"
+checksum = "7c05ee27be3ede653c691b3e5454d55e453ea7dc5b3e640f7ca8b3463db12d14"
 dependencies = [
  "bytes",
  "digest",
@@ -1270,9 +1270,9 @@ dependencies = [
 
 [[package]]
 name = "iq-cometbft-config"
-version = "0.1.0-pre.1"
+version = "0.1.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "049182ea12174a679a2bfee8925a34c3e9debb7ed3586c4f120ed5bc731da0fb"
+checksum = "079e25a27c083ecc0f9be204dd874e679e0f470c0a49fc6e21c0ebc5f930a0b0"
 dependencies = [
  "flex-error",
  "iq-cometbft",
@@ -1284,9 +1284,9 @@ dependencies = [
 
 [[package]]
 name = "iq-cometbft-proto"
-version = "0.1.0-pre.0"
+version = "0.1.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbbf54c677e57581b666f2cecfea937d1590762c36f2ed952bbcc5e68a0e4463"
+checksum = "5bff23e607db0eca9ca25197a6e2ed43ccb1071f07f867346166684c6aac05ee"
 dependencies = [
  "bytes",
  "flex-error",
@@ -1734,9 +1734,9 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.13.5"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2796faa41db3ec313a31f7624d9286acf277b52de526150b7e69f3debf891ee5"
+checksum = "7231bd9b3d3d33c86b58adbac74b5ec0ad9f496b19d22801d773636feaa95f3d"
 dependencies = [
  "bytes",
  "prost-derive",
@@ -1744,9 +1744,9 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.13.5"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
+checksum = "9120690fafc389a67ba3803df527d0ec9cbbc9cc45e4cc20b332996dfb672425"
 dependencies = [
  "anyhow",
  "itertools",
