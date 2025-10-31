@@ -2,7 +2,7 @@
 
 use crate::{
     chain::{self, Chain, state::StateErrorKind},
-    config::ValidatorConfig,
+    config::{ValidatorConfig, validator::ProtocolVersion},
     connection::{Connection, tcp, unix::UnixConnection},
     error::{Error, ErrorKind::*},
     prelude::*,
@@ -27,9 +27,9 @@ pub struct Session {
 impl Session {
     /// Open a session using the given validator configuration
     pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
-        if config.protocol_version.is_some() {
+        if config.protocol_version == Some(ProtocolVersion::V0_34) {
             warn!(
-                "[{}]: deprecated `protocol_version` field in config! Will be a hard error in next release",
+                "[{}]: deprecated `protocol_version` v0.34 (update to v0.38)! Will be a hard error in next release",
                 &config.chain_id,
             );
         }

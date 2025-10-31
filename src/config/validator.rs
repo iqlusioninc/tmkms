@@ -34,10 +34,15 @@ pub struct ValidatorConfig {
 }
 
 /// Protocol version (based on the Tendermint version)
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum ProtocolVersion {
-    /// Tendermint v0.34 and newer.
+    /// Tendermint v0.38
+    #[default]
+    #[serde(rename = "v0.38")]
+    V0_38,
+
+    /// Legacy: Tendermint v0.34
     #[serde(rename = "v0.34")]
     V0_34,
 }
