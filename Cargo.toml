@@ -16,7 +16,7 @@ edition = "2024"
 rust-version = "1.85"
 
 [dependencies]
-abscissa_core = "=0.9.0-rc.0"
+abscissa_core = "0.9"
 bytes = "1"
 chrono = "0.4"
 clap = "4"
@@ -53,7 +53,7 @@ yubihsm = { version = "0.42", features = ["secp256k1", "setup", "usb"], optional
 zeroize = "1"
 
 [dev-dependencies]
-abscissa_core = { version = "=0.9.0-rc.0", features = ["testing"] }
+abscissa_core = { version = "0.9", features = ["testing"] }
 byteorder = "1"
 rand = "0.8"
 
