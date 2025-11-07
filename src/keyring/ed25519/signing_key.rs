@@ -111,8 +111,3 @@ impl From<&SigningKey> for cometbft_p2p::PublicKey {
     }
 }
 
-impl From<tendermint::private_key::Ed25519> for SigningKey {
-    fn from(signing_key: tendermint::private_key::Ed25519) -> SigningKey {
-        SigningKey::try_from(signing_key.as_bytes().as_ref()).expect("invalid Ed25519 signing key")
-    }
-}
