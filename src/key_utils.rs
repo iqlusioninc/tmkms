@@ -77,9 +77,9 @@ pub fn load_base64_secp256k1_key(
     let signing = ecdsa::SigningKey::try_from(key_bytes.as_slice())
         .map_err(|e| format_err!(InvalidKey, "invalid ECDSA key: {}", e))?;
 
-    let veryfing = ecdsa::VerifyingKey::from(&signing);
+    let verifying = ecdsa::VerifyingKey::from(&signing);
 
-    Ok((signing, veryfing))
+    Ok((signing, verifying))
 }
 
 /// Store Base64-encoded secret data at the given path
