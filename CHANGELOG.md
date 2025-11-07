@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.15.0 (2025-11-07)
+### Added
+- Support for Celestia's extension to sign raw bytes with consensus keys ([#969], [#1134])
+- `protocol_version = "v0.38"` configuration option for validators ([#1138])
+- Support for expanded Ed25519 keys including the exported YubiHSM format ([#1096])
+
+### Changed
+- Bump Rust edition to 2024; MSRV 1.85 ([#984], [#967])
+- Migrate (back) to `ed25519-dalek` ([#991])
+- Migrate from `tendermint-p2p` to `cometbft-p2p` ([#1084])
+- Migrate from `tendermint-rs` to (iq-)`cometbft-rs` ([#1124], [#1129], [#1139])
+- Bump `prost` and `tonic` to v0.14 ([#1136])
+- Bump `abscissa_core` to v0.9 ([#1146])
+
+### Removed
+- `cosmrs` dependency ([#1125])
+
+[#967]: https://github.com/iqlusioninc/tmkms/pull/967
+[#969]: https://github.com/iqlusioninc/tmkms/pull/969
+[#984]: https://github.com/iqlusioninc/tmkms/pull/984
+[#991]: https://github.com/iqlusioninc/tmkms/pull/991
+[#1084]: https://github.com/iqlusioninc/tmkms/pull/1084
+[#1096]: https://github.com/iqlusioninc/tmkms/pull/1096
+[#1124]: https://github.com/iqlusioninc/tmkms/pull/1124
+[#1125]: https://github.com/iqlusioninc/tmkms/pull/1125
+[#1129]: https://github.com/iqlusioninc/tmkms/pull/1129
+[#1134]: https://github.com/iqlusioninc/tmkms/pull/1134
+[#1136]: https://github.com/iqlusioninc/tmkms/pull/1136
+[#1138]: https://github.com/iqlusioninc/tmkms/pull/1138
+[#1139]: https://github.com/iqlusioninc/tmkms/pull/1139
+[#1146]: https://github.com/iqlusioninc/tmkms/pull/1146
+
 ## 0.14.0 (2024-03-28)
 
 NOTE: this release adds a new `sign_extensions` configuration option in
