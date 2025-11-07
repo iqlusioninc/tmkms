@@ -2,13 +2,17 @@ use super::{Signature, VerifyingKey};
 use crate::error::{Error, ErrorKind};
 use sha2::Sha512;
 use signature::Signer;
+use zeroize::Zeroizing;
 
 const COMBINED_KEY_LENGTH: usize =
     ed25519_dalek::EXPANDED_SECRET_KEY_LENGTH + ed25519_dalek::PUBLIC_KEY_LENGTH;
 
 /// Ed25519 signing key.
 #[derive(Debug)]
-pub struct SigningKey(ed25519_dalek::hazmat::ExpandedSecretKey);
+pub struct SigningKey {
+    expanded: ed25519_dalek::hazmat::ExpandedSecretKey,
+    seed: Option<Zeroizing<[u8; Self::BYTE_SIZE]>>,
+}
 
 impl SigningKey {
     /// Size of an encoded Ed25519 signing key in bytes.
@@ -16,15 +20,20 @@ impl SigningKey {
 
     /// Get the verifying key for this signing key.
     pub fn verifying_key(&self) -> VerifyingKey {
-        let public_key = ed25519_dalek::VerifyingKey::from(&self.0);
+        let public_key = ed25519_dalek::VerifyingKey::from(&self.expanded);
         VerifyingKey(public_key)
+    }
+
+    /// Return the 32-byte seed if this signing key was constructed from one.
+    pub fn as_bytes(&self) -> Option<&[u8; Self::BYTE_SIZE]> {
+        self.seed.as_deref()
     }
 }
 
 impl Signer<Signature> for SigningKey {
     fn try_sign(&self, msg: &[u8]) -> signature::Result<Signature> {
         let signature =
-            ed25519_dalek::hazmat::raw_sign::<Sha512>(&self.0, msg, &self.verifying_key().0);
+            ed25519_dalek::hazmat::raw_sign::<Sha512>(&self.expanded, msg, &self.verifying_key().0);
         Ok(signature.to_bytes().into())
     }
 }
@@ -35,10 +44,17 @@ impl TryFrom<&[u8]> for SigningKey {
     fn try_from(slice: &[u8]) -> Result<Self, Error> {
         match slice.len() {
             ed25519_dalek::SECRET_KEY_LENGTH => {
-                let secret_key =
-                    ed25519_dalek::SecretKey::try_from(slice).map_err(|_| ErrorKind::InvalidKey)?;
+                let mut seed = Zeroizing::new([0u8; Self::BYTE_SIZE]);
+                seed.copy_from_slice(&slice[..Self::BYTE_SIZE]);
+
+                let secret_key = ed25519_dalek::SecretKey::try_from(seed.as_ref())
+                    .map_err(|_| ErrorKind::InvalidKey)?;
                 let expanded_key = ed25519_dalek::hazmat::ExpandedSecretKey::from(&secret_key);
-                Ok(Self(expanded_key))
+
+                Ok(Self {
+                    expanded: expanded_key,
+                    seed: Some(seed),
+                })
             }
 
             // big-endian encoded, prehashed key
@@ -47,7 +63,10 @@ impl TryFrom<&[u8]> for SigningKey {
                     slice.try_into().map_err(|_| ErrorKind::InvalidKey)?,
                 );
 
-                Ok(Self(expanded_key))
+                Ok(Self {
+                    expanded: expanded_key,
+                    seed: None,
+                })
             }
 
             // little-endian encoded, prehashed key, exported from YubiHSM
@@ -61,7 +80,10 @@ impl TryFrom<&[u8]> for SigningKey {
 
                 let expanded_key = ed25519_dalek::hazmat::ExpandedSecretKey::from_bytes(&key_bytes);
 
-                Ok(Self(expanded_key))
+                Ok(Self {
+                    expanded: expanded_key,
+                    seed: None,
+                })
             }
 
             other_len => Err(ErrorKind::InvalidKey
@@ -82,9 +104,6 @@ impl From<&SigningKey> for cometbft_p2p::PublicKey {
 
 impl From<tendermint::private_key::Ed25519> for SigningKey {
     fn from(signing_key: tendermint::private_key::Ed25519) -> SigningKey {
-        signing_key
-            .as_bytes()
-            .try_into()
-            .expect("invalid Ed25519 signing key")
+        SigningKey::try_from(signing_key.as_bytes().as_ref()).expect("invalid Ed25519 signing key")
     }
 }

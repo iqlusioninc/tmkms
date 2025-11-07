@@ -48,20 +48,17 @@ pub fn load_base64_secret(path: impl AsRef<Path>) -> Result<Zeroizing<Vec<u8>>, 
 pub fn load_identity_key(path: impl AsRef<Path>) -> Result<ed25519_dalek::SigningKey, Error> {
     let key_bytes = load_base64_secret(path)?;
 
-    if key_bytes.len() != 32 {
-        return Err(format_err!(
+    let signing_key = ed25519::SigningKey::try_from(key_bytes.as_slice())
+        .map_err(|e| format_err!(InvalidKey, "invalid Ed25519 key: {}", e))?;
+
+    let seed = signing_key.as_bytes().ok_or_else(|| {
+        format_err!(
             InvalidKey,
-            "Ed25519 key must be exactly 32 bytes, got {}",
-            key_bytes.len()
+            "Ed25519 identity key must be provided as a 32-byte seed"
         )
-        .into());
-    }
+    })?;
 
-    let key_array: [u8; 32] = key_bytes[..32]
-        .try_into()
-        .map_err(|_| format_err!(InvalidKey, "failed to convert key to 32-byte array"))?;
-
-    Ok(ed25519_dalek::SigningKey::from(key_array))
+    Ok(ed25519_dalek::SigningKey::from_bytes(seed))
 }
 
 /// Load a Base64-encoded Ed25519 secret key

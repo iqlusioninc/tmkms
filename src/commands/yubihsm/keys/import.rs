@@ -1,7 +1,7 @@
 //! Import keys either from encrypted backups or existing plaintext keys
 
 use super::{DEFAULT_DOMAINS, DEFAULT_WRAP_KEY};
-use crate::prelude::*;
+use crate::{keyring::ed25519, prelude::*};
 use abscissa_core::Command;
 use clap::Parser;
 use std::{fs, path::PathBuf, process};
@@ -216,20 +216,15 @@ impl ImportCommand {
                 process::exit(1);
             }));
 
-        if key_bytes.len() != 32 {
-            status_err!(
-                "Ed25519 key must be exactly 32 bytes, got {}",
-                key_bytes.len()
-            );
-            process::exit(1);
-        }
-
-        let key_array: [u8; 32] = key_bytes[..32].try_into().unwrap_or_else(|e| {
-            status_err!("failed to convert key to 32-byte array: {}", e);
+        let secret = ed25519::SigningKey::try_from(key_bytes.as_ref()).unwrap_or_else(|e| {
+            status_err!("invalid Ed25519 key: {}", e);
             process::exit(1);
         });
 
-        let secret = ed25519_dalek::SigningKey::from(key_array);
+        let seed_bytes = secret.as_bytes().unwrap_or_else(|| {
+            status_err!("Ed25519 key must be provided as a 32-byte seed");
+            process::exit(1);
+        });
 
         let label = object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
 
@@ -239,7 +234,7 @@ impl ImportCommand {
             DEFAULT_DOMAINS,
             yubihsm::Capability::SIGN_EDDSA | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
             yubihsm::asymmetric::Algorithm::Ed25519,
-            &secret.as_bytes()[..],
+            seed_bytes,
         ) {
             status_err!("couldn't import key #{}: {}", self.key_id.unwrap(), e);
             process::exit(1);
