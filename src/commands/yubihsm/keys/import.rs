@@ -221,6 +221,11 @@ impl ImportCommand {
             process::exit(1);
         });
 
+        let seed_bytes = secret.as_bytes().unwrap_or_else(|| {
+            status_err!("Ed25519 key must be provided as a 32-byte seed");
+            process::exit(1);
+        });
+
         let label = object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
 
         if let Err(e) = crate::yubihsm::client().put_asymmetric_key(
@@ -229,7 +234,7 @@ impl ImportCommand {
             DEFAULT_DOMAINS,
             yubihsm::Capability::SIGN_EDDSA | yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
             yubihsm::asymmetric::Algorithm::Ed25519,
-            &secret.as_bytes()[..],
+            seed_bytes,
         ) {
             status_err!("couldn't import key #{}: {}", self.key_id.unwrap(), e);
             process::exit(1);

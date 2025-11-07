@@ -45,11 +45,27 @@ pub fn load_base64_secret(path: impl AsRef<Path>) -> Result<Zeroizing<Vec<u8>>, 
 }
 
 /// Load a Base64-encoded Ed25519 secret key
-pub fn load_base64_ed25519_key(path: impl AsRef<Path>) -> Result<ed25519::SigningKey, Error> {
+pub fn load_identity_key(path: impl AsRef<Path>) -> Result<ed25519_dalek::SigningKey, Error> {
     let key_bytes = load_base64_secret(path)?;
 
-    Ok(ed25519::SigningKey::try_from(key_bytes.as_ref())
-        .map_err(|e| format_err!(InvalidKey, "invalid Ed25519 key: {}", e))?)
+    let signing_key = ed25519::SigningKey::try_from(key_bytes.as_slice())
+        .map_err(|e| format_err!(InvalidKey, "invalid Ed25519 key: {}", e))?;
+
+    let seed = signing_key.as_bytes().ok_or_else(|| {
+        format_err!(
+            InvalidKey,
+            "Ed25519 identity key must be provided as a 32-byte seed"
+        )
+    })?;
+
+    Ok(ed25519_dalek::SigningKey::from_bytes(seed))
+}
+
+/// Load a Base64-encoded Ed25519 secret key
+pub fn load_signing_key(path: impl AsRef<Path>) -> Result<ed25519::SigningKey, Error> {
+    let key_bytes = load_base64_secret(path)?;
+
+    ed25519::SigningKey::try_from(key_bytes.as_slice())
 }
 
 /// Load a Base64-encoded Secp256k1 secret key
