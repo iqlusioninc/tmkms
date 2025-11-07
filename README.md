@@ -152,7 +152,7 @@ The `tmkms init` command also accepts a `-n` or `--networks` argument which can
 be used to specify certain well-known Tendermint chains to initialize:
 
 ```
-$ tmkms init -n cosmoshub,irishub,columbus /path/to/kms/home
+$ tmkms init -n cosmoshub,irishub,osmosis /path/to/kms/home
 ```
 
 ## Running: `tmkms start`

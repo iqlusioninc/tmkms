@@ -58,7 +58,6 @@ impl ConfigBuilder {
 
         for network in &self.networks.clone() {
             self.add_template(match network {
-                Network::Columbus => include_str!("templates/networks/columbus.toml"),
                 Network::CosmosHub => include_str!("templates/networks/cosmoshub.toml"),
                 Network::IrisHub => include_str!("templates/networks/irishub.toml"),
                 Network::SentinelHub => include_str!("templates/networks/sentinelhub.toml"),
