@@ -110,4 +110,3 @@ impl From<&SigningKey> for cometbft_p2p::PublicKey {
         signing_key.verifying_key().into()
     }
 }
-
