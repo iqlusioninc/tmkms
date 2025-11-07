@@ -12,13 +12,13 @@ use crate::{
     error::{Error, ErrorKind::*},
     prelude::*,
 };
+use cometbft::consensus;
 use std::{
     fs,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
 use tempfile::NamedTempFile;
-use tendermint::consensus;
 
 /// State tracking for double signing prevention
 pub struct State {
@@ -209,7 +209,7 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tendermint::block;
+    use cometbft::block;
 
     const EXAMPLE_BLOCK_ID: &str =
         "26C0A41F3243C6BCD7AD2DFF8A8D83A71D29D307B5326C227F734A1A512FE47D";

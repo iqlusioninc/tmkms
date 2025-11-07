@@ -2,17 +2,18 @@
 
 use crate::{
     chain::{self, Chain, state::StateErrorKind},
-    config::ValidatorConfig,
+    config::{ValidatorConfig, validator::ProtocolVersion},
     connection::{Connection, tcp, unix::UnixConnection},
     error::{Error, ErrorKind::*},
     prelude::*,
-    privval::SignableMsg,
+    privval::ConsensusMsg,
+    proto,
     rpc::{Request, Response},
 };
+use cometbft::{CometbftKey, consensus};
+use cometbft_config::net;
+use prost::Message;
 use std::{os::unix::net::UnixStream, time::Instant};
-use tendermint::{TendermintKey, consensus};
-use tendermint_config::net;
-use tendermint_proto as proto;
 
 /// Encrypted session with a validator node
 pub struct Session {
@@ -26,9 +27,9 @@ pub struct Session {
 impl Session {
     /// Open a session using the given validator configuration
     pub fn open(config: ValidatorConfig) -> Result<Self, Error> {
-        if config.protocol_version.is_some() {
+        if config.protocol_version == Some(ProtocolVersion::V0_34) {
             warn!(
-                "[{}]: deprecated `protocol_version` field in config! Will be a hard error in next release",
+                "[{}]: deprecated `protocol_version` v0.34 (update to v0.38)! Will be a hard error in next release",
                 &config.chain_id,
             );
         }
@@ -110,10 +111,12 @@ impl Session {
 
         let response = match request {
             Request::SignProposal(_) | Request::SignVote(_) => {
-                self.sign(request.into_signable_msg()?)?
+                self.sign_consensus_msg(request.into_consensus_msg()?)?
             }
+            Request::SignRawBytes(req) => self.sign_raw(req)?,
+
             // non-signable requests:
-            Request::PingRequest => Response::Ping(proto::privval::PingResponse {}),
+            Request::PingRequest => Response::Ping(proto::privval::v1beta1::PingResponse {}),
             Request::ShowPublicKey => self.get_public_key()?,
         };
 
@@ -126,9 +129,10 @@ impl Session {
         Ok(true)
     }
 
-    /// Perform a digital signature operation
-    fn sign(&mut self, mut signable_msg: SignableMsg) -> Result<Response, Error> {
-        self.check_max_height(&signable_msg)?;
+    /// Sign a Tendermint/CometBFT consensus message, checking the height against the last signed
+    /// height to avoid double signing.
+    fn sign_consensus_msg(&mut self, mut msg: ConsensusMsg) -> Result<Response, Error> {
+        self.check_max_height(&msg)?;
 
         let registry = chain::REGISTRY.get();
 
@@ -138,27 +142,27 @@ impl Session {
                 panic!("chain '{}' missing from registry!", &self.config.chain_id);
             });
 
-        if let Some(remote_err) = self.update_consensus_state(chain, &signable_msg)? {
+        if let Some(remote_err) = self.update_consensus_state(chain, &msg)? {
             // In the event of double signing we send a response to notify the validator
-            return Ok(Response::error(signable_msg, remote_err));
+            return Ok(Response::error(msg, remote_err));
         }
 
         // TODO(tarcieri): support for non-default public keys
         let public_key = None;
         let chain_id = self.config.chain_id.clone();
-        let canonical_msg = signable_msg.canonical_bytes(chain_id.clone())?;
+        let canonical_msg = msg.canonical_bytes(chain_id.clone())?;
 
         let started_at = Instant::now();
         let consensus_sig = chain.keyring.sign(public_key, &canonical_msg)?;
-        signable_msg.add_consensus_signature(consensus_sig);
-        self.log_signing_request(&signable_msg, started_at).unwrap();
+        msg.add_consensus_signature(consensus_sig);
+        self.log_signing_request(&msg, started_at).unwrap();
 
         // Add extension signature if the message is a precommit for a non-empty block ID.
         if chain.sign_extensions {
-            if let Some(extension_msg) = signable_msg.extension_bytes(chain_id)? {
+            if let Some(extension_msg) = msg.extension_bytes(chain_id)? {
                 let started_at = Instant::now();
                 let extension_sig = chain.keyring.sign(public_key, &extension_msg)?;
-                signable_msg.add_extension_signature(extension_sig)?;
+                msg.add_extension_signature(extension_sig)?;
 
                 info!(
                     "[{}@{}] signed vote extension ({} ms)",
@@ -169,12 +173,57 @@ impl Session {
             }
         }
 
-        Ok(signable_msg.into())
+        Ok(msg.into())
+    }
+
+    /// Sign a raw (non-consensus) message.
+    fn sign_raw(
+        &mut self,
+        req: proto::privval::celestia::SignRawBytesRequest,
+    ) -> Result<Response, Error> {
+        /// Domain separation prefix to prevent confusion with consensus message signatures.
+        const PREFIX: &[u8] = b"COMET::RAW_BYTES::SIGN";
+
+        ensure!(
+            req.chain_id == self.config.chain_id.as_str(),
+            ChainIdError,
+            "got unexpected chain ID: {} (expecting: {})",
+            &req.chain_id,
+            &self.config.chain_id,
+        );
+
+        assert_eq!(self.config.chain_id.as_str(), &req.chain_id);
+
+        let registry = chain::REGISTRY.get();
+
+        let chain = registry
+            .get_chain(&self.config.chain_id)
+            .unwrap_or_else(|| {
+                panic!("chain '{}' missing from registry!", &self.config.chain_id);
+            });
+
+        let mut signable_bytes = Vec::from(PREFIX);
+        req.encode_length_delimited(&mut signable_bytes)?;
+
+        // TODO(tarcieri): support for non-default public keys
+        let public_key = None;
+        let started_at = Instant::now();
+        let sig = chain.keyring.sign(public_key, &signable_bytes)?;
+
+        info!(
+            "[{}@{}] signed raw bytes: {} ({} ms)",
+            &self.config.chain_id,
+            &self.config.addr,
+            &req.unique_id,
+            started_at.elapsed().as_millis(),
+        );
+
+        Ok(Response::SignedRawBytes(sig.into()))
     }
 
     /// If a max block height is configured, ensure the block we're signing
     /// doesn't exceed it
-    fn check_max_height(&mut self, signable_msg: &SignableMsg) -> Result<(), Error> {
+    fn check_max_height(&mut self, signable_msg: &ConsensusMsg) -> Result<(), Error> {
         if let Some(max_height) = self.config.max_height {
             let height = signable_msg.height();
 
@@ -196,8 +245,8 @@ impl Session {
     fn update_consensus_state(
         &mut self,
         chain: &Chain,
-        signable_msg: &SignableMsg,
-    ) -> Result<Option<proto::privval::RemoteSignerError>, Error> {
+        signable_msg: &ConsensusMsg,
+    ) -> Result<Option<proto::privval::v1beta1::RemoteSignerError>, Error> {
         let msg_type = signable_msg.msg_type();
         let request_state = signable_msg.consensus_state();
         let mut chain_state = chain.state.lock().unwrap();
@@ -236,20 +285,22 @@ impl Session {
             });
 
         let pub_key = match chain.keyring.default_pubkey()? {
-            TendermintKey::AccountKey(pk) => pk,
-            TendermintKey::ConsensusKey(pk) => pk,
+            CometbftKey::AccountKey(pk) => pk,
+            CometbftKey::ConsensusKey(pk) => pk,
         };
 
-        Ok(Response::PublicKey(proto::privval::PubKeyResponse {
-            pub_key: Some(pub_key.into()),
-            error: None,
-        }))
+        Ok(Response::PublicKey(
+            proto::privval::v1beta1::PubKeyResponse {
+                pub_key: Some(pub_key.into()),
+                error: None,
+            },
+        ))
     }
 
     /// Write an INFO logline about a signing request
     fn log_signing_request(
         &self,
-        signable_msg: &SignableMsg,
+        signable_msg: &ConsensusMsg,
         started_at: Instant,
     ) -> Result<(), Error> {
         let msg_type = signable_msg.msg_type();
@@ -270,11 +321,11 @@ impl Session {
 }
 
 /// Double signing handler.
-fn double_sign(consensus_state: consensus::State) -> proto::privval::RemoteSignerError {
+fn double_sign(consensus_state: consensus::State) -> proto::privval::v1beta1::RemoteSignerError {
     /// Double signing error code.
     const DOUBLE_SIGN_ERROR: i32 = 2;
 
-    proto::privval::RemoteSignerError {
+    proto::privval::v1beta1::RemoteSignerError {
         code: DOUBLE_SIGN_ERROR,
         description: format!(
             "double signing requested at height: {}",

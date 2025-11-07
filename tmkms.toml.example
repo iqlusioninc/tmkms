@@ -37,6 +37,7 @@ addr = "tcp://f88883b673fc69d7869cab098de3bafc2ff76eb8@example1.example.com:2665
 chain_id = "cosmoshub-3"
 reconnect = true # true is the default
 secret_key = "path/to/secret_connection.key"
+protocol_version = "v0.38"
 # max_height = "500000"
 
 ## Signing provider configuration
@@ -68,17 +69,3 @@ path = "path/to/consensus-ed25519.key" # generate using `tmkms softsign keygen -
 #chain_ids = ["irishub"]
 #key_type = "account"
 #path = "path/to/account-secp256k1.key" # generate using `tmkms softsign keygen -t account account-secp256k1.key`
-
-## (Optional) Transaction signer configuration
-
-# example transaction signer: sign StdTx-strucutred transactions with a KMS-managed key
-# [[tx_signer]]
-# chain_id = "irishub"
-# schema = "iris_tx_schema.toml" # See example TERRA_SCHEMA at https://docs.rs/stdtx#usage
-# account_number = 101072
-# account_address = "iap1qqqsyqcyq5rqwzqfpg9scrgwpugpzysnfxh53h" # must be in the keyring for this chain
-# acl = { msg_type = ["oracle/MsgExchangeRatePrevote", "oracle/MsgExchangeRateVote"] }
-# poll_interval = { blocks = 5 }
-# source = { protocol = "jsonrpc", uri = "http://127.0.0.1:23456" }
-# rpc = { addr = "tcp://127.0.0.1:26657" }
-# seq_file = "irishub-account-seq.json"

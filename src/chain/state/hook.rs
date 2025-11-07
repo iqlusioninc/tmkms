@@ -5,9 +5,9 @@ use crate::{
     error::{Error, ErrorKind::HookError},
     prelude::*,
 };
+use cometbft::block;
 use serde::Deserialize;
 use std::{process::Command, time::Duration};
-use tendermint::block;
 use wait_timeout::ChildExt;
 
 /// Default timeout to use when a user one is unspecified

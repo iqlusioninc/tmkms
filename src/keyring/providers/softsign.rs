@@ -13,9 +13,9 @@ use crate::{
     keyring::{self, SigningProvider, ed25519},
     prelude::*,
 };
+use cometbft::{CometbftKey, PrivateKey};
+use cometbft_config::PrivValidatorKey;
 use k256::ecdsa;
-use tendermint::{PrivateKey, TendermintKey};
-use tendermint_config::PrivValidatorKey;
 
 /// Create software-backed Ed25519 signer objects from the given configuration
 pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) -> Result<(), Error> {
@@ -29,12 +29,12 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
         match config.key_type {
             KeyType::Account => {
                 let signer = load_secp256k1_key(config)?;
-                let public_key = tendermint::PublicKey::from_raw_secp256k1(
+                let public_key = cometbft::PublicKey::from_raw_secp256k1(
                     &signer.verifying_key().to_sec1_bytes(),
                 )
                 .unwrap();
 
-                let account_pubkey = TendermintKey::AccountKey(public_key);
+                let account_pubkey = CometbftKey::AccountKey(public_key);
 
                 let signer = keyring::ecdsa::Signer::new(
                     SigningProvider::SoftSign,
@@ -58,7 +58,7 @@ pub fn init(chain_registry: &mut chain::Registry, configs: &[SoftsignConfig]) ->
 
                 let signing_key = load_ed25519_key(config)?;
                 let consensus_pubkey =
-                    TendermintKey::ConsensusKey(signing_key.verifying_key().into());
+                    CometbftKey::ConsensusKey(signing_key.verifying_key().into());
 
                 let signer = ed25519::Signer::new(
                     SigningProvider::SoftSign,

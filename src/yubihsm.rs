@@ -23,7 +23,7 @@ use zeroize::Zeroizing;
 #[cfg(not(feature = "yubihsm-mock"))]
 use {
     crate::config::provider::yubihsm::AdapterConfig,
-    tendermint_config::net,
+    cometbft_config::net,
     yubihsm::{HttpConfig, UsbConfig, device::SerialNumber},
 };
 

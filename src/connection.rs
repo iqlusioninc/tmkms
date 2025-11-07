@@ -1,9 +1,9 @@
 //! Connections to a validator (TCP or Unix socket)
 
 use self::unix::UnixConnection;
+use crate::proto;
 use cometbft_p2p::{ReadMsg, SecretConnection, WriteMsg};
 use std::io;
-use tendermint_proto as proto;
 
 pub mod tcp;
 pub mod unix;

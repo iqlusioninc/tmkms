@@ -12,13 +12,13 @@ use std::{
     process::{Child, Command},
 };
 use tempfile::NamedTempFile;
-use tendermint_proto as proto;
 use tmkms::{
     config::provider::KeyType,
     connection::Connection,
     connection::unix::UnixConnection,
     keyring::ed25519,
-    privval::{SignableMsg, SignedMsgType},
+    privval::{ConsensusMsg, ConsensusMsgType},
+    proto,
 };
 
 /// Integration tests for the KMS command-line interface
@@ -145,7 +145,7 @@ impl KmsProcess {
             path = "{}"
             key_type = "{}"
         "#,
-            peer_id.to_string(), port, signing_key_path(key_type), key_type
+            &peer_id.to_string(), port, signing_key_path(key_type), key_type
         ).unwrap();
 
         config_file
@@ -313,8 +313,8 @@ fn handle_and_sign_proposal(key_type: KeyType) {
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let proposal = proto::types::Proposal {
-            r#type: SignedMsgType::Proposal.into(),
+        let proposal = proto::types::v1beta1::Proposal {
+            r#type: ConsensusMsgType::Proposal.into(),
             height: 12345,
             round: 1,
             timestamp: Some(t),
@@ -323,9 +323,9 @@ fn handle_and_sign_proposal(key_type: KeyType) {
             signature: vec![],
         };
 
-        let signable_msg = SignableMsg::try_from(proposal.clone()).unwrap();
+        let signable_msg = ConsensusMsg::try_from(proposal.clone()).unwrap();
 
-        let request = proto::privval::SignProposalRequest {
+        let request = proto::privval::v1beta1::SignProposalRequest {
             proposal: Some(proposal),
             chain_id: chain_id.into(),
         };
@@ -387,14 +387,14 @@ fn handle_and_sign_vote(key_type: KeyType) {
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let vote_msg = proto::types::Vote {
+        let vote_msg = proto::types::v1beta1::Vote {
             r#type: 0x01,
             height: 12345,
             round: 2,
             timestamp: Some(t),
-            block_id: Some(proto::types::BlockId {
+            block_id: Some(proto::types::v1beta1::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                part_set_header: Some(proto::types::PartSetHeader {
+                part_set_header: Some(proto::types::v1beta1::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),
@@ -405,15 +405,16 @@ fn handle_and_sign_vote(key_type: KeyType) {
             ],
             validator_index: 56789,
             signature: vec![],
-            extension: vec![],
-            extension_signature: vec![],
+            // extension: vec![],
+            // extension_signature: vec![],
         };
 
-        let signable_msg = SignableMsg::try_from(vote_msg.clone()).unwrap();
+        let signable_msg = ConsensusMsg::try_from(vote_msg.clone()).unwrap();
 
-        let vote = proto::privval::SignVoteRequest {
+        let vote = proto::privval::v1beta1::SignVoteRequest {
             vote: Some(vote_msg),
             chain_id: chain_id.into(),
+            // skip_extension_signing: false,
         };
 
         send_request(proto::privval::message::Sum::SignVoteRequest(vote), &mut pt);
@@ -427,7 +428,7 @@ fn handle_and_sign_vote(key_type: KeyType) {
             .canonical_bytes(chain_id.parse().unwrap())
             .unwrap();
 
-        let vote_msg: proto::types::Vote = request
+        let vote_msg: proto::types::v1beta1::Vote = request
             .vote
             .expect("vote should be embedded int the response but none was found");
 
@@ -474,14 +475,14 @@ fn exceed_max_height(key_type: KeyType) {
     };
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let vote_msg = proto::types::Vote {
+        let vote_msg = proto::types::v1beta1::Vote {
             r#type: 0x01,
             height: 500001,
             round: 2,
             timestamp: Some(t),
-            block_id: Some(proto::types::BlockId {
+            block_id: Some(proto::types::v1beta1::BlockId {
                 hash: b"some hash00000000000000000000000".to_vec(),
-                part_set_header: Some(proto::types::PartSetHeader {
+                part_set_header: Some(proto::types::v1beta1::PartSetHeader {
                     total: 1000000,
                     hash: b"parts_hash0000000000000000000000".to_vec(),
                 }),
@@ -492,15 +493,16 @@ fn exceed_max_height(key_type: KeyType) {
             ],
             validator_index: 56789,
             signature: vec![],
-            extension: vec![],
-            extension_signature: vec![],
+            // extension: vec![],
+            // extension_signature: vec![],
         };
 
-        let signable_msg = SignableMsg::try_from(vote_msg.clone()).unwrap();
+        let signable_msg = ConsensusMsg::try_from(vote_msg.clone()).unwrap();
 
-        let vote = proto::privval::SignVoteRequest {
+        let vote = proto::privval::v1beta1::SignVoteRequest {
             vote: Some(vote_msg),
             chain_id: chain_id.into(),
+            // skip_extension_signing: false,
         };
 
         send_request(proto::privval::message::Sum::SignVoteRequest(vote), &mut pt);
@@ -553,7 +555,7 @@ fn handle_and_sign_get_publickey(key_type: KeyType) {
     let chain_id = "test_chain_id";
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let request = proto::privval::PubKeyRequest {
+        let request = proto::privval::v1beta1::PubKeyRequest {
             chain_id: chain_id.into(),
         };
 
@@ -573,8 +575,9 @@ fn handle_and_sign_get_publickey(key_type: KeyType) {
             .expect("missing public key");
 
         let pk_bytes = match pub_key {
-            proto::crypto::public_key::Sum::Ed25519(bytes) => bytes,
-            proto::crypto::public_key::Sum::Secp256k1(bytes) => bytes,
+            proto::crypto::v1::public_key::Sum::Ed25519(bytes) => bytes,
+            proto::crypto::v1::public_key::Sum::Secp256k1(bytes) => bytes,
+            other => panic!("unexpected public key type in response: {other:?}"),
         };
 
         assert_ne!(pk_bytes.len(), 0);
@@ -586,7 +589,7 @@ fn test_handle_and_sign_ping_pong() {
     let key_type = KeyType::Consensus;
 
     ProtocolTester::apply(&key_type, |mut pt| {
-        let request = proto::privval::PingRequest {};
+        let request = proto::privval::v1beta1::PingRequest {};
         send_request(proto::privval::message::Sum::PingRequest(request), &mut pt);
         read_response(&mut pt);
     });

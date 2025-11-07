@@ -96,6 +96,15 @@ impl TryFrom<&[u8]> for SigningKey {
     }
 }
 
+impl From<cometbft::private_key::Ed25519> for SigningKey {
+    fn from(signing_key: cometbft::private_key::Ed25519) -> SigningKey {
+        signing_key
+            .as_bytes()
+            .try_into()
+            .expect("invalid Ed25519 signing key")
+    }
+}
+
 impl From<&SigningKey> for cometbft_p2p::PublicKey {
     fn from(signing_key: &SigningKey) -> cometbft_p2p::PublicKey {
         signing_key.verifying_key().into()

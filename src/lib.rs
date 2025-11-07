@@ -25,6 +25,7 @@ pub mod key_utils;
 pub mod keyring;
 pub mod prelude;
 pub mod privval;
+pub mod proto;
 pub mod rpc;
 pub mod session;
 
