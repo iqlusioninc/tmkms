@@ -5,7 +5,7 @@ on:
       - .github/workflows/security_audit.yml
       - '**/Cargo.lock'
   push:
-    branches: master
+    branches: main
     paths: '**/Cargo.lock'
   schedule:
     - cron: "0 0 * * *"
