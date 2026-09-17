@@ -59,7 +59,7 @@ impl Session {
                 );
 
                 if peer_id.is_none() {
-                    // TODO(tarcieri): make peer verification mandatory
+                    // TODO(tarcieri): make peer verification mandatory. See iqlusioninc/tmkms#1222
                     warn!(
                         "[{}@{}]: unverified validator peer ID! ({})",
                         &config.chain_id,
