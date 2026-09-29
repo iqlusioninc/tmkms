@@ -35,6 +35,14 @@ In particular, there is presently **no double signing defense** in the case
 that multiple KMS instances are running simultaneously and connecting to
 multiple validators on the same network.
 
+The signing state is persisted durably before each signature is produced: the
+state file contents are fsynced, and its parent directory is fsynced after the
+atomic rename, so a crash or power loss cannot revert to an older
+height/round/step. This requires the directory holding `state_file` to be
+readable by the user running `tmkms` and to be on a filesystem that supports
+fsync on a directory handle. Where it is not, signing fails rather than
+proceeding without durable protection.
+
 ## Signing Providers
 
 You **MUST** select one or more signing provider(s) when compiling the KMS,
@@ -44,6 +52,7 @@ instructions on how to build Tendermint KMS).
 The following signing backend providers are presently supported:
 
 #### Hardware Security Modules (recommended)
+
 - [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature.
   See [README.fortanixdsm.md](./README.fortanixdsm.md)
 - [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2])
@@ -224,8 +233,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-[//]: # (badges)
-
+[//]: # 'badges'
 [crate-image]: https://img.shields.io/crates/v/tmkms.svg
 [crate-link]: https://crates.io/crates/tmkms
 [build-image]: https://github.com/iqlusioninc/tmkms/actions/workflows/ci.yml/badge.svg
@@ -233,9 +241,7 @@ limitations under the License.
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/iqlusioninc/tmkms/blob/main/LICENSE
 [rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
-
-[//]: # (links)
-
+[//]: # 'links'
 [CometBFT]: https://cometbft.com/
 [Tendermint]: https://tendermint.com/
 [Cosmos Validators]: https://hub.cosmos.network/main/validators/validator-faq

@@ -9,7 +9,11 @@
 #
 # - id: The chain ID for this chain
 # - key_format: How this chain handles serialization. Type may be "bech32", "cosmos-json" or "hex"
-# - state_file (optional): path to where the state of the last signing operation is persisted
+# - state_file (optional): path to where the state of the last signing operation is persisted.
+#   Written durably before each signature: the contents are fsynced and the parent directory is
+#   fsynced after the atomic rename. The directory must therefore be readable by the tmkms user
+#   and live on a filesystem that supports fsync on a directory handle; signing fails closed if
+#   it does not.
 # - state_hook (optional): user-specified command to run on startup to obtain the current height
 #   of this chain. The command should output JSON which looks like the following:
 #   {"latest_block_height": "347290"}

@@ -11,7 +11,7 @@ use std::{
     os::unix::net::{UnixListener, UnixStream},
     process::{Child, Command},
 };
-use tempfile::NamedTempFile;
+use tempfile::{NamedTempFile, TempDir};
 use tmkms::{
     config::provider::KeyType,
     connection::Connection,
@@ -74,6 +74,10 @@ struct KmsProcess {
 
     /// A socket to KMS process
     socket: KmsSocket,
+
+    /// Directory holding this process's double-sign protection state file,
+    /// kept alive (and cleaned up) for the lifetime of the process
+    _state_dir: TempDir,
 }
 
 impl KmsProcess {
@@ -81,7 +85,8 @@ impl KmsProcess {
     pub fn create_tcp(key_type: &KeyType) -> Self {
         // Generate a random port and a config file
         let port: u16 = rand::thread_rng().gen_range(60000..=65535);
-        let config = KmsProcess::create_tcp_config(port, key_type);
+        let state_dir = tempfile::tempdir().unwrap();
+        let config = KmsProcess::create_tcp_config(port, key_type, &state_dir);
 
         // Listen on a random port
         let listener = TcpListener::bind(format!("{}:{}", "127.0.0.1", port)).unwrap();
@@ -93,6 +98,7 @@ impl KmsProcess {
         Self {
             process,
             socket: KmsSocket::TCP(socket),
+            _state_dir: state_dir,
         }
     }
 
@@ -103,7 +109,8 @@ impl KmsProcess {
         let letter: char = rng.gen_range(b'a'..=b'z') as char;
         let number: u32 = rng.gen_range(0..=999999);
         let socket_path = format!("/tmp/tmkms-{letter}{number:06}.sock");
-        let config = KmsProcess::create_unix_config(&socket_path, key_type);
+        let state_dir = tempfile::tempdir().unwrap();
+        let config = KmsProcess::create_unix_config(&socket_path, key_type, &state_dir);
 
         // Start listening for connections via the Unix socket
         let listener = UnixListener::bind(socket_path).unwrap();
@@ -116,14 +123,16 @@ impl KmsProcess {
         Self {
             process,
             socket: KmsSocket::UNIX(socket),
+            _state_dir: state_dir,
         }
     }
 
     /// Create a config file for a TCP KMS and return its path
-    fn create_tcp_config(port: u16, key_type: &KeyType) -> NamedTempFile {
+    fn create_tcp_config(port: u16, key_type: &KeyType, state_dir: &TempDir) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
         let pub_key = test_ed25519_signing_keypair().verifying_key();
         let peer_id = PublicKey::from(pub_key).peer_id();
+        let state_path = state_dir.path().join("state.json").display().to_string();
 
         writeln!(
             config_file,
@@ -131,6 +140,7 @@ impl KmsProcess {
             [[chain]]
             id = "test_chain_id"
             key_format = {{ type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }}
+            state_file = "{state_path}"
 
             [[validator]]
             addr = "tcp://{}@127.0.0.1:{}"
@@ -152,15 +162,21 @@ impl KmsProcess {
     }
 
     /// Create a config file for a UNIX KMS and return its path
-    fn create_unix_config(socket_path: &str, key_type: &KeyType) -> NamedTempFile {
+    fn create_unix_config(
+        socket_path: &str,
+        key_type: &KeyType,
+        state_dir: &TempDir,
+    ) -> NamedTempFile {
         let mut config_file = NamedTempFile::new().unwrap();
         let key_path = signing_key_path(key_type);
+        let state_path = state_dir.path().join("state.json").display().to_string();
         writeln!(
             config_file,
             r#"
             [[chain]]
             id = "test_chain_id"
             key_format = {{ type = "bech32", account_key_prefix = "cosmospub", consensus_key_prefix = "cosmosvalconspub" }}
+            state_file = "{state_path}"
 
             [[validator]]
             addr = "unix://{socket_path}"

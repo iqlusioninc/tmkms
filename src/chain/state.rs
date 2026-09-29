@@ -189,13 +189,7 @@ impl State {
 
         let json = serde_json::to_string(&self.consensus_state)?;
 
-        let state_file_dir = self.state_file_path.parent().unwrap_or_else(|| {
-            panic!("state file cannot be root directory");
-        });
-
-        let mut state_file = NamedTempFile::new_in(state_file_dir)?;
-        state_file.write_all(json.as_bytes())?;
-        state_file.persist(&self.state_file_path)?;
+        atomic_durable_write(&self.state_file_path, json.as_bytes())?;
 
         debug!(
             "successfully wrote new consensus state to {}",
@@ -204,6 +198,40 @@ impl State {
 
         Ok(())
     }
+}
+
+/// Atomically replace the file at `path` with the given contents, durably:
+/// the contents are fsynced before the atomic rename and the parent
+/// directory is fsynced after it, so the replacement survives a crash or
+/// power loss once this function returns.
+fn atomic_durable_write(path: &Path, contents: &[u8]) -> io::Result<()> {
+    // A bare relative filename has an empty parent, which means the current
+    // directory for opening/fsyncing purposes.
+    let dir = match path.parent() {
+        Some(dir) if dir.as_os_str().is_empty() => Path::new("."),
+        Some(dir) => dir,
+        None => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "path has no parent directory",
+            ));
+        }
+    };
+
+    let mut file = NamedTempFile::new_in(dir)?;
+    file.write_all(contents)?;
+    // Flush the contents to stable storage before the rename; `persist` alone
+    // only guarantees atomicity, not durability. On Apple targets `sync_all`
+    // issues `fcntl(F_FULLFSYNC)`, which is required for media durability there.
+    file.as_file().sync_all()?;
+    file.persist(path)?;
+
+    // The rename itself is only durable once the parent directory entry is
+    // flushed, which POSIX requires an fsync of the directory for.
+    #[cfg(unix)]
+    fs::File::open(dir)?.sync_all()?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -311,4 +339,64 @@ mod tests {
         state!(1, 1, 2, None),
         state!(1, 1, 2, block_id!(EXAMPLE_BLOCK_ID))
     );
+
+    #[test]
+    fn atomic_durable_write_creates_file_with_contents() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.json");
+
+        atomic_durable_write(&path, b"{\"height\":\"1\"}").unwrap();
+
+        assert_eq!(fs::read(&path).unwrap(), b"{\"height\":\"1\"}");
+    }
+
+    #[test]
+    fn atomic_durable_write_replaces_existing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.json");
+        fs::write(&path, b"old contents").unwrap();
+
+        atomic_durable_write(&path, b"new contents").unwrap();
+
+        assert_eq!(fs::read(&path).unwrap(), b"new contents");
+    }
+
+    #[test]
+    fn atomic_durable_write_leaves_no_temp_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.json");
+
+        atomic_durable_write(&path, b"contents").unwrap();
+
+        let names: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        assert_eq!(names, vec!["state.json"]);
+    }
+
+    #[test]
+    fn atomic_durable_write_accepts_bare_relative_path() {
+        struct RemoveOnDrop(&'static str);
+        impl Drop for RemoveOnDrop {
+            fn drop(&mut self) {
+                let _ = fs::remove_file(self.0);
+            }
+        }
+        let path = "atomic_durable_write_bare_relative_test.json";
+        let _cleanup = RemoveOnDrop(path);
+
+        atomic_durable_write(Path::new(path), b"contents").unwrap();
+
+        assert_eq!(fs::read(path).unwrap(), b"contents");
+    }
+
+    #[test]
+    fn atomic_durable_write_errors_when_parent_dir_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("missing_subdir").join("state.json");
+
+        atomic_durable_write(&path, b"contents")
+            .expect_err("expected error when parent directory does not exist");
+    }
 }
