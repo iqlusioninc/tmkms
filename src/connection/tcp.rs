@@ -32,7 +32,8 @@ pub fn open_secret_connection(
         )
     })?;
 
-    let identity_key = IdentitySecret::from(key_utils::load_identity_key(identity_key_path)?);
+    let identity_key =
+        IdentitySecret::from(*key_utils::load_identity_key(identity_key_path)?.as_bytes());
     info!("KMS node ID: {}", PublicKey::from(&identity_key));
 
     let socket = TcpStream::connect(format!("{host}:{port}"))?;
@@ -47,22 +48,21 @@ pub fn open_secret_connection(
     let actual_peer_id = connection.peer_public_key().peer_id();
 
     // TODO(tarcieri): move this into `SecretConnection::new`
-    if let Some(expected_peer_id) = peer_id {
-        if expected_peer_id
+    if let Some(expected_peer_id) = peer_id
+        && expected_peer_id
             .as_bytes()
             .ct_eq(actual_peer_id.as_bytes())
             .unwrap_u8()
             == 0
-        {
-            fail!(
-                VerificationError,
-                "{}:{}: validator peer ID mismatch! (expected {}, got {})",
-                host,
-                port,
-                expected_peer_id,
-                actual_peer_id
-            );
-        }
+    {
+        fail!(
+            VerificationError,
+            "{}:{}: validator peer ID mismatch! (expected {}, got {})",
+            host,
+            port,
+            expected_peer_id,
+            actual_peer_id
+        );
     }
 
     Ok(connection)

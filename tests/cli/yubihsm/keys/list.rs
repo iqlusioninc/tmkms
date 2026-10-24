@@ -14,8 +14,10 @@ fn keys_command_test() {
     let out = cli::run_successfully(args.as_slice());
 
     assert!(out.status.success());
-    assert!(out.stdout.is_empty());
-
-    let stderr = str::from_utf8(&out.stderr).unwrap().trim().to_owned();
-    assert!(stderr.contains("no keys in this YubiHSM"));
+    let stdout = str::from_utf8(&out.stdout).unwrap().trim().to_owned();
+    assert_eq!(
+        stdout,
+        "Listing keys in YubiHSM #0123456789:\n- 0x0000: unsupported algorithm: EcP256"
+    );
+    assert!(out.stderr.is_empty());
 }

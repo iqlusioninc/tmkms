@@ -7,7 +7,7 @@ use clap::Parser;
 use getrandom::getrandom;
 use hkd32::{KeyMaterial, mnemonic};
 use hkdf::Hkdf;
-use sha2::Sha512;
+use sha2_0_10::Sha512;
 use std::{
     fs::File,
     io::{self, Write},
@@ -467,7 +467,8 @@ fn construct_derivation_path(path: &[&[u8]]) -> Vec<u8> {
 fn create_object_label(label_prefix: &str) -> object::Label {
     // e.g. 2019-02-26T18:03:53Z
     let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true);
-    object::Label::from([label_prefix, &timestamp].join(":").as_ref())
+    object::Label::from_bytes([label_prefix, &timestamp].join(":").as_bytes())
+        .expect("generated object label exceeds 40 bytes")
 }
 
 /// Prompt the user to ensure they want to proceed

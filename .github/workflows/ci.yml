@@ -24,7 +24,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - 1.85.0 # MSRV
+          - 1.88.0 # MSRV
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -43,7 +43,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - 1.85.0 # MSRV
+          - 1.88.0 # MSRV
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

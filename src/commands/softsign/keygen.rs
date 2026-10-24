@@ -52,7 +52,14 @@ impl Runnable for KeygenCommand {
 
 /// Randomly generate a Base64-encoded secp256k1 key and store it at the given path
 fn generate_secp256k1_key(output_path: &Path) {
-    let signing_key = ecdsa::SigningKey::random(&mut OsRng);
+    let signing_key = loop {
+        let mut key_bytes = [0u8; 32];
+        OsRng.fill_bytes(&mut key_bytes);
+
+        if let Ok(signing_key) = ecdsa::SigningKey::from_bytes(&key_bytes.into()) {
+            break signing_key;
+        }
+    };
 
     key_utils::write_base64_secret(output_path, &signing_key.to_bytes()).unwrap_or_else(|e| {
         status_err!("{}", e);
