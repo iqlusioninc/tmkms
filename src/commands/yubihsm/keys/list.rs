@@ -6,8 +6,7 @@ use clap::Parser;
 use cometbft::{CometbftKey, PublicKey};
 use std::{path::PathBuf, process};
 
-#[allow(deprecated)]
-use k256::elliptic_curve::generic_array::GenericArray;
+use k256::elliptic_curve::sec1::Sec1Point;
 
 /// The `yubihsm keys list` subcommand
 #[derive(Command, Debug, Default, Parser)]
@@ -64,13 +63,12 @@ fn load_key_formatters() -> Map<u16, keyring::Format> {
 
     for key_config in &cfg.keys {
         // Only use a preferred formatting if there is one chain per key
-        if key_config.chain_ids.len() == 1 {
-            if let Some(formatter) = chain_formatters.get(&key_config.chain_ids[0]) {
-                if map.insert(key_config.key, formatter.clone()).is_some() {
-                    status_err!("duplicate YubiHSM config for key: 0x{:04x}", key_config.key);
-                    process::exit(1);
-                }
-            }
+        if key_config.chain_ids.len() == 1
+            && let Some(formatter) = chain_formatters.get(&key_config.chain_ids[0])
+            && map.insert(key_config.key, formatter.clone()).is_some()
+        {
+            status_err!("duplicate YubiHSM config for key: 0x{:04x}", key_config.key);
+            process::exit(1);
         }
     }
 
@@ -125,12 +123,14 @@ fn display_key_info(
 
     let cometbft_key = match public_key.algorithm {
         yubihsm::asymmetric::Algorithm::EcK256 => {
-            #[allow(deprecated)]
-            let pk = GenericArray::from_slice(public_key.as_ref());
-
             // The YubiHSM2 returns the uncompressed public key, so for
             // compatibility with Tendermint, we have to compress it first
-            let compressed_pubkey = k256::EncodedPoint::from_untagged_bytes(pk).compress();
+            let mut uncompressed_pubkey = [0u8; 65];
+            uncompressed_pubkey[0] = 0x04;
+            uncompressed_pubkey[1..].copy_from_slice(public_key.as_ref());
+            let compressed_pubkey = Sec1Point::<k256::Secp256k1>::from_bytes(uncompressed_pubkey)
+                .expect("invalid secp256k1 public key")
+                .compress();
 
             CometbftKey::AccountKey(
                 PublicKey::from_raw_secp256k1(compressed_pubkey.as_ref()).unwrap(),

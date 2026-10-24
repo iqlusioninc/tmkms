@@ -130,10 +130,10 @@ impl KeyRing {
     /// Get ECDSA public key bytes for a given account ID
     pub fn get_account_pubkey(&self, account_id: account::Id) -> Option<cometbft::PublicKey> {
         for key in self.ecdsa_keys.keys() {
-            if let CometbftKey::AccountKey(pk) = key {
-                if account_id == account::Id::from(*pk) {
-                    return Some(*pk);
-                }
+            if let CometbftKey::AccountKey(pk) = key
+                && account_id == account::Id::from(*pk)
+            {
+                return Some(*pk);
             }
         }
 
@@ -147,10 +147,10 @@ impl KeyRing {
         msg: &[u8],
     ) -> Result<ecdsa::Signature, Error> {
         for (key, signer) in &self.ecdsa_keys {
-            if let CometbftKey::AccountKey(pk) = key {
-                if account_id == account::Id::from(*pk) {
-                    return signer.sign(msg);
-                }
+            if let CometbftKey::AccountKey(pk) = key
+                && account_id == account::Id::from(*pk)
+            {
+                return signer.sign(msg);
             }
         }
 

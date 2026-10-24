@@ -101,16 +101,17 @@ impl Runnable for GenerateCommand {
         }
 
         let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true);
-        let label = yubihsm::object::Label::from(
-            match self.label {
-                Some(ref l) => l.to_owned(),
-                None => match self.bech32_prefix {
-                    Some(ref prefix) => format!("{prefix}:{timestamp}"),
-                    None => format!("{key_type}:{timestamp}"),
-                },
-            }
-            .as_ref(),
-        );
+        let label = match self.label {
+            Some(ref l) => l.to_owned(),
+            None => match self.bech32_prefix {
+                Some(ref prefix) => format!("{prefix}:{timestamp}"),
+                None => format!("{key_type}:{timestamp}"),
+            },
+        };
+        let label = yubihsm::object::Label::from_bytes(label.as_bytes()).unwrap_or_else(|e| {
+            status_err!("invalid object label: {}", e);
+            process::exit(1);
+        });
 
         let algorithm = match key_type {
             KeyType::Account => yubihsm::asymmetric::Algorithm::EcK256,
@@ -131,7 +132,7 @@ impl Runnable for GenerateCommand {
         match key_type {
             KeyType::Account => {
                 // TODO(tarcieri): generate and show account ID (fingerprint)
-                status_ok!("Generated", "account (secp256k1) key 0x{:04x}", key_id)
+                status_ok!("Generated", "account (secp256k1) key 0x{:04x}", key_id);
             }
             KeyType::Consensus => {
                 // TODO(tarcieri): use KeyFormat (when available) to format Bech32
@@ -155,7 +156,7 @@ impl Runnable for GenerateCommand {
                     "consensus (ed25519) key 0x{:04x}: {}",
                     key_id,
                     public_key_string
-                )
+                );
             }
         }
 

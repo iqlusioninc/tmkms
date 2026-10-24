@@ -184,7 +184,8 @@ impl KmsProcess {
         match self.socket {
             KmsSocket::TCP(ref sock) => {
                 // we use the same key for both sides:
-                let identity_key = IdentitySecret::from(test_ed25519_identity_keypair());
+                let identity_key =
+                    IdentitySecret::from(*test_ed25519_identity_keypair().as_bytes());
 
                 // Here we reply to the kms with a "remote" ephemeral key, auth signature etc:
                 let socket_cp = sock.try_clone().unwrap();

@@ -39,7 +39,8 @@ impl From<VerifyingKey> for cometbft_p2p::PublicKey {
 
 impl From<&VerifyingKey> for cometbft_p2p::PublicKey {
     fn from(verifying_key: &VerifyingKey) -> cometbft_p2p::PublicKey {
-        verifying_key.0.into()
+        cometbft_p2p::PublicKey::from_raw_ed25519(verifying_key.as_bytes())
+            .expect("invalid Ed25519 key")
     }
 }
 

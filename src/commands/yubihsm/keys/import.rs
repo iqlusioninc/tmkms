@@ -176,7 +176,17 @@ impl ImportCommand {
             _ => unreachable!(),
         };
 
-        let label = object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
+        let label = object::Label::from_bytes(
+            self.label
+                .as_ref()
+                .map(|l| l.as_ref())
+                .unwrap_or("")
+                .as_bytes(),
+        )
+        .unwrap_or_else(|e| {
+            status_err!("invalid object label: {}", e);
+            process::exit(1);
+        });
 
         if let Err(e) = crate::yubihsm::client().put_asymmetric_key(
             key_id,
@@ -226,7 +236,17 @@ impl ImportCommand {
             process::exit(1);
         });
 
-        let label = object::Label::from(self.label.as_ref().map(|l| l.as_ref()).unwrap_or(""));
+        let label = object::Label::from_bytes(
+            self.label
+                .as_ref()
+                .map(|l| l.as_ref())
+                .unwrap_or("")
+                .as_bytes(),
+        )
+        .unwrap_or_else(|e| {
+            status_err!("invalid object label: {}", e);
+            process::exit(1);
+        });
 
         if let Err(e) = crate::yubihsm::client().put_asymmetric_key(
             key_id,
