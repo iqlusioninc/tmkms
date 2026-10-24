@@ -131,7 +131,7 @@ impl Runnable for GenerateCommand {
         match key_type {
             KeyType::Account => {
                 // TODO(tarcieri): generate and show account ID (fingerprint)
-                status_ok!("Generated", "account (secp256k1) key 0x{:04x}", key_id)
+                status_ok!("Generated", "account (secp256k1) key 0x{:04x}", key_id);
             }
             KeyType::Consensus => {
                 // TODO(tarcieri): use KeyFormat (when available) to format Bech32
@@ -155,7 +155,7 @@ impl Runnable for GenerateCommand {
                     "consensus (ed25519) key 0x{:04x}: {}",
                     key_id,
                     public_key_string
-                )
+                );
             }
         }
 
